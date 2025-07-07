@@ -10,7 +10,7 @@ public class JoystickPlayerExample : MonoBehaviour
 
     public void FixedUpdate()
     {
-        Vector3 direction = Vector3.forward * variableJoystick.Vertical + Vector3.right * variableJoystick.Horizontal;
+        Vector3 direction = Vector3.forward * variableJoystick.vertical + Vector3.right * variableJoystick.horizontal;
         rb.AddForce(direction * speed * Time.fixedDeltaTime, ForceMode.VelocityChange);
     }
 }
