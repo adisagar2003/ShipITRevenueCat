@@ -39,5 +39,7 @@ public class PlayerMovement : MonoBehaviour
         desiredVelocity.y = rb.velocity.y;
 
         rb.velocity = Vector3.ClampMagnitude(desiredVelocity, maxSpeed);
+        Quaternion directionPlayerShouldTurn = Quaternion.LookRotation(moveDirection);
+        if (moveDirection.magnitude != 0) rb.rotation = directionPlayerShouldTurn;
     }
 }
