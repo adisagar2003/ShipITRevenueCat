@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Netcode;
 
-public class SphereMovement : MonoBehaviour
+public class SphereMovement : NetworkBehaviour
 {
     private Rigidbody rb;
     private Vector3 moveDirection;
@@ -19,6 +20,7 @@ public class SphereMovement : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (!IsOwner) return;
         float horizontal = Input.GetAxis("Horizontal");
         float vertical = Input.GetAxis("Vertical");
         // Calculate movement direction
@@ -27,11 +29,13 @@ public class SphereMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (!IsOwner) return;
         ApplyMovement();
     }
 
     void ApplyMovement()
     {
+        
         if (moveDirection.magnitude > 0.1f)
         {
             // Calculate force to apply
