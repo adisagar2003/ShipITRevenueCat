@@ -1,6 +1,7 @@
 using UnityEngine;
+using Unity.Netcode;
 
-public class InputHandler : MonoBehaviour
+public class InputHandler : NetworkBehaviour
 {
     private LookCommand lookCommand;
     private MoveCommand moveCommand;
@@ -12,8 +13,9 @@ public class InputHandler : MonoBehaviour
 
     void Start()
     {
-        joystickDetection = FindFirstObjectByType<JoystickDetection>();
-        playerMovement = FindAnyObjectByType<PlayerMovement>();
+        
+        joystickDetection = GetComponent<JoystickDetection>();
+        playerMovement = GetComponent<PlayerMovement>();
 
         lookCommand = new LookCommand(cameraLook, mouseLookWithTouch);
         moveCommand = new MoveCommand(playerMovement, joystickDetection);

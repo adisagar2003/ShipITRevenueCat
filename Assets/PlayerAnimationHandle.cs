@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Netcode;
 
-public class PlayerAnimationHandle : MonoBehaviour
+public class PlayerAnimationHandle : NetworkBehaviour
 {
     private Rigidbody rb;
     private Animator animator;
@@ -11,11 +12,14 @@ public class PlayerAnimationHandle : MonoBehaviour
     private void Start()
     {
         rb = GetComponentInChildren<Rigidbody>();
+
+        if (!IsOwner) return;
         animator = GetComponentInChildren<Animator>();
     }
 
     private void Update()
     {
+        if (!IsOwner) return;
         HandleSprintAnimation();
     }
 
