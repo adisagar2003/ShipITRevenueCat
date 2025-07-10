@@ -17,14 +17,6 @@ public class PlayerAnimationHandle : NetworkBehaviour
     {
         debugString = $"[{name}] IsOwner: {IsOwner}\n";
 
-        #if multiplayer
-                if (!IsOwner)
-                {
-                    debugString += $"[{name}] Not owner, skipping Start initialization.\n";
-                    return;
-                }
-        #endif
-
         // Get Rigidbody
         rb = GetComponent<Rigidbody>();
         if (rb != null)
@@ -33,24 +25,23 @@ public class PlayerAnimationHandle : NetworkBehaviour
         }
         else
         {
-            debugString += $"Rigidbody not found on same GameObject, searching in children...\n";
-            rb = GetComponentInChildren<Rigidbody>();
+            debugString += $"Rigidbody not found on same GameObject, searching in parent...\n";
+            rb = GetComponentInParent<Rigidbody>();
             if (rb != null)
             {
-                debugString += $"Rigidbody found in children: {rb.name}\n";
+                debugString += $"Rigidbody found in parent: {rb.name}\n";
             }
             else
             {
-                debugString += $"ERROR: Rigidbody not found on player or its children.\n";
+                debugString += $"ERROR: Rigidbody not found on player or its parent.\n";
             }
         }
 
         // Get Animator
-        debugString += $"Animator not found on same GameObject, searching in children...\n";
         animator = GetComponentInChildren<Animator>();
         if (animator != null)
         {
-            debugString += $"Animator found in children: {animator.name}\n";
+            debugString += $"Animator found: {animator.name}\n";
         }
         else
         {
@@ -68,25 +59,11 @@ public class PlayerAnimationHandle : NetworkBehaviour
                 }
         #endif
         debugString = $"[{name}] IsOwner: {IsOwner}\n";
-
-        HandleSprintAnimation();
-        if (rb != null)
-        {
-            debugString += $"Velocity: {rb.velocity} (Magnitude: {rb.velocity.magnitude:F2})\n";
-        }
-        else
-        {
-            debugString += $"Rigidbody is null.\n";
-        }
-
         if (animator != null)
         {
-            debugString += $"Animator 'isRunning': {animator.GetBool("isRunning")}\n";
+            debugString += $"Animator: {animator.name}\n";
         }
-        else
-        {
-            debugString += $"Animator is null.\n";
-        }
+        HandleSprintAnimation();
     }
 
     private void HandleSprintAnimation()
@@ -96,16 +73,27 @@ public class PlayerAnimationHandle : NetworkBehaviour
             debugString += $"Cannot handle sprint animation, missing references.\n";
             return;
         }
+
         bool isRunning = rb.velocity.magnitude > minSpeedThreshold;
-        debugString += $" handle sprint animation, {isRunning}.\n";
+        debugString += $"Calculated isRunning: {isRunning}\n";
         animator.SetBool("isRunning", isRunning);
+        SubmitIsRunningServerRpc(isRunning);
+    }
+
+    [ServerRpc]
+    private void SubmitIsRunningServerRpc(bool isRunning)
+    {
+        debugString += $"[Server] Setting isRunning to: {isRunning}\n";
+        animator.SetBool("isRunning", isRunning);
+
     }
 
     private void OnGUI()
     {
-        #if multiplayer
-                if (!IsOwner) return;
-        #endif
+#if multiplayer
+        if (!IsOwner) return;
+#endif
+
         GUI.Label(new Rect(20, 10, 600, 200), debugString);
     }
 }
