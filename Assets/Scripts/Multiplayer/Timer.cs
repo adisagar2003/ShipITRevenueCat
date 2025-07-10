@@ -50,6 +50,7 @@ public class Timer : NetworkBehaviour
         timerRunning = true;
         Debug.Log("Timer started.");
     }
+
     public void StopTimer()
     {
         if (!IsServer) return;

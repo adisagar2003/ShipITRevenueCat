@@ -5,8 +5,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Development specific class to check if input is running or nah
-/// 
+/// Development-specific class to check if input is running or not.
 /// </summary>
 public class JoystickDetection : MonoBehaviour
 {
@@ -29,7 +28,7 @@ public class JoystickDetection : MonoBehaviour
 
     private void MoveCanceled(InputAction.CallbackContext obj)
     {
-        inputValue = new Vector2(0, 0);
+        inputValue = Vector2.zero;
         usingKeyboard = false;
     }
 
@@ -38,23 +37,17 @@ public class JoystickDetection : MonoBehaviour
         if (usingJoystick) return;
         usingKeyboard = true;
         inputValue = context.ReadValue<Vector2>();
-
     }
 
     private void Update()
     {
-        // This case I am using joystick,  override inputVal
+        // If using joystick, override inputValue
         CheckForJoystick();
     }
 
     private void CheckForJoystick()
     {
-        if ((fixedJoystick.horizontal < 0.01f && fixedJoystick.vertical < 0.01f) == false)
-        {
-            usingJoystick = true;
-            inputValue = new Vector2(fixedJoystick.horizontal, fixedJoystick.vertical);
-        }
-        else
+        if (fixedJoystick.horizontal < 0.01f && fixedJoystick.vertical < 0.01f)
         {
             usingJoystick = false;
             if (!usingKeyboard)
@@ -62,8 +55,14 @@ public class JoystickDetection : MonoBehaviour
                 inputValue = Vector2.zero;
             }
         }
+        else
+        {
+            usingJoystick = true;
+            inputValue = new Vector2(fixedJoystick.horizontal, fixedJoystick.vertical);
+        }
     }
 
+#if GUIDebug
     private void OnGUI()
     {
         int width = Screen.width, height = Screen.height;
@@ -73,10 +72,10 @@ public class JoystickDetection : MonoBehaviour
         style.alignment = TextAnchor.UpperRight;
         style.fontSize = height / 30;
 
-
         string text = $"Input: [{inputValue.x}, {inputValue.y}]";
         GUI.Label(rect, text, style);
     }
+#endif
 
     public Vector2 GetInputValue()
     {

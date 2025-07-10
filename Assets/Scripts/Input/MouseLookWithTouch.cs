@@ -40,6 +40,8 @@ public class MouseLookWithTouch : MonoBehaviour
 
         lookDelta = (mouseDelta + touchDelta) * sensitivity;
     }
+
+#if GUIDebug
     private void OnGUI()
     {
         if (!debugDraw) return;
@@ -48,6 +50,7 @@ public class MouseLookWithTouch : MonoBehaviour
         GUI.Label(new Rect(10, 30, 500, 20), $"Touch Delta: {touchDelta}");
         GUI.Label(new Rect(10, 50, 500, 20), $"Look Delta: {lookDelta}");
     }
+#endif
 
     public Vector2 GetLookDelta()
     {
