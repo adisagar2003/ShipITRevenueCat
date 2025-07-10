@@ -1,13 +1,15 @@
+#define OnGUI
+
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
-using System;
 
 public class FinishLineTrigger : NetworkBehaviour
 {
-    // register winner here
     private NetworkVariable<ulong> winnerClientId = new NetworkVariable<ulong>(ulong.MaxValue);
+
+    private string resultString = "";
 
     private void OnTriggerEnter(Collider other)
     {
@@ -29,13 +31,30 @@ public class FinishLineTrigger : NetworkBehaviour
     {
         if (NetworkManager.Singleton.LocalClientId == winnerId)
         {
-            Debug.Log("<color=green>You win!</color>");
+            resultString = "<color=green>You Win!</color>";
             // TODO: Switch to victory camera, disable player movement, show win UI
         }
         else
         {
-            Debug.Log("<color=red>You lose!</color>");
+            resultString = "<color=red>You Lose!</color>";
             // TODO: Switch to lose camera, disable player movement, show lose UI
         }
     }
+
+#if OnGUI
+    private void OnGUI()
+    {
+        if (!string.IsNullOrEmpty(resultString))
+        {
+            GUIStyle style = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 40,
+                alignment = TextAnchor.MiddleCenter,
+                richText = true
+            };
+
+            GUI.Label(new Rect(Screen.width / 2 - 150, Screen.height / 2 - 25, 300, 50), resultString, style);
+        }
+    }
+#endif
 }
