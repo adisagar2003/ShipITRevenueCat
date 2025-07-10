@@ -2,7 +2,7 @@
 using UnityEngine;
 using Unity.Netcode;
 
-public class PlayerMovement : NetworkBehaviour
+public class PlayerMovementSinglePlayer : MonoBehaviour
 {
     private Rigidbody rb;
     private Transform cameraTransform;
@@ -12,30 +12,7 @@ public class PlayerMovement : NetworkBehaviour
     private void Start()
     {
         rb = GetComponent<Rigidbody>();
-        SetOwnedCameraOnly();
-    }
-
-
-    /// Ensures that only the local player's camera is active in a multiplayer context.
-    private void SetOwnedCameraOnly()
-    {
-        if (IsOwner)
-        {
-            Camera cam = GetComponentInChildren<Camera>();
-            cameraTransform = cam.transform;
-            if (cam != null)
-            {
-                cam.gameObject.SetActive(true);
-            }
-        }
-        else
-        {
-            Camera cam = GetComponentInChildren<Camera>();
-            if (cam != null)
-            {
-                cam.gameObject.SetActive(false);
-            }
-        }
+        cameraTransform = GetComponentInChildren<Camera>().transform;
     }
 
     public void Move(Vector2 input)
@@ -47,10 +24,8 @@ public class PlayerMovement : NetworkBehaviour
             }
             else
             {
-                Debug.Log("CameraTransform is " + cameraTransform.name);
             }
         #endif
-        if (!IsOwner) return;
 
         // Camera-relative movement
         Vector3 camForward = cameraTransform.forward;
@@ -62,9 +37,6 @@ public class PlayerMovement : NetworkBehaviour
         camRight.Normalize();
 
         Vector3 moveDirection = camForward * input.y + camRight * input.x;
-        #if DEBUGGING
-                Debug.Log("Move  direction " + moveDirection);
-        #endif
         Vector3 desiredVelocity = moveDirection * moveSpeed;
 
         // Maintain Y velocity
@@ -72,13 +44,11 @@ public class PlayerMovement : NetworkBehaviour
 
         rb.velocity = Vector3.ClampMagnitude(desiredVelocity, maxSpeed);
 
-
         if (moveDirection.sqrMagnitude > 0.1f)
         {
             Quaternion directionToFace = Quaternion.LookRotation(moveDirection);
             rb.rotation = directionToFace;
         }
-
 
     }
 }
