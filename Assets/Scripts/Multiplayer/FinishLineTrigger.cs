@@ -4,6 +4,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
+using UnityEngine.SceneManagement;
+using System;
 
 public class FinishLineTrigger : NetworkBehaviour
 {
@@ -39,6 +41,16 @@ public class FinishLineTrigger : NetworkBehaviour
             resultString = "<color=red>You Lose!</color>";
             // TODO: Switch to lose camera, disable player movement, show lose UI
         }
+
+        StartCoroutine(DelayFor3Seconds());
+
+       
+    }
+
+    private IEnumerator DelayFor3Seconds()
+    {
+        yield return new WaitForSeconds(3.0f);
+        NetworkManager.SceneManager.LoadScene(SceneManager.GetActiveScene().name, LoadSceneMode.Single);
     }
 
 #if OnGUI

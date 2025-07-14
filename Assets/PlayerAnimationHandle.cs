@@ -1,3 +1,5 @@
+#define multiplayer
+#define GUIDebug
 using UnityEngine;
 using Unity.Netcode;
 
@@ -8,6 +10,7 @@ public class PlayerAnimationHandle : NetworkBehaviour
 
     [SerializeField] private float minSpeedThreshold = 0.2f;
     [SerializeField, TextArea] private string debugString;
+    private bool previousIsRunning = false;
 
     private NetworkVariable<bool> isRunningNetVar = new NetworkVariable<bool>(
         false,
@@ -17,8 +20,14 @@ public class PlayerAnimationHandle : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        rb = GetComponent<Rigidbody>();
+        rb = GetComponentInParent<Rigidbody>();
         animator = GetComponentInChildren<Animator>();
+
+        if (animator == null)
+            Debug.LogWarning("Animator not found on PlayerAnimationHandle!");
+
+        if (rb == null)
+            Debug.LogWarning("Rigidbody not found on PlayerAnimationHandle!");
 
         isRunningNetVar.OnValueChanged += (oldVal, newVal) =>
         {
@@ -29,7 +38,6 @@ public class PlayerAnimationHandle : NetworkBehaviour
             }
         };
     }
-
     private void Update()
     {
 #if multiplayer
@@ -43,13 +51,21 @@ public class PlayerAnimationHandle : NetworkBehaviour
         if (rb == null) return;
 
         bool localIsRunning = rb.velocity.magnitude > minSpeedThreshold;
-        SubmitIsRunningServerRpc(localIsRunning);
+        if (localIsRunning != previousIsRunning)
+        {
+            SubmitIsRunningServerRpc();
+            previousIsRunning = localIsRunning;
+        }
     }
 
     [ServerRpc]
-    private void SubmitIsRunningServerRpc(bool isRunning)
+    private void SubmitIsRunningServerRpc()
     {
-        isRunningNetVar.Value = isRunning;
+        if (rb == null) return;
+
+        // Server decides if player is running based on authoritative velocity
+        bool serverIsRunning = rb.velocity.magnitude > minSpeedThreshold;
+        isRunningNetVar.Value = serverIsRunning;
     }
 
 #if GUIDebug
