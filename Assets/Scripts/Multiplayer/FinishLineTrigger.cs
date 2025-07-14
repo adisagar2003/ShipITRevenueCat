@@ -42,15 +42,15 @@ public class FinishLineTrigger : NetworkBehaviour
             // TODO: Switch to lose camera, disable player movement, show lose UI
         }
 
-        StartCoroutine(DelayFor3Seconds());
-
-       
-    }
-
-    private IEnumerator DelayFor3Seconds()
-    {
-        yield return new WaitForSeconds(3.0f);
-        NetworkManager.SceneManager.LoadScene(SceneManager.GetActiveScene().name, LoadSceneMode.Single);
+        // Only the server calls ForceResetScene
+        if (IsServer)
+        {
+            GameManager gm = FindObjectOfType<GameManager>();
+            if (gm != null)
+            {
+                gm.ForceResetScene();
+            }
+        }
     }
 
 #if OnGUI
