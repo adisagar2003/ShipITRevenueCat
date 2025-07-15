@@ -24,6 +24,10 @@ public class Toggler : MonoBehaviour
     [SerializeField] private Button leftButton;
     [SerializeField] private Button rightButton;
 
+    private int selectedHatIndex;
+    private int selectedBodyIndex;
+    private int selectedHeadIndex;
+
     private void Awake()
     {
         if (leftButton != null)
@@ -79,6 +83,13 @@ public class Toggler : MonoBehaviour
                     targetRenderer.sharedMesh = meshOptions[currentIndex];
                 break;
         }
+
+
+        // ---- THIS IS NOT MULTIPLAYER SAFE! BAD REAL BAD CHANGE LATER ---- 
+        PlayerPrefs.SetInt("HatIndex", selectedHatIndex);
+        PlayerPrefs.SetInt("BodyIndex", selectedBodyIndex);
+        PlayerPrefs.SetInt("HeadIndex", selectedHeadIndex);
+        PlayerPrefs.Save();
 
         if (previewImage != null && previewSprites.Count > 0)
         {
