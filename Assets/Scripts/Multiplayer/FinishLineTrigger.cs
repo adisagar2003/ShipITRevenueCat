@@ -1,5 +1,4 @@
 #define OnGUI
-
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -26,6 +25,7 @@ public class FinishLineTrigger : NetworkBehaviour
         Debug.Log($"Player with ClientId {netObj.OwnerClientId} has finished first!");
 
         NotifyClientsWinnerClientRpc(netObj.OwnerClientId);
+       
     }
 
     [ClientRpc]

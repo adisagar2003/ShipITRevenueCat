@@ -35,13 +35,13 @@ public class SpawnManager : NetworkBehaviour
         {
             spawnPoints.Add(spawnPointObj.transform);
         }
-        // Initialize occupation tracking
-        occupiedSpawnPoints = new List<bool>(new bool[spawnPoints.Count]);
     }
 
     public Transform GetRandomAvailableSpawnPoint()
     {
         List<int> availableIndices = new List<int>();
+        // Initialize occupation tracking
+        occupiedSpawnPoints = new List<bool>(new bool[spawnPoints.Count]);
         // Find all available spawn points
         for (int i = 0; i < spawnPoints.Count; i++)
         {

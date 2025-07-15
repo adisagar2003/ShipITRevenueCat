@@ -2,10 +2,19 @@
 
 using UnityEngine;
 using Unity.Netcode;
+using Unity.Netcode.Components;
 
+[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(NetworkTransform))]
 public class SetSpawnLocation : NetworkBehaviour
 {
     private Transform assignedSpawnPoint;
+    private Rigidbody rb;
+
+    private void Awake()
+    {
+        rb = GetComponent<Rigidbody>();
+    }
 
     public override void OnNetworkSpawn()
     {
@@ -14,31 +23,22 @@ public class SetSpawnLocation : NetworkBehaviour
             AssignNewSpawnPosition();
         }
     }
+
     public void AssignNewSpawnPosition()
     {
         assignedSpawnPoint = SpawnManager.Instance.GetRandomAvailableSpawnPoint();
+
         if (assignedSpawnPoint != null)
         {
-            Debug.Log($"[Server] Assigning spawn position at {assignedSpawnPoint.position}");
-            transform.position = assignedSpawnPoint.position;
-            transform.rotation = assignedSpawnPoint.rotation;
+            Debug.Log($"[Server] Assigning spawn position at {assignedSpawnPoint.position} for ClientID {OwnerClientId}");
 
-            UpdatePositionClientRpc(assignedSpawnPoint.position, assignedSpawnPoint.rotation);
+            // Server sets authoritative position; NetworkTransform will sync to clients automatically
+            rb.position = assignedSpawnPoint.position;
+            rb.rotation = assignedSpawnPoint.rotation;
         }
         else
         {
             Debug.LogWarning("[Server] No available spawn point found!");
-        }
-    }
-
-    [ClientRpc]
-    private void UpdatePositionClientRpc(Vector3 position, Quaternion rotation)
-    {
-        if (!IsServer)
-        {
-            Debug.Log($"[ClientRpc] Updating position to {position}");
-            transform.position = position;
-            transform.rotation = rotation;
         }
     }
 
@@ -49,4 +49,11 @@ public class SetSpawnLocation : NetworkBehaviour
             SpawnManager.Instance.FreeSpawnPoint(assignedSpawnPoint);
         }
     }
+
+#if OnGUI
+    private void OnGUI()
+    {
+        GUI.Label(new Rect(10, 10, 500, 20), $"Spawned at: {assignedSpawnPoint?.position ?? Vector3.zero}");
+    }
+#endif
 }

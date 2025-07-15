@@ -1,5 +1,4 @@
 #define multiplayer
-#define GUIDebug
 using UnityEngine;
 using Unity.Netcode;
 
