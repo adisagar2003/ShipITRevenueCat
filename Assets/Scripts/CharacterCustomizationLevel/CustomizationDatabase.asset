@@ -16,7 +16,6 @@ MonoBehaviour:
   - {fileID: 8666717935030307909, guid: 0b28fbfd7d6025545b506d849925c699, type: 3}
   - {fileID: 6098901712419440958, guid: a5295b638ad410549bed214ad5b85605, type: 3}
   - {fileID: 7547414896248406967, guid: d30e4c6676fa48c4ca248df91aa80b6c, type: 3}
-  - {fileID: 0}
   bodyMaterials: []
   headMaterials: []
   bodyMeshes:
