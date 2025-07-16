@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6335fbcb790ed8408f9c707ae905677, type: 3}
+  m_Name: CustomizationDatabase
+  m_EditorClassIdentifier: 
+  glassPrefabs:
+  - {fileID: 8666717935030307909, guid: 0b28fbfd7d6025545b506d849925c699, type: 3}
+  - {fileID: 6098901712419440958, guid: a5295b638ad410549bed214ad5b85605, type: 3}
+  - {fileID: 7547414896248406967, guid: d30e4c6676fa48c4ca248df91aa80b6c, type: 3}
+  - {fileID: 0}
+  bodyMaterials: []
+  headMaterials: []
+  bodyMeshes:
+  - {fileID: 988656143610355917, guid: af3d64d385a47bb4bae65f94d310da1f, type: 3}
+  - {fileID: 988656143610355917, guid: ffc17741b4b23114788e0d99d08c7615, type: 3}
+  - {fileID: 988656143610355917, guid: 94f78e7f9cab0da4d959dd623880a15f, type: 3}
+  headMeshes:
+  - {fileID: -1793059242609255079, guid: 783782717be36554f91b8c5ca04c2454, type: 3}
+  - {fileID: -1793059242609255079, guid: c85387930a7c2bd43b36d7f95d3409ee, type: 3}
+  - {fileID: -1793059242609255079, guid: 1f05a2e85564ca748913d73be559c230, type: 3}

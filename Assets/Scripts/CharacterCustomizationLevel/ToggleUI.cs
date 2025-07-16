@@ -6,27 +6,39 @@ using TMPro;
 
 public class Toggler : MonoBehaviour
 {
-    [SerializeField] private string togglerName;
-    [SerializeField] private Image previewImage;
+    public enum TogglerTypeName
+    {
+        Glasses,
+        BodyMaterial,
+        HeadMaterial,
+        BodyMesh,
+        HeadMesh
+    }
+
+    [Header("Basic Info")]
+    [SerializeField] private TogglerTypeName togglerName;
+    [SerializeField] private Image previewImage; // later implement
     [SerializeField] private TMP_Text headingText;
+    [SerializeField] private GameObject glassGameObjectContainer;
 
-    private int currentIndex = 0;
+    [Header("Database")]
+    [SerializeField] private SOCustomizationDatabase customizationDatabase;
 
-    [SerializeField] private List<GameObject> gameObjectOptions;
-    [SerializeField] private List<Material> materialOptions;
-    [SerializeField] private SkinnedMeshRenderer targetRenderer;
-    [SerializeField] private List<Mesh> meshOptions;
-    [SerializeField] private List<Sprite> previewSprites;
-
-    private enum ToggleType { GameObject, Material, Mesh }
+    private enum ToggleType { Glasses, BodyMaterial, HeadMaterial, BodyMesh, HeadMesh }
     [SerializeField] private ToggleType toggleType;
 
+    [Header("Target Renderer")]
+    [SerializeField] private SkinnedMeshRenderer targetRenderer;
+
+    [Header("Navigation")]
     [SerializeField] private Button leftButton;
     [SerializeField] private Button rightButton;
 
-    private int selectedHatIndex;
-    private int selectedBodyIndex;
-    private int selectedHeadIndex;
+    [Header("For Glasses")]
+    private List<GameObject> sceneGlassesInstances = new List<GameObject>();
+
+
+    private int currentIndex = 0;
 
     private void Awake()
     {
@@ -37,76 +49,113 @@ public class Toggler : MonoBehaviour
             rightButton.onClick.AddListener(MoveRightCircular);
     }
 
+    private void Start()
+    {
+
+        if (toggleType == ToggleType.Glasses)
+        {
+            CacheGlassesInstancesInScene();
+        }
+
+        string prefsKey = $"{togglerName}_Index";
+        int savedIndex = PlayerPrefs.GetInt(prefsKey, 0);
+        if (savedIndex >= 0 && savedIndex < GetOptionCount())
+        {
+            currentIndex = savedIndex;
+        }
+
+        ApplySelection();
+
+        if (headingText != null)
+        {
+            headingText.text = togglerName.ToString();
+        }
+    }
+
+    private void CacheGlassesInstancesInScene()
+    {
+        Debug.Log("Caching objeccts");
+        foreach (var prefab in customizationDatabase.glassPrefabs)
+        {
+            
+            string targetName = prefab.name;
+            Transform found = glassGameObjectContainer.transform.Find(targetName);
+            if (found != null)
+            {
+                Debug.Log("Now getting the cached item here" + found.ToString());
+                sceneGlassesInstances.Add(found.gameObject);
+                found.gameObject.SetActive(false); // Ensure all are disabled initially
+            }
+            else
+            {
+                Debug.LogWarning($"Glasses object named '{targetName}' not found in hierarchy under {transform.name}.");
+            }
+        }
+    }
+
     public void MoveLeftCircular()
     {
         currentIndex = (currentIndex - 1 + GetOptionCount()) % GetOptionCount();
         ApplySelection();
+        SaveSelection();
     }
 
     public void MoveRightCircular()
     {
         currentIndex = (currentIndex + 1) % GetOptionCount();
         ApplySelection();
+        SaveSelection();
     }
 
     private int GetOptionCount()
     {
-        switch (toggleType)
+        return toggleType switch
         {
-            case ToggleType.GameObject:
-                return gameObjectOptions.Count;
-            case ToggleType.Material:
-                return materialOptions.Count;
-            case ToggleType.Mesh:
-                return meshOptions.Count;
-            default:
-                return 0;
-        }
+            ToggleType.Glasses => customizationDatabase.glassPrefabs.Count,
+            ToggleType.BodyMaterial => customizationDatabase.bodyMaterials.Count,
+            ToggleType.HeadMaterial => customizationDatabase.headMaterials.Count,
+            ToggleType.BodyMesh => customizationDatabase.bodyMeshes.Count,
+            ToggleType.HeadMesh => customizationDatabase.headMeshes.Count,
+            _ => 0
+        };
     }
 
     private void ApplySelection()
     {
         switch (toggleType)
         {
-            case ToggleType.GameObject:
-                for (int i = 0; i < gameObjectOptions.Count; i++)
-                    gameObjectOptions[i].SetActive(i == currentIndex);
+            case ToggleType.Glasses:
+                for (int i = 0; i < customizationDatabase.glassPrefabs.Count; i++)
+                    customizationDatabase.glassPrefabs[i].SetActive(i == currentIndex);
                 break;
-
-            case ToggleType.Material:
-                if (targetRenderer != null && materialOptions.Count > 0)
-                    targetRenderer.material = materialOptions[currentIndex];
+            case ToggleType.BodyMaterial:
+                if (targetRenderer != null && customizationDatabase.bodyMaterials.Count > 0)
+                    targetRenderer.material = customizationDatabase.bodyMaterials[currentIndex];
                 break;
-
-            case ToggleType.Mesh:
-                if (targetRenderer != null && meshOptions.Count > 0)
-                    targetRenderer.sharedMesh = meshOptions[currentIndex];
+            case ToggleType.HeadMaterial:
+                if (targetRenderer != null && customizationDatabase.headMaterials.Count > 0)
+                    targetRenderer.material = customizationDatabase.headMaterials[currentIndex];
+                break;
+            case ToggleType.BodyMesh:
+                if (targetRenderer != null && customizationDatabase.bodyMeshes.Count > 0)
+                    targetRenderer.sharedMesh = customizationDatabase.bodyMeshes[currentIndex];
+                break;
+            case ToggleType.HeadMesh:
+                if (targetRenderer != null && customizationDatabase.headMeshes.Count > 0)
+                    targetRenderer.sharedMesh = customizationDatabase.headMeshes[currentIndex];
                 break;
         }
 
-
-        // ---- THIS IS NOT MULTIPLAYER SAFE! BAD REAL BAD CHANGE LATER ---- 
-        PlayerPrefs.SetInt("HatIndex", selectedHatIndex);
-        PlayerPrefs.SetInt("BodyIndex", selectedBodyIndex);
-        PlayerPrefs.SetInt("HeadIndex", selectedHeadIndex);
-        PlayerPrefs.Save();
-
-        if (previewImage != null && previewSprites.Count > 0)
+        if (previewImage != null)
         {
-            previewImage.sprite = previewSprites[currentIndex];
+            // Optionally handle preview sprite updates if added to your SO
         }
     }
 
-
-    private void Start()
+    private void SaveSelection()
     {
-        ApplySelection();
-
-        if (headingText != null && !string.IsNullOrEmpty(togglerName))
-        {
-            headingText.text = togglerName;
-        }
+        string prefsKey = $"{togglerName}_Index";
+        PlayerPrefs.SetInt(prefsKey, currentIndex);
+        PlayerPrefs.Save();
     }
-
-
 }
