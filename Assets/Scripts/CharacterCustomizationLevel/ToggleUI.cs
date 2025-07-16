@@ -17,7 +17,7 @@ public class Toggler : MonoBehaviour
 
     [Header("Basic Info")]
     [SerializeField] private TogglerTypeName togglerName;
-    [SerializeField] private Image previewImage; // later implement
+    [SerializeField] private Image previewImage; // later implementation
     [SerializeField] private TMP_Text headingText;
     [SerializeField] private GameObject glassGameObjectContainer;
 
@@ -39,7 +39,6 @@ public class Toggler : MonoBehaviour
 
 
     private int currentIndex = 0;
-
     private void Awake()
     {
         if (leftButton != null)
@@ -125,8 +124,8 @@ public class Toggler : MonoBehaviour
         switch (toggleType)
         {
             case ToggleType.Glasses:
-                for (int i = 0; i < customizationDatabase.glassPrefabs.Count; i++)
-                    customizationDatabase.glassPrefabs[i].SetActive(i == currentIndex);
+                for (int i = 0; i < sceneGlassesInstances.Count; i++)
+                    sceneGlassesInstances[i].SetActive(i == currentIndex);
                 break;
             case ToggleType.BodyMaterial:
                 if (targetRenderer != null && customizationDatabase.bodyMaterials.Count > 0)
