@@ -1,5 +1,3 @@
-#define ONGUI
-
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Services.Core;
@@ -14,11 +12,7 @@ public class SignInPlayerAnonymously : MonoBehaviour
     private string playerId = "Not signed in yet.";
     private string playerName;
 
-    async void Start()
-    {
-        await SignInCachedUserAsync();
-    }
-
+ 
     async System.Threading.Tasks.Task SignInCachedUserAsync()
     {
         try
@@ -52,6 +46,11 @@ public class SignInPlayerAnonymously : MonoBehaviour
         return "Player_" + Random.Range(1000, 9999);
     }
 
+
+    public static bool IsSignedIn()
+    {
+        return AuthenticationService.Instance.IsSignedIn;
+    }
 #if ONGUI
     void OnGUI()
     {

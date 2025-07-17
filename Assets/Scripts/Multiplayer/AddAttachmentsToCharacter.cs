@@ -24,7 +24,7 @@ public class AddAttachmentsToCharacter : NetworkBehaviour
 
     private void ApplyCustomization()
     {
-        // Retrieve saved indices
+        // Retrieve saved indices   
         int bodyIndex = PlayerPrefs.GetInt("Body_Index", 0);
         int headIndex = PlayerPrefs.GetInt("Head_Index", 0);
         int glassesIndex = PlayerPrefs.GetInt("Glasses_Index", 0);
