@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 public class GameInitializer : MonoBehaviour
 {
     public List<Lobby> availableLobbies = new List<Lobby>();
+    private Lobby currentLobby;
 
     async void Start()
     {
