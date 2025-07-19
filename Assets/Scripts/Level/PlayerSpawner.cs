@@ -1,6 +1,10 @@
 using Unity.Netcode;
 using UnityEngine;
 
+// DISABLED: This script conflicts with NetworkManager's automatic player spawning
+// NetworkManager will automatically spawn the PlayerPrefab when clients connect
+// The SetSpawnLocation script will handle positioning the spawned players
+/*
 public class PlayerSpawner : MonoBehaviour
 {
     [SerializeField] private GameObject playerPrefab;
@@ -31,3 +35,4 @@ public class PlayerSpawner : MonoBehaviour
         playerObj.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId, true);
     }
 } 
+*/ 

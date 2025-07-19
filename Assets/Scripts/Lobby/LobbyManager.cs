@@ -18,12 +18,26 @@ public class LobbyManager : MonoBehaviour
     public event LobbiesUpdatedHandler OnLobbiesUpdated;
 
     [SerializeField] private NetworkManager networkManager;
-    [SerializeField] private string gameSceneName = "GameScene";
+    [SerializeField] private string gameSceneName = "RaceLevel";
 
     private Coroutine pollingCoroutine;
 
+    [ContextMenu("Debug Current State")]
+    private void DebugCurrentState()
+    {
+        Debug.Log($"=== LobbyManager Debug Info ===");
+        Debug.Log($"Available Lobbies: {availableLobbies?.Count ?? 0}");
+        Debug.Log($"Current Lobby: {(currentLobby != null ? currentLobby.Name : "None")}");
+        Debug.Log($"Network Manager: {(networkManager != null ? "Assigned" : "NULL!")}");
+        Debug.Log($"Game Scene Name: {gameSceneName}");
+        Debug.Log($"Polling Active: {pollingCoroutine != null}");
+        Debug.Log($"Player ID: {Unity.Services.Authentication.AuthenticationService.Instance?.PlayerId ?? "Not Authenticated"}");
+        Debug.Log("================================");
+    }
+
     private void OnEnable()
     {
+        Debug.Log("LobbyManager enabled - starting polling");
         pollingCoroutine = StartCoroutine(PollLobbiesRoutine());
     }
 
@@ -37,7 +51,8 @@ public class LobbyManager : MonoBehaviour
     {
         while (true)
         {
-            yield return GetAvailableLobbiesAsync();
+            // Start the async task without yielding it directly
+            _ = GetAvailableLobbiesAsync();
             yield return new WaitForSeconds(3f); // Poll every 3 seconds
         }
     }
@@ -49,12 +64,8 @@ public class LobbyManager : MonoBehaviour
         {
             QueryLobbiesOptions options = new QueryLobbiesOptions
             {
-                Filters = new List<QueryFilter>
-                {
-                },
-                Order = new List<QueryOrder>
-                {
-                }
+                Filters = new List<QueryFilter>(),
+                Order = new List<QueryOrder>()
             };
 
             QueryResponse response = await Lobbies.Instance.QueryLobbiesAsync(options);
@@ -70,8 +81,16 @@ public class LobbyManager : MonoBehaviour
         catch (LobbyServiceException e)
         {
             Debug.LogError($"Failed to get lobbies: {e}");
+
+            // Rate limit backoff
+            if (e.Reason == LobbyExceptionReason.RateLimited)
+            {
+                Debug.LogWarning("Rate limit hit, backing off for 15 seconds.");
+                await Task.Delay(15000);
+            }
         }
     }
+
     
     public async void CreateLobbyAsync(string lobbyName = "MyLobby", int maxPlayers = 2)
     {
@@ -168,15 +187,13 @@ public class LobbyManager : MonoBehaviour
     public async void StartGameFromLobby()
     {
         if (currentLobby == null) return;
-        
         if (currentLobby.HostId != Unity.Services.Authentication.AuthenticationService.Instance.PlayerId)
         {
             Debug.Log("Only the host can start the game!");
             return;
         }
-        
+
         Debug.Log("Starting game as host...");
-        
         networkManager.StartHost();
         await Task.Delay(1000);
         await UpdateLobbyWithGameInfo();

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Unity.Netcode;
 
 public class SceneShift : MonoBehaviour
 {
@@ -9,6 +10,6 @@ public class SceneShift : MonoBehaviour
 
     public void MoveToNextLevel()
     {
-        SceneManager.LoadScene(secondSceneName, LoadSceneMode.Single);
+        NetworkManager.Singleton.SceneManager.LoadScene(secondSceneName, LoadSceneMode.Single);
     }
 }

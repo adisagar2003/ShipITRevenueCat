@@ -8,7 +8,7 @@ using Unity.Netcode.Components;
 [RequireComponent(typeof(NetworkTransform))]
 public class SetSpawnLocation : NetworkBehaviour
 {
-    private Transform assignedSpawnPoint;
+    [SerializeField] private Transform assignedSpawnPoint;
     private Rigidbody rb;
 
     private void Awake()
@@ -18,6 +18,8 @@ public class SetSpawnLocation : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
+        Debug.Log($"[SetSpawnLocation] OnNetworkSpawn called for ClientID {OwnerClientId}, IsServer: {IsServer}");
+        
         if (IsServer)
         {
             AssignNewSpawnPosition();
@@ -26,6 +28,12 @@ public class SetSpawnLocation : NetworkBehaviour
 
     public void AssignNewSpawnPosition()
     {
+        if (SpawnManager.Instance == null)
+        {
+            Debug.LogError("[SetSpawnLocation] SpawnManager.Instance is null!");
+            return;
+        }
+
         assignedSpawnPoint = SpawnManager.Instance.GetRandomAvailableSpawnPoint();
 
         if (assignedSpawnPoint != null)
@@ -33,8 +41,15 @@ public class SetSpawnLocation : NetworkBehaviour
             Debug.Log($"[Server] Assigning spawn position at {assignedSpawnPoint.position} for ClientID {OwnerClientId}");
 
             // Server sets authoritative position; NetworkTransform will sync to clients automatically
-            rb.position = assignedSpawnPoint.position;
-            rb.rotation = assignedSpawnPoint.rotation;
+            transform.position = assignedSpawnPoint.position;
+            transform.rotation = assignedSpawnPoint.rotation;
+            
+            // Also set rigidbody position for physics
+            if (rb != null)
+            {
+                rb.position = assignedSpawnPoint.position;
+                rb.rotation = assignedSpawnPoint.rotation;
+            }
         }
         else
         {
@@ -47,13 +62,18 @@ public class SetSpawnLocation : NetworkBehaviour
         if (IsServer && assignedSpawnPoint != null)
         {
             SpawnManager.Instance.FreeSpawnPoint(assignedSpawnPoint);
+            Debug.Log($"[Server] Freed spawn point for ClientID {OwnerClientId}");
         }
     }
 
 #if OnGUI
     private void OnGUI()
     {
-        GUI.Label(new Rect(10, 10, 500, 20), $"Spawned at: {assignedSpawnPoint?.position ?? Vector3.zero}");
+        if (IsOwner) // Only show for the owner
+        {
+            GUI.Label(new Rect(10, 30, 500, 20), $"Spawned at: {assignedSpawnPoint?.position ?? Vector3.zero}");
+            GUI.Label(new Rect(10, 50, 500, 20), $"ClientID: {OwnerClientId}, IsServer: {IsServer}");
+        }
     }
 #endif
 }

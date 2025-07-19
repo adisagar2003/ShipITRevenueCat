@@ -28,17 +28,23 @@ public class SpawnManager : NetworkBehaviour
     }
     private void Start()
     {
+        Debug.Log("[SpawnManager] Start called");
         // Find all spawn points in the scene
         GameObject[] spawnPointObjects = GameObject.FindGameObjectsWithTag("SpawnPoint");
         spawnPoints.Clear();
         foreach (GameObject spawnPointObj in spawnPointObjects)
         {
             spawnPoints.Add(spawnPointObj.transform);
+            Debug.Log($"[SpawnManager] Found spawn point: {spawnPointObj.name} at {spawnPointObj.transform.position}");
         }
+        
+        Debug.Log($"[SpawnManager] Total spawn points found: {spawnPoints.Count}");
     }
 
     public Transform GetRandomAvailableSpawnPoint()
     {
+        Debug.Log($"[SpawnManager] GetRandomAvailableSpawnPoint called. Total spawn points: {spawnPoints.Count}");
+        
         List<int> availableIndices = new List<int>();
         // Initialize occupation tracking
         occupiedSpawnPoints = new List<bool>(new bool[spawnPoints.Count]);
@@ -50,6 +56,9 @@ public class SpawnManager : NetworkBehaviour
                 availableIndices.Add(i);
             }
         }
+        
+        Debug.Log($"[SpawnManager] Available spawn points: {availableIndices.Count}");
+        
         if (availableIndices.Count == 0)
         {
             Debug.LogWarning("No available spawn points!");
@@ -57,7 +66,11 @@ public class SpawnManager : NetworkBehaviour
         }
         int randomIndex = availableIndices[Random.Range(0, availableIndices.Count)];
         occupiedSpawnPoints[randomIndex] = true;
-        return spawnPoints[randomIndex];
+        
+        Transform selectedSpawn = spawnPoints[randomIndex];
+        Debug.Log($"[SpawnManager] Selected spawn point {randomIndex}: {selectedSpawn.name} at {selectedSpawn.position}");
+        
+        return selectedSpawn;
     }
 
     public void FreeSpawnPoint(Transform spawnPoint)
@@ -143,6 +156,23 @@ public class SpawnManager : NetworkBehaviour
             if (testSpawn != null)
             {
                 Debug.Log($"Got spawn point: {testSpawn.name} at {testSpawn.position}");
+            }
+        }
+
+        if (GUILayout.Button("Test NetworkManager Player Spawning"))
+        {
+            if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer)
+            {
+                Debug.Log($"NetworkManager PlayerPrefab: {(NetworkManager.Singleton.NetworkConfig.PlayerPrefab != null ? NetworkManager.Singleton.NetworkConfig.PlayerPrefab.name : "NULL")}");
+                Debug.Log($"Connected Clients: {NetworkManager.Singleton.ConnectedClientsList.Count}");
+                foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
+                {
+                    Debug.Log($"Client {client.ClientId}: PlayerObject = {(client.PlayerObject != null ? client.PlayerObject.name : "NULL")}");
+                }
+            }
+            else
+            {
+                Debug.Log("NetworkManager is null or not server");
             }
         }
 
