@@ -49,20 +49,22 @@ public class GameManager : NetworkBehaviour
             }
         }
 
-        foreach (var networkClient in NetworkManager.Singleton.ConnectedClientsList)
-        {
-            if (!clientsCompleted.Contains(networkClient.ClientId)) continue;
 
-            var playerObject = networkClient.PlayerObject;
-            if (playerObject != null)
-            {
-                var setSpawnLocation = playerObject.GetComponent<SetSpawnLocation>();
-                if (setSpawnLocation != null)
-                {
-                    setSpawnLocation.AssignNewSpawnPosition();
-                }
-            }
-        }
+        // assign spawn location to each provided client
+        //foreach (var networkClient in NetworkManager.Singleton.ConnectedClientsList)
+        //{
+        //    if (!clientsCompleted.Contains(networkClient.ClientId)) continue;
+
+        //    var playerObject = networkClient.PlayerObject;
+        //    if (playerObject != null)
+        //    {
+        //        var setSpawnLocation = playerObject.GetComponent<SetSpawnLocation>();
+        //        if (setSpawnLocation != null)
+        //        {
+        //            setSpawnLocation.AssignNewSpawnPosition();
+        //        }
+        //    }
+        //}
     }
 
     [ContextMenu("Test Force Reset Scene")]

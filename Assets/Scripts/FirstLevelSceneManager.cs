@@ -10,6 +10,6 @@ public class SceneShift : MonoBehaviour
 
     public void MoveToNextLevel()
     {
-        NetworkManager.Singleton.SceneManager.LoadScene(secondSceneName, LoadSceneMode.Single);
+       SceneManager.LoadScene(secondSceneName, LoadSceneMode.Single);
     }
 }

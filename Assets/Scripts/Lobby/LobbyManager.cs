@@ -197,8 +197,8 @@ public class LobbyManager : MonoBehaviour
         networkManager.StartHost();
         await Task.Delay(1000);
         await UpdateLobbyWithGameInfo();
-        
-        SceneManager.LoadScene(gameSceneName);
+
+        LobbySceneManager.StartHostAndSwitchScene(gameSceneName);
     }
 
     private async Task UpdateLobbyWithGameInfo()
