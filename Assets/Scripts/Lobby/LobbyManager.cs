@@ -1,118 +1,83 @@
+using System.Collections.Generic;
+using UnityEngine;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using UnityEngine;
-using UnityEngine.SceneManagement;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
+using Unity.Services.Authentication;
 using System;
-using System.Collections;
+using System.Threading.Tasks;
 
 public class LobbyManager : MonoBehaviour
 {
-    public List<Lobby> availableLobbies = new List<Lobby>();
-    public Lobby currentLobby;
+    public static LobbyManager Instance { get; private set; }
 
-    public delegate void LobbiesUpdatedHandler();
-    public event LobbiesUpdatedHandler OnLobbiesUpdated;
+    public List<Lobby> availableLobbies { get; private set; } = new List<Lobby>();
+    public Lobby currentLobby;
+    private bool shouldRefreshLobbies = true;
+    private int maxPlayers = 2;
+    public event Action OnLobbiesUpdated;
 
     [SerializeField] private NetworkManager networkManager;
     [SerializeField] private string gameSceneName = "RaceLevel";
 
-    private Coroutine pollingCoroutine;
-
-    [ContextMenu("Debug Current State")]
-    private void DebugCurrentState()
+    private void Awake()
     {
-        Debug.Log($"=== LobbyManager Debug Info ===");
-        Debug.Log($"Available Lobbies: {availableLobbies?.Count ?? 0}");
-        Debug.Log($"Current Lobby: {(currentLobby != null ? currentLobby.Name : "None")}");
-        Debug.Log($"Network Manager: {(networkManager != null ? "Assigned" : "NULL!")}");
-        Debug.Log($"Game Scene Name: {gameSceneName}");
-        Debug.Log($"Polling Active: {pollingCoroutine != null}");
-        Debug.Log($"Player ID: {Unity.Services.Authentication.AuthenticationService.Instance?.PlayerId ?? "Not Authenticated"}");
-        Debug.Log("================================");
+        if (Instance == null)
+            Instance = this;
+        else
+            Destroy(gameObject);
     }
 
-    private void OnEnable()
+    private async void Start()
     {
-        Debug.Log("LobbyManager enabled - starting polling");
-        pollingCoroutine = StartCoroutine(PollLobbiesRoutine());
+        await WaitForGameInitializer();
+        Debug.Log("LobbyManager ready.");
+        _ = RefreshLobbiesLoop();
     }
 
-    private void OnDisable()
+    private async Task WaitForGameInitializer()
     {
-        if (pollingCoroutine != null)
-            StopCoroutine(pollingCoroutine);
+        while (!GameInitializer.IsInitialized)
+            await Task.Delay(100);
     }
 
-    private IEnumerator PollLobbiesRoutine()
+    private async Task RefreshLobbiesLoop()
     {
-        while (true)
+        while (shouldRefreshLobbies)
         {
-            // Start the async task without yielding it directly
-            _ = GetAvailableLobbiesAsync();
-            yield return new WaitForSeconds(3f); // Poll every 3 seconds
+            await FetchAvailableLobbies();
+            await Task.Delay(3000);
         }
     }
 
-    [ContextMenu("Get all availableLobbies")]
-    public async Task GetAvailableLobbiesAsync()
+    public async Task FetchAvailableLobbies()
     {
         try
         {
-            QueryLobbiesOptions options = new QueryLobbiesOptions
-            {
-                Filters = new List<QueryFilter>(),
-                Order = new List<QueryOrder>()
-            };
-
-            QueryResponse response = await Lobbies.Instance.QueryLobbiesAsync(options);
+            QueryResponse response = await Lobbies.Instance.QueryLobbiesAsync();
             availableLobbies = response.Results;
             OnLobbiesUpdated?.Invoke();
-
-            Debug.Log($"Found {availableLobbies.Count} lobbies.");
-            foreach (Lobby lobby in availableLobbies)
-            {
-                Debug.Log($"Lobby Name: {lobby.Name}, Lobby Code: {lobby.LobbyCode}");
-            }
         }
         catch (LobbyServiceException e)
         {
-            Debug.LogError($"Failed to get lobbies: {e}");
-
-            // Rate limit backoff
-            if (e.Reason == LobbyExceptionReason.RateLimited)
-            {
-                Debug.LogWarning("Rate limit hit, backing off for 15 seconds.");
-                await Task.Delay(15000);
-            }
+            Debug.LogError($"Failed to fetch lobbies: {e}");
         }
     }
 
-    
-    public async void CreateLobbyAsync(string lobbyName = "MyLobby", int maxPlayers = 2)
+    public async void CreateLobby(string lobbyName = "MyLobby")
     {
         try
         {
-            CreateLobbyOptions options = new CreateLobbyOptions
+            var options = new CreateLobbyOptions
             {
-                IsPrivate = false,
                 Data = new Dictionary<string, DataObject>
             {
-                { "gameMode", new DataObject(DataObject.VisibilityOptions.Public, "casual") }
+               { "gameStarted", new DataObject(DataObject.VisibilityOptions.Member, "false") }
             }
             };
-
-            Lobby createdLobby = await Lobbies.Instance.CreateLobbyAsync(lobbyName, maxPlayers, options);
-            currentLobby = createdLobby; 
-
-            Debug.Log($"Lobby created successfully!");
-            Debug.Log($"Lobby Name: {createdLobby.Name}");
-            Debug.Log($"Lobby ID: {createdLobby.Id}");
-            Debug.Log($"Lobby Code: {createdLobby.LobbyCode}");
-            await GetAvailableLobbiesAsync();
+            currentLobby = await Lobbies.Instance.CreateLobbyAsync(lobbyName, maxPlayers, options); // 2== Max players allowed
+            Debug.Log($"Created lobby: {currentLobby.Name}");
         }
         catch (LobbyServiceException e)
         {
@@ -120,106 +85,43 @@ public class LobbyManager : MonoBehaviour
         }
     }
 
-    [ContextMenu("Create Button on click")]
-    public void OnCreateLobbyButtonClicked()
-    {
-        CreateLobbyAsync();
-    }
-
-    public async Task JoinLobbyByIdAsync(string lobbyId)
+    public async void JoinLobbyById(string lobbyId)
     {
         try
         {
             currentLobby = await Lobbies.Instance.JoinLobbyByIdAsync(lobbyId);
-            Debug.Log($"Joined lobby by ID: {currentLobby.Name}, Code: {currentLobby.LobbyCode}");
-            
-            // Start polling if not the host
-            if (currentLobby.HostId != Unity.Services.Authentication.AuthenticationService.Instance.PlayerId)
-            {
-                StartPollingForGameStart();
-            }
+            Debug.Log($"Joined lobby: {currentLobby.Name}");
+            shouldRefreshLobbies = false;
+            StartPollingForGameStart();
         }
         catch (LobbyServiceException e)
         {
-            Debug.LogError($"Failed to join lobby by ID: {e}");
+            Debug.LogError($"Failed to join lobby: {e}");
         }
     }
 
-    public async Task JoinLobbyByCodeAsync(string lobbyCode)
-    {
-        try
-        {
-            currentLobby = await Lobbies.Instance.JoinLobbyByCodeAsync(lobbyCode);
-            Debug.Log($"Joined lobby by Code: {currentLobby.Name}, Code: {currentLobby.LobbyCode}");
-            
-            // Start polling if not the host
-            if (currentLobby.HostId != Unity.Services.Authentication.AuthenticationService.Instance.PlayerId)
-            {
-                StartPollingForGameStart();
-            }
-        }
-        catch (LobbyServiceException e)
-        {
-            Debug.LogError($"Failed to join lobby by Code: {e}");
-        }
-    }
-
-    public async Task LeaveLobbyAsync()
+    public async void HostStartGame()
     {
         if (currentLobby == null)
         {
-            Debug.LogWarning("No lobby to leave.");
-            return;
-        }
-        try
-        {
-            await Lobbies.Instance.RemovePlayerAsync(currentLobby.Id, Unity.Services.Authentication.AuthenticationService.Instance.PlayerId);
-            Debug.Log($"Left lobby: {currentLobby.Name}");
-            currentLobby = null;
-        }
-        catch (LobbyServiceException e)
-        {
-            Debug.LogError($"Failed to leave lobby: {e}");
-        }
-    }
-
-
-    public async void StartGameFromLobby()
-    {
-        if (currentLobby == null) return;
-        if (currentLobby.HostId != Unity.Services.Authentication.AuthenticationService.Instance.PlayerId)
-        {
-            Debug.Log("Only the host can start the game!");
+            Debug.LogWarning("No lobby to start the game.");
             return;
         }
 
-        Debug.Log("Starting game as host...");
-        networkManager.StartHost();
-        await Task.Delay(1000);
-        await UpdateLobbyWithGameInfo();
-
-        LobbySceneManager.StartHostAndSwitchScene(gameSceneName);
-    }
-
-    private async Task UpdateLobbyWithGameInfo()
-    {
         try
         {
-            // Get the host's IP address (you'll need to implement this)
-            string hostIP = GetLocalIPAddress();
-            
-            UpdateLobbyOptions options = new UpdateLobbyOptions
+            var updateOptions = new UpdateLobbyOptions
             {
                 Data = new Dictionary<string, DataObject>
-                {
-                    { "gameStarted", new DataObject(DataObject.VisibilityOptions.Public, "true") },
-                    { "hostIP", new DataObject(DataObject.VisibilityOptions.Public, hostIP) },
-                    { "gamePort", new DataObject(DataObject.VisibilityOptions.Public, "7777") } // Default NGO port
-                }
+            {
+                { "gameStarted", new DataObject(DataObject.VisibilityOptions.Member, "true") }
+            }
             };
-            
-            await Lobbies.Instance.UpdateLobbyAsync(currentLobby.Id, options);
-            Debug.Log($"Updated lobby with game info: {hostIP}");
+
+            await Lobbies.Instance.UpdateLobbyAsync(currentLobby.Id, updateOptions);
+
+            networkManager.StartHost();
+            NetworkManager.Singleton.SceneManager.LoadScene(gameSceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
         }
         catch (LobbyServiceException e)
         {
@@ -227,88 +129,48 @@ public class LobbyManager : MonoBehaviour
         }
     }
 
-    private string GetLocalIPAddress()
+    private async void StartPollingForGameStart()
     {
-        // Get local IP address for other players to connect to
-        try
-        {
-            var host = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName());
-            foreach (var ip in host.AddressList)
-            {
-                if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                {
-                    return ip.ToString();
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            Debug.LogWarning($"Could not get local IP: {e.Message}");
-        }
-        return "127.0.0.1"; // Fallback to localhost
-    }
-
-    public async void StartPollingForGameStart()
-    {
-        if (currentLobby == null) return;
-        
-        if (currentLobby.HostId == Unity.Services.Authentication.AuthenticationService.Instance.PlayerId)
-        {
-            return;
-        }
-        
-        Debug.Log("Started polling for game start...");
-        
         while (currentLobby != null)
         {
             try
             {
                 currentLobby = await Lobbies.Instance.GetLobbyAsync(currentLobby.Id);
-                
-                if (currentLobby.Data.ContainsKey("gameStarted") && 
-                    currentLobby.Data["gameStarted"].Value == "true")
+                Debug.Log(currentLobby);
+                if (currentLobby != null && currentLobby.Data.TryGetValue("gameStarted", out DataObject data) && data.Value == "true")
                 {
-                    Debug.Log("Game has started! Connecting to host...");
-                    await JoinHostGame();
+                    Debug.Log("Game started by host, joining as client.");
+                    networkManager.StartClient();
                     break;
                 }
-                
-                await Task.Delay(1000); // Check every second
             }
             catch (LobbyServiceException e)
             {
-                Debug.LogError($"Failed to poll lobby: {e}");
+                Debug.LogError($"Polling failed: {e}");
                 break;
             }
+            await Task.Delay(1000);
         }
     }
 
-    private async Task JoinHostGame()
+    public async void LeaveLobby()
     {
-        try
+        if (currentLobby != null)
         {
-            string hostIP = currentLobby.Data["hostIP"].Value;
-            string gamePort = currentLobby.Data["gamePort"].Value;
-            
-            Debug.Log($"Connecting to host at {hostIP}:{gamePort}");
-            
-            // Get the UnityTransport component
-            var transport = networkManager.GetComponent<UnityTransport>();
-            if (transport != null)
+            try
             {
-                transport.SetConnectionData(hostIP, ushort.Parse(gamePort));
-                networkManager.StartClient();
-                await Task.Delay(2000);
-                SceneManager.LoadScene(gameSceneName);
+                await Lobbies.Instance.RemovePlayerAsync(currentLobby.Id, AuthenticationService.Instance.PlayerId);
+                Debug.Log("Left lobby successfully");
             }
-            else
+            catch (LobbyServiceException e)
             {
-                Debug.LogError("UnityTransport component not found on NetworkManager!");
+                Debug.LogError($"Failed to leave lobby: {e}");
             }
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Failed to join host game: {e}");
+            finally
+            {
+                currentLobby = null;
+                shouldRefreshLobbies = true; // Re-enable lobby browsing
+            }
         }
     }
 }

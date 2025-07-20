@@ -1,23 +1,23 @@
 using UnityEngine;
 using Unity.Services.Core;
 using Unity.Services.Authentication;
-using Unity.Services.Lobbies;
-using Unity.Services.Lobbies.Models;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 public class GameInitializer : MonoBehaviour
 {
-    public List<Lobby> availableLobbies = new List<Lobby>();
-    private Lobby currentLobby;
+    public static bool IsInitialized { get; private set; } = false;
+    public static string PlayerId => AuthenticationService.Instance.IsSignedIn
+      ? AuthenticationService.Instance.PlayerId
+      : null;
 
-    async void Start()
+    private async void Start()
     {
         await InitializeServicesAndSignIn();
-        await GetAvailableLobbiesAsync();
+        IsInitialized = true;
+        Debug.Log("GameInitializer: Unity Services and Authentication ready.");
     }
 
-    async Task InitializeServicesAndSignIn()
+    private async Task InitializeServicesAndSignIn()
     {
         try
         {
@@ -34,25 +34,6 @@ public class GameInitializer : MonoBehaviour
         catch (System.Exception e)
         {
             Debug.LogError($"Initialization or sign-in failed: {e}");
-        }
-    }
-
-    async Task GetAvailableLobbiesAsync()
-    {
-        try
-        {
-            QueryResponse response = await Lobbies.Instance.QueryLobbiesAsync();
-            availableLobbies = response.Results;
-
-            Debug.Log($"Found {availableLobbies.Count} lobbies.");
-            foreach (Lobby lobby in availableLobbies)
-            {
-                Debug.Log($"Lobby Name: {lobby.Name}, Lobby Code: {lobby.LobbyCode}");
-            }
-        }
-        catch (LobbyServiceException e)
-        {
-            Debug.LogError($"Failed to get lobbies: {e}");
         }
     }
 }
