@@ -12,7 +12,7 @@ public class Toggler : MonoBehaviour
         BodyMaterial,
         HeadMaterial,
         BodyMesh,
-        HeadMesh
+        Head
     }
 
     [Header("Basic Info")]
@@ -24,7 +24,7 @@ public class Toggler : MonoBehaviour
     [Header("Database")]
     [SerializeField] private SOCustomizationDatabase customizationDatabase;
 
-    private enum ToggleType { Glasses, BodyMaterial, HeadMaterial, BodyMesh, HeadMesh }
+    private enum ToggleType { Glasses, BodyMaterial, HeadMaterial, BodyMesh, Head }
     [SerializeField] private ToggleType toggleType;
 
     [Header("Target Renderer")]
@@ -114,7 +114,7 @@ public class Toggler : MonoBehaviour
             ToggleType.BodyMaterial => customizationDatabase.bodyMaterials.Count,
             ToggleType.HeadMaterial => customizationDatabase.headMaterials.Count,
             ToggleType.BodyMesh => customizationDatabase.bodyMeshes.Count,
-            ToggleType.HeadMesh => customizationDatabase.headMeshes.Count,
+            ToggleType.Head => customizationDatabase.headMeshes.Count,
             _ => 0
         };
     }
@@ -139,7 +139,7 @@ public class Toggler : MonoBehaviour
                 if (targetRenderer != null && customizationDatabase.bodyMeshes.Count > 0)
                     targetRenderer.sharedMesh = customizationDatabase.bodyMeshes[currentIndex];
                 break;
-            case ToggleType.HeadMesh:
+            case ToggleType.Head:
                 if (targetRenderer != null && customizationDatabase.headMeshes.Count > 0)
                     targetRenderer.sharedMesh = customizationDatabase.headMeshes[currentIndex];
                 break;

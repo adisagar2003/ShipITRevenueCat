@@ -7,6 +7,7 @@ using Unity.Netcode.Transports.UTP;
 using Unity.Services.Authentication;
 using System;
 using System.Threading.Tasks;
+using UnityEngine.SceneManagement;
 
 public class LobbyManager : MonoBehaviour
 {
@@ -121,7 +122,7 @@ public class LobbyManager : MonoBehaviour
             await Lobbies.Instance.UpdateLobbyAsync(currentLobby.Id, updateOptions);
 
             networkManager.StartHost();
-            NetworkManager.Singleton.SceneManager.LoadScene(gameSceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
+            NetworkManager.Singleton.SceneManager.LoadScene(gameSceneName, LoadSceneMode.Single);
         }
         catch (LobbyServiceException e)
         {
@@ -136,7 +137,6 @@ public class LobbyManager : MonoBehaviour
             try
             {
                 currentLobby = await Lobbies.Instance.GetLobbyAsync(currentLobby.Id);
-                Debug.Log(currentLobby);
                 if (currentLobby != null && currentLobby.Data.TryGetValue("gameStarted", out DataObject data) && data.Value == "true")
                 {
                     Debug.Log("Game started by host, joining as client.");

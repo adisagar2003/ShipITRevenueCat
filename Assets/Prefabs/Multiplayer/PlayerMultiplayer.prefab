@@ -485,6 +485,10 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 5283300501140329024, guid: b392c3e38cb625d438f6abc837a08a86,
         type: 3}
       insertIndex: -1
+      addedObject: {fileID: 2446334756564463780}
+    - targetCorrespondingSourceObject: {fileID: 5283300501140329024, guid: b392c3e38cb625d438f6abc837a08a86,
+        type: 3}
+      insertIndex: -1
       addedObject: {fileID: 7181128895169089069}
     - targetCorrespondingSourceObject: {fileID: 5118720966661149149, guid: b392c3e38cb625d438f6abc837a08a86,
         type: 3}
@@ -699,6 +703,20 @@ MonoBehaviour:
   hatsContainer: {fileID: 6105826244701067161}
   bodyRenderer: {fileID: 5451237610081825596}
   headRenderer: {fileID: 8620753245463607655}
+--- !u!114 &2446334756564463780
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7682948083103429099}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f88e33aa525239f479649fa0599cb74f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  customizationDatabase: {fileID: 11400000, guid: 09a217f612c57484e9f0dc699209bb05,
+    type: 2}
 --- !u!114 &7181128895169089069
 MonoBehaviour:
   m_ObjectHideFlags: 0
