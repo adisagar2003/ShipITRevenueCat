@@ -1,6 +1,7 @@
 
 using UnityEngine;
 using Unity.Netcode;
+using System;
 
 public class PlayerMovement : NetworkBehaviour
 {
@@ -8,6 +9,7 @@ public class PlayerMovement : NetworkBehaviour
     private Transform cameraTransform;
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float maxSpeed = 8f;
+    [SerializeField] private bool canMove = false;
 
     private void Start()
     {
@@ -15,6 +17,20 @@ public class PlayerMovement : NetworkBehaviour
         SetOwnedCameraOnly();
     }
 
+    private void OnEnable()
+    {
+        RaceLevelManager.OnPlayerPossesionEvent += EnableMovement;
+    }
+
+    private void OnDisable()
+    {
+        RaceLevelManager.OnPlayerPossesionEvent -= EnableMovement;
+    }
+
+    private void EnableMovement()
+    {
+        canMove = true;
+    }
 
     /// Ensures that only the local player's camera is active in a multiplayer context.
     private void SetOwnedCameraOnly()
@@ -38,8 +54,14 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
+    public void SetCanMove(bool canMove)
+    {
+        this.canMove = canMove;
+    }
+
     public void Move(Vector2 input)
     {
+        if (!canMove) return;
         #if DEBUGGING
             if (cameraTransform == null)
             {

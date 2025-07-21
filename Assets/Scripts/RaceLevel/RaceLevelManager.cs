@@ -7,10 +7,15 @@ using Unity.Netcode;
 public class RaceLevelManager : NetworkBehaviour
 {
     [SerializeField] private GameObject playerPrefab;
+    [SerializeField] private GameObject waitingForPlayersUI;
+
+    public delegate void PlayerPossessionEvent();
+    public static event PlayerPossessionEvent OnPlayerPossesionEvent;
 
     public override void OnNetworkSpawn()
     {
-        Debug.Log($"OnNetworkSpawn called. IsServer: {IsServer}, Connected clients: {NetworkManager.Singleton.ConnectedClients.Count}");
+       
+        if (IsServer) Debug.Log($"OnNetworkSpawn called. IsServer: {IsServer}, Connected clients: {NetworkManager.Singleton.ConnectedClients.Count}");
 
         if (IsServer)
         {
@@ -33,6 +38,24 @@ public class RaceLevelManager : NetworkBehaviour
         {
             GameObject player = Instantiate(playerPrefab);
             player.GetComponent<NetworkObject>().SpawnAsPlayerObject(client.Key);
+            // sets random position
+            player.GetComponent<Rigidbody>().MovePosition(SpawnManager.Instance.GetRandomAvailableSpawnPoint().position);
         }
+        waitingForPlayersUI.SetActive(false); // this would only set server's UI false, calling clientRPC at bottom.
+        DisableUIClientRpc();
+        EnableMovementEventClientRPC();
+        OnPlayerPossesionEvent?.Invoke();
+    }
+
+    [ClientRpc]
+    private void DisableUIClientRpc()
+    {
+        waitingForPlayersUI.SetActive(false); 
+    }
+
+    [ClientRpc]
+    private void EnableMovementEventClientRPC()
+    {
+        OnPlayerPossesionEvent?.Invoke();
     }
 }
