@@ -1,4 +1,4 @@
-#define MULTIPLAYER
+// #define MULTIPLAYER
 
 using UnityEngine;
 using Unity.Netcode;

@@ -5,7 +5,7 @@ using UnityEngine;
 public class MoveCommand : ICommand
 {
     private PlayerMovement movement;
-    private PlayerMovementSinglePlayer playerMovementSinglePlayer;
+    private PlayerMovementSinglePlayer playerMovementSinglePlayer; // deprecated
     private JoystickDetection joystickDetection;
 
     public MoveCommand(PlayerMovement movement, JoystickDetection joystickDetection)

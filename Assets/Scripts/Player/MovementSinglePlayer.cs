@@ -1,7 +1,9 @@
 
 using UnityEngine;
 using Unity.Netcode;
+using System;
 
+[Obsolete("This class was used in initial stages for testing purposes.")]
 public class PlayerMovementSinglePlayer : MonoBehaviour
 {
     private Rigidbody rb;
