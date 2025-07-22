@@ -9204,6 +9204,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: JumpButton
       objectReference: {fileID: 0}
+    - target: {fileID: 5731311165839115313, guid: 87d5f2c821afb1b4f9f1d41c15f8b8ec,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8836983145545289569, guid: 87d5f2c821afb1b4f9f1d41c15f8b8ec,
         type: 3}
       propertyPath: m_Name

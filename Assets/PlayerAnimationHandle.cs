@@ -43,7 +43,10 @@ public class PlayerAnimationHandle : NetworkBehaviour
 
     private void RunCheck()
     {
-        bool isRunning = rb.velocity.magnitude > minSpeedThreshold;
+        Vector3 horizontalVelocity = rb.velocity;
+        horizontalVelocity.y = 0f; // ignore vertical speed
+
+        bool isRunning = horizontalVelocity.magnitude > minSpeedThreshold;
 
         if (isRunning != previousIsRunning && movement.isGrounded)
         {

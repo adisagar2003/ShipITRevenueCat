@@ -13,15 +13,9 @@ public class JumpButtonDetection : NetworkBehaviour
 
     // need to bind button
     private Button jumpButton;
-    private void Start()
-    {
-        
-        playerAnimationHandle = GetComponent<PlayerAnimationHandle>();
-        playerMovement = GetComponent<PlayerMovement>(); // inefficient but works for now.
-        jumpCommand = new JumpCommand(playerMovement, playerAnimationHandle);
-    }
     public override void OnNetworkSpawn()
     {
+        if (!IsOwner) return;
         jumpButton = GameObject.Find("JumpButton").GetComponent<Button>();
         playerAnimationHandle = GetComponent<PlayerAnimationHandle>();
         playerMovement = GetComponent<PlayerMovement>(); // inefficient but works for now.
