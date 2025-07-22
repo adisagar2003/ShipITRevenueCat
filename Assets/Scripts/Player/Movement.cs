@@ -10,7 +10,13 @@ public class PlayerMovement : NetworkBehaviour
     [SerializeField] private float maxSpeed = 8f;
     [SerializeField] private bool canMove = false;
     [SerializeField] private float jumpEnergy = 10.0f;
-    [SerializeField] private bool testMode = false; // Enable for local test
+    [SerializeField] private bool testMode = false;
+
+    // Ground check
+    [SerializeField] private Transform groundCheckRaycastOriginPoint;
+    public bool isGrounded { get; private set; }
+    [SerializeField] private float rayDistance = 1.3f;
+    [SerializeField] private LayerMask groundMask;
 
     private void Start()
     {
@@ -22,9 +28,15 @@ public class PlayerMovement : NetworkBehaviour
             canMove = true;
         }
     }
+
+    private void Update()
+    {
+        GroundCheckAndDebug();
+    }
+
     private void OnEnable()
     {
-        RaceLevelManager.OnPlayerPossesionEvent += EnableMovement;
+        RaceLevelManager.OnPlayerPossesionEvent += EnableMovement; // 3, 2 ,1 all players have control.
     }
 
     private void OnDisable()
@@ -32,10 +44,12 @@ public class PlayerMovement : NetworkBehaviour
         RaceLevelManager.OnPlayerPossesionEvent -= EnableMovement;
     }
 
+    
     private void EnableMovement()
     {
         canMove = true;
     }
+
     private void SetOwnedCameraOnly()
     {
         Camera cam = GetComponentInChildren<Camera>();
@@ -45,11 +59,18 @@ public class PlayerMovement : NetworkBehaviour
         {
             cam.gameObject.SetActive(IsOwner || testMode);
         }
+
+        if (cameraTransform == null)
+        {
+            Debug.LogWarning("PlayerMovement: cameraTransform is null after SetOwnedCameraOnly.");
+        }
     }
+
     public void SetCanMove(bool canMove)
     {
         this.canMove = canMove;
     }
+
     public void Move(Vector2 input)
     {
         if (!canMove) return;
@@ -59,13 +80,14 @@ public class PlayerMovement : NetworkBehaviour
             Debug.LogError("CameraTransform is null on " + gameObject.name);
             return;
         }
-        
+
         Vector3 camForward = cameraTransform.forward;
         Vector3 camRight = cameraTransform.right;
         camForward.y = 0;
         camRight.y = 0;
         camForward.Normalize();
         camRight.Normalize();
+
         Vector3 moveDirection = camForward * input.y + camRight * input.x;
         Vector3 desiredVelocity = moveDirection * moveSpeed;
         desiredVelocity.y = rb.velocity.y;
@@ -78,9 +100,27 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
-    [ContextMenu("Jump")]
-    private void Jump()
+    private void GroundCheckAndDebug()
     {
+        isGrounded = Physics.Raycast(
+            groundCheckRaycastOriginPoint.position,
+            Vector3.down,
+            out RaycastHit hit,
+            rayDistance,
+            groundMask
+        );
+
+        Debug.DrawRay(
+            groundCheckRaycastOriginPoint.position,
+            Vector3.down * rayDistance,
+            isGrounded ? Color.yellow : Color.red
+        );
+    }
+
+    [ContextMenu("Jump")]
+    public void Jump()
+    {
+        if (!isGrounded) return;
         rb.AddForce(Vector3.up * jumpEnergy, ForceMode.Impulse);
     }
 }
