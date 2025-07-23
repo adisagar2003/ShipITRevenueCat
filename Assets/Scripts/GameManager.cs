@@ -14,6 +14,7 @@ public class GameManager : NetworkBehaviour
     NetworkVariableWritePermission.Server
 );
 
+    [SerializeField] private string lobbySceneName = "LobbyandHost";
     private void Awake()
     {
         if (NetworkManager.Singleton != null)
@@ -74,6 +75,31 @@ public class GameManager : NetworkBehaviour
         {
             StartCoroutine(DelayedSceneReset());
         }
+    }
+
+    [ContextMenu("Put players back to lobby")]
+    public void PutPlayersBackToLobby()
+    {
+        if (IsServer)
+        {
+            StartCoroutine(BackToLobbyCoroutine());
+        }
+    }
+
+    public IEnumerator BackToLobbyCoroutine()
+    {
+        yield return new WaitForSeconds(2.0f);
+        Debug.Log("<color=orange>Player will go back to lobby now</color>");
+        if (NetworkManager.Singleton.IsHost)
+        {
+            NetworkManager.SceneManager.LoadScene(lobbySceneName, LoadSceneMode.Single);
+        }
+        else if (NetworkManager.Singleton.IsClient)
+        {
+            Debug.Log("Client waiting for host to load the lobby scene.");
+        }
+
+        NetworkManager.Singleton.Shutdown();
     }
 
     public IEnumerator DelayedSceneReset()

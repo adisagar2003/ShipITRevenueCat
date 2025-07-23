@@ -37,13 +37,21 @@ public class RaceLevelManager : NetworkBehaviour
             GameObject player = Instantiate(playerPrefab);
             player.GetComponent<NetworkObject>().SpawnAsPlayerObject(client.Key);
             // sets random position
+        #if PRODUCTION
             player.GetComponent<Rigidbody>().MovePosition(SpawnManager.Instance.GetRandomAvailableSpawnPoint().position);
+        #endif
         }
+        StartGame();
+        //EnableMovementEventClientRPC();
+        //OnPlayerPossesionEvent?.Invoke();  // migrating this to a new start race script. 
+    }
+
+    [ContextMenu("Start Game")]
+    private void StartGame()
+    {
         waitingForPlayersUI.SetActive(false); // this would only set server's UI false, calling clientRPC at bottom.
         DisableUIClientRpc();
         OnAllPlayersReady?.Invoke();
-        //EnableMovementEventClientRPC();
-        //OnPlayerPossesionEvent?.Invoke();  // migrating this to a new start race script. 
     }
 
     [ClientRpc]
@@ -58,3 +66,4 @@ public class RaceLevelManager : NetworkBehaviour
     //    OnPlayerPossesionEvent?.Invoke();
     //} 
 }
+

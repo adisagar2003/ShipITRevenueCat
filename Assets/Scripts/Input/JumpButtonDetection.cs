@@ -30,6 +30,15 @@ public class JumpButtonDetection : NetworkBehaviour
             jumpButton.onClick.RemoveListener(OnJumpButtonPressed);
     }
 
+    // FOR DEVELOPMENT PURPOSES
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            OnJumpButtonPressed();
+        }
+    }
+
     public void OnJumpButtonPressed()
     {
         jumpCommand.Execute();
