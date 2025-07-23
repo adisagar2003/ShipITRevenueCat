@@ -48,7 +48,7 @@ public class FinishLineTrigger : NetworkBehaviour
             GameManager gm = FindObjectOfType<GameManager>();
             if (gm != null)
             {
-                gm.ForceResetScene();
+                gm.PutPlayersBackToLobby();
             }
         }
     }

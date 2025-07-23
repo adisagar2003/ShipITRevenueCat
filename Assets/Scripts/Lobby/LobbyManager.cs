@@ -8,6 +8,7 @@ using Unity.Services.Authentication;
 using System;
 using System.Threading.Tasks;
 using UnityEngine.SceneManagement;
+using System.Collections;
 
 public class LobbyManager : MonoBehaviour
 {
@@ -19,6 +20,7 @@ public class LobbyManager : MonoBehaviour
     private int maxPlayers = 2;
     public event Action OnLobbiesUpdated;
 
+    [SerializeField] private GameObject playerPrefab; 
     [SerializeField] private NetworkManager networkManager;
     [SerializeField] private string gameSceneName = "RaceLevel";
 
@@ -34,6 +36,7 @@ public class LobbyManager : MonoBehaviour
     {
         await WaitForGameInitializer();
         Debug.Log("LobbyManager ready.");
+        StartCoroutine(WaitForNetworkManagerReady());
         _ = RefreshLobbiesLoop();
     }
 
@@ -64,6 +67,24 @@ public class LobbyManager : MonoBehaviour
         {
             Debug.LogError($"Failed to fetch lobbies: {e}");
         }
+    }
+
+    [Obsolete]
+    private void AddPlayerPrefab()
+    {
+        if (playerPrefab == null)
+        {
+            Debug.LogError("Player prefab not assigned!");
+            return;
+        }
+
+        // Register the prefab with Netcode
+        NetworkManager.Singleton.AddNetworkPrefab(playerPrefab);
+        Debug.Log("Player prefab added via AddNetworkPrefab.");
+
+        // Assign it as the player prefab
+        NetworkManager.Singleton.NetworkConfig.PlayerPrefab = playerPrefab;
+        Debug.Log("Player prefab set in NetworkManager configuration.");
     }
 
     public async void CreateLobby(string lobbyName = "MyLobby")
@@ -120,10 +141,10 @@ public class LobbyManager : MonoBehaviour
             };
 
             await Lobbies.Instance.UpdateLobbyAsync(currentLobby.Id, updateOptions);
-
-            networkManager.StartHost();
+            NetworkManager.Singleton.StartHost();
             NetworkManager.Singleton.SceneManager.LoadScene(gameSceneName, LoadSceneMode.Single);
         }
+
         catch (LobbyServiceException e)
         {
             Debug.LogError($"Failed to update lobby: {e}");
@@ -152,6 +173,18 @@ public class LobbyManager : MonoBehaviour
             await Task.Delay(1000);
         }
     }
+
+    private IEnumerator WaitForNetworkManagerReady()
+    {
+        while (NetworkManager.Singleton == null)
+        {
+            Debug.Log("[LobbyManager] Waiting for NetworkManager.Singleton to initialize...");
+            yield return null; // check every frame
+        }
+        Debug.Log("[LobbyManager] NetworkManager.Singleton is ready.");
+    }
+
+
 
     public async void LeaveLobby()
     {

@@ -14,16 +14,29 @@ public class GameManager : NetworkBehaviour
     NetworkVariableWritePermission.Server
 );
 
-    private void Awake()
+    [SerializeField] private string lobbySceneName = "LobbyandHost";
+    private void Start()
     {
+
+        if (NetworkManager.Singleton == null) return;
         if (NetworkManager.Singleton != null)
         {
             NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += OnSceneLoadComplete;
         }
     }
 
-    public override void OnDestroy()
+    private IEnumerator WaitForNetworkManagerAndSubscribe()
     {
+        while (NetworkManager.Singleton == null)
+        {
+            yield return null;
+        }
+
+        NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += OnSceneLoadComplete;
+    }
+    public override void OnDestroy()    
+    {
+        if (NetworkManager.Singleton == null) return;
         if (NetworkManager.Singleton != null)
         {
             NetworkManager.Singleton.SceneManager.OnLoadEventCompleted -= OnSceneLoadComplete;
@@ -74,6 +87,47 @@ public class GameManager : NetworkBehaviour
         {
             StartCoroutine(DelayedSceneReset());
         }
+    }
+
+    [ContextMenu("Put players back to lobby")]
+    public void PutPlayersBackToLobby()
+    {
+        if (IsServer)
+        {
+            StartCoroutine(BackToLobbyCoroutine());
+        }
+    }
+
+    public IEnumerator BackToLobbyCoroutine()
+    {
+        yield return new WaitForSeconds(2.0f);
+        Debug.Log("[GameManager] <color=orange>Returning players to offline lobby now</color>");
+        if (IsServer)
+        {
+            RequestClientDisconnectClientRpc();
+            float timeout = 5f;
+            float elapsed = 0f;
+            while (NetworkManager.Singleton.ConnectedClientsList.Count > 1 && elapsed < timeout)
+            {
+                Debug.Log($"Waiting for clients to disconnect. Remaining: {NetworkManager.Singleton.ConnectedClientsList.Count - 1}");
+                yield return null;
+                elapsed += Time.deltaTime;
+            }
+
+            Debug.Log("All clients disconnected or timeout reached. Shutting down host/server.");
+            NetworkManager.Singleton.Shutdown();
+            Destroy(NetworkManager.Singleton.gameObject);
+            SceneManager.LoadScene(lobbySceneName, LoadSceneMode.Single);
+        }
+    }
+
+    [ClientRpc]
+    private void RequestClientDisconnectClientRpc()
+    {
+        Debug.Log("<color=orange>Client disconnecting to return to offline lobby</color>");
+        NetworkManager.Singleton.Shutdown();
+        Destroy(NetworkManager.Singleton.gameObject);
+        SceneManager.LoadScene(lobbySceneName, LoadSceneMode.Single);
     }
 
     public IEnumerator DelayedSceneReset()
