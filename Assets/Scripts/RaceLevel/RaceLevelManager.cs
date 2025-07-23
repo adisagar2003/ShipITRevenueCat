@@ -12,7 +12,7 @@ public class RaceLevelManager : NetworkBehaviour
     public static event System.Action OnAllPlayersReady;
     public override void OnNetworkSpawn()
     {
-       
+
         if (IsServer) Debug.Log($"OnNetworkSpawn called. IsServer: {IsServer}, Connected clients: {NetworkManager.Singleton.ConnectedClients.Count}");
 
         if (IsServer)

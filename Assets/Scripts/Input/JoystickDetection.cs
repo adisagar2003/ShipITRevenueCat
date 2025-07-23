@@ -47,6 +47,12 @@ public class JoystickDetection : MonoBehaviour
 
     private void CheckForJoystick()
     {
+        if (fixedJoystick == null)
+        {
+            fixedJoystick = FindFirstObjectByType<FixedJoystick>(); // keep checking each tick, Optimize for later.
+            return;
+        }
+
         if (fixedJoystick.horizontal < 0.01f && fixedJoystick.vertical < 0.01f)
         {
             usingJoystick = false;

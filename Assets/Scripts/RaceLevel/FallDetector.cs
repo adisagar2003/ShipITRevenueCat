@@ -12,7 +12,7 @@ public class FallDetector : MonoBehaviour
             PlayerRespawn respawn = other.GetComponent<PlayerRespawn>();
             if (respawn != null)
             {
-                Debug.Log("Checking for if respawn component is detected");
+                Debug.Log("respawn component is detected");
                 respawn.RequestRespawn();
             }
         }
