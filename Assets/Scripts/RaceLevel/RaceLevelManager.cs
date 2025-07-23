@@ -8,10 +8,7 @@ public class RaceLevelManager : NetworkBehaviour
 {
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private GameObject waitingForPlayersUI;
-
-    public delegate void PlayerPossessionEvent();
-    public static event PlayerPossessionEvent OnPlayerPossesionEvent;
-
+    public static event System.Action OnAllPlayersReady;
     public override void OnNetworkSpawn()
     {
        
@@ -43,8 +40,9 @@ public class RaceLevelManager : NetworkBehaviour
         }
         waitingForPlayersUI.SetActive(false); // this would only set server's UI false, calling clientRPC at bottom.
         DisableUIClientRpc();
-        EnableMovementEventClientRPC();
-        OnPlayerPossesionEvent?.Invoke();
+        OnAllPlayersReady?.Invoke();
+        //EnableMovementEventClientRPC();
+        //OnPlayerPossesionEvent?.Invoke();  // migrating this to a new start race script. 
     }
 
     [ClientRpc]
@@ -53,9 +51,9 @@ public class RaceLevelManager : NetworkBehaviour
         waitingForPlayersUI.SetActive(false); 
     }
 
-    [ClientRpc]
-    private void EnableMovementEventClientRPC()
-    {
-        OnPlayerPossesionEvent?.Invoke();
-    }
+    //[ClientRpc]
+    //private void EnableMovementEventClientRPC()
+    //{
+    //    OnPlayerPossesionEvent?.Invoke();
+    //} 
 }

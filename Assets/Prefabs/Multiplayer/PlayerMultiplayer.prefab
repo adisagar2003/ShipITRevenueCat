@@ -530,7 +530,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 581171582
+  GlobalObjectIdHash: 3076158247
   InScenePlacedSourceGlobalObjectIdHash: 0
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
@@ -553,7 +553,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 6.08
   maxSpeed: 8
-  canMove: 1
+  canMove: 0
   jumpEnergy: 600
   testMode: 0
   groundCheckRaycastOriginPoint: {fileID: 5252161914697915363}

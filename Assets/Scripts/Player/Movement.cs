@@ -36,12 +36,12 @@ public class PlayerMovement : NetworkBehaviour
 
     private void OnEnable()
     {
-        RaceLevelManager.OnPlayerPossesionEvent += EnableMovement; // 3, 2 ,1 all players have control.
+        RaceLevelManager.OnAllPlayersReady += EnableMovement; // 3, 2 ,1 all players have control.
     }
 
     private void OnDisable()
     {
-        RaceLevelManager.OnPlayerPossesionEvent -= EnableMovement;
+        RaceLevelManager.OnAllPlayersReady -= EnableMovement;
     }
 
     
