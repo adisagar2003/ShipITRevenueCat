@@ -8,6 +8,7 @@ public class RaceLevelManager : NetworkBehaviour
 {
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private GameObject waitingForPlayersUI;
+
     public static event System.Action OnAllPlayersReady;
     public override void OnNetworkSpawn()
     {

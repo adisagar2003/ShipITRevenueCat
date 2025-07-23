@@ -48,6 +48,7 @@ public class SpawnManager : NetworkBehaviour
         List<int> availableIndices = new List<int>();
         // Initialize occupation tracking
         occupiedSpawnPoints = new List<bool>(new bool[spawnPoints.Count]);
+
         // Find all available spawn points
         for (int i = 0; i < spawnPoints.Count; i++)
         {

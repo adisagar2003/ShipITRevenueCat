@@ -6,6 +6,7 @@ TagManager:
   tags:
   - SpawnManager
   - SpawnPoint
+  - RespawnPoint
   layers:
   - Default
   - TransparentFX
