@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: Dash
   m_EditorClassIdentifier: 
   activationType: 0
-  dashForce: 1500
+  dashForce: 300
