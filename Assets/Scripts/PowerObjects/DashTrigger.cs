@@ -1,5 +1,3 @@
-#define debug
-
 using UnityEngine;
 using Unity.Netcode;
 
@@ -12,25 +10,29 @@ public class DashTrigger : NetworkBehaviour
 {
     [SerializeField] private DashPower dashPower;
 
-    private void OnTriggerEnter(Collider other)
-    {
-        if (!IsServer) return; // server-authoritative
+        private void OnTriggerEnter(Collider other)
+        {
+            if (!IsServer) return; // server-authoritative
 
-        var playerManager = other.GetComponent<PlayerPowerManager>();
-        if (playerManager != null && dashPower != null)
-        {
-#if debug
-            Debug.Log("<color=#FF00FF><b>[DashTrigger]</b></color> <color=yellow>Player entered trigger. Activating DashPower.</color>");
-#endif
-            playerManager.OnServerPowerObjectCollision(dashPower);
+            var playerManager = other.GetComponent<PlayerPowerManager>();
+            var networkObject = other.GetComponent<NetworkObject>();
+            if (playerManager != null && dashPower != null && networkObject != null)
+            {
+    #if debug
+                Debug.Log("<color=#FF00FF><b>[DashTrigger]</b></color> <color=yellow>Player entered trigger. Activating DashPower.</color>");
+    #endif
+                playerManager.OnServerPowerObjectCollision(dashPower);
+
+                // Notify only the client that owns this player
+                playerManager.ActivateDashPowerClientRpc(networkObject.OwnerClientId);
+            }
+    #if debug
+            else
+            {
+                Debug.Log("<color=#FF00FF><b>[DashTrigger]</b></color> <color=red>PlayerManager, DashPower, or NetworkObject missing on trigger enter.</color>");
+            }
+    #endif
         }
-#if debug
-        else
-        {
-            Debug.Log("<color=#FF00FF><b>[DashTrigger]</b></color> <color=red>PlayerManager or DashPower missing on trigger enter.</color>");
-        }
-#endif
-    }
 
     private void OnTriggerExit(Collider other)
     {

@@ -1,5 +1,3 @@
-#define debug
-
 using UnityEngine;
 using Unity.Netcode;
 
@@ -112,5 +110,20 @@ public class PlayerPowerManager : NetworkBehaviour
         Debug.Log($"<color=#00FF00><b>[PlayerPowerManager]</b></color> <color=magenta>Deactivating current power for {gameObject.name}.</color>");
 #endif
         currentPowerIndex.Value = -1;
+    }
+
+    [ClientRpc]
+    public void ActivateDashPowerClientRpc(ulong targetClientId)
+    {
+        // Only run on the client that owns this player
+        if (NetworkManager.Singleton.LocalClientId != targetClientId)
+            return;
+
+#if debug
+        Debug.Log($"<color=#00FF00><b>[PlayerPowerManager]</b></color> <color=cyan>DashPower activated on client {targetClientId} for {gameObject.name}.</color>");
+#endif
+        SpecialPower currentPower = GetCurrentPower();
+
+        currentPower.ApplyEffect(gameObject);
     }
 }
