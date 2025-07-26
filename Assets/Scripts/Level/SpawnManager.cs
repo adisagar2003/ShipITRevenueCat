@@ -26,6 +26,7 @@ public class SpawnManager : NetworkBehaviour
             Destroy(gameObject);
         }
     }
+
     private void Start()
     {
         Debug.Log("[SpawnManager] Start called");

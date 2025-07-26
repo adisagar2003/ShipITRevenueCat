@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.revenuecat.purchases-unity": "8.0.0",
     "com.unity.adaptiveperformance": "4.0.1",
     "com.unity.adaptiveperformance.google.android": "5.1.4",
     "com.unity.adaptiveperformance.samsung.android": "5.0.0",
@@ -51,5 +52,15 @@
     "com.unity.modules.vr": "1.0.0",
     "com.unity.modules.wind": "1.0.0",
     "com.unity.modules.xr": "1.0.0"
-  }
+  },
+  "scopedRegistries": [
+    {
+      "name": "OpenUPM",
+      "url": "https://package.openupm.com",
+      "scopes": [
+        "com.openupm",
+        "com.revenuecat.purchases-unity"
+      ]
+    }
+  ]
 }

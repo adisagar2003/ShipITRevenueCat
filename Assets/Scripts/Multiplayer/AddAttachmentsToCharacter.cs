@@ -18,7 +18,6 @@ public class AddAttachmentsToCharacter : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         if (!IsOwner) return;
-
         ApplyCustomization();
     }
 
