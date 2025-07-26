@@ -36,6 +36,7 @@ public class RaceLevelManager : NetworkBehaviour
         {
             GameObject player = Instantiate(playerPrefab);
             player.GetComponent<NetworkObject>().SpawnAsPlayerObject(client.Key);
+
             // sets random position
         #if PRODUCTION
             player.GetComponent<Rigidbody>().MovePosition(SpawnManager.Instance.GetRandomAvailableSpawnPoint().position);
