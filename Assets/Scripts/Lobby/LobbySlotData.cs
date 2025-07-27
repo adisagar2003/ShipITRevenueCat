@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using Unity.Services.Lobbies.Models;
 using System.Linq;
+using LobbyService = Unity.Services.Lobbies;
 
 public class LobbySlotData : MonoBehaviour
 {
@@ -10,7 +11,6 @@ public class LobbySlotData : MonoBehaviour
     [SerializeField] private Button startGameButton;
     [SerializeField] private TextMeshProUGUI lobbyNameText;
     [SerializeField] private TextMeshProUGUI playerCountText;
-
     private string lobbyId;
     private LobbyManager lobbyManager;
     private bool hasJoined;
@@ -23,15 +23,14 @@ public class LobbySlotData : MonoBehaviour
         startGameButton.onClick.AddListener(StartGame);
     }
 
-    public void Initialize(Lobby lobby)
+    // CHANGE THIS LINE:
+    public void Initialize(LobbyService.Models.Lobby lobby)  // Fixed!
     {
         lobbyId = lobby.Id;
         lobbyNameText.text = lobby.Name;
         playerCountText.text = $"{lobby.Players.Count}/{lobby.MaxPlayers}";
-
         isHost = lobby.HostId == GameInitializer.PlayerId;
         hasJoined = lobby.Players.Any(p => p.Id == GameInitializer.PlayerId);
-
         UpdateButtonStates();
     }
 
@@ -54,5 +53,4 @@ public class LobbySlotData : MonoBehaviour
         if (!isHost || LobbyManager.Instance == null) return;
         LobbyManager.Instance.HostStartGame();
     }
-
 }
