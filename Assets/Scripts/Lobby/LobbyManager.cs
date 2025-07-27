@@ -1,14 +1,17 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
-using Unity.Services.Lobbies;
-using Unity.Services.Lobbies.Models;
+using System.Diagnostics;
+using System.Threading.Tasks;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using Unity.Services.Authentication;
-using System;
-using System.Threading.Tasks;
+using Unity.Services.Lobbies;
+using Unity.Services.Lobbies.Models;
+using Unity.Services.Relay;
+using Unity.Services.Relay.Models;
+using UnityEngine;
 using UnityEngine.SceneManagement;
-using System.Collections;
 
 public class LobbyManager : MonoBehaviour
 {
@@ -20,7 +23,7 @@ public class LobbyManager : MonoBehaviour
     private int maxPlayers = 2;
     public event Action OnLobbiesUpdated;
 
-    [SerializeField] private GameObject playerPrefab; 
+    [SerializeField] private GameObject playerPrefab;
     [SerializeField] private NetworkManager networkManager;
     [SerializeField] private string gameSceneName = "RaceLevel";
 
@@ -94,11 +97,12 @@ public class LobbyManager : MonoBehaviour
             var options = new CreateLobbyOptions
             {
                 Data = new Dictionary<string, DataObject>
-            {
-               { "gameStarted", new DataObject(DataObject.VisibilityOptions.Member, "false") }
-            }
+                {
+                    { "gameStarted", new DataObject(DataObject.VisibilityOptions.Member, "false") },
+                    { "joinCode", new DataObject(DataObject.VisibilityOptions.Member, "") }
+                }
             };
-            currentLobby = await Lobbies.Instance.CreateLobbyAsync(lobbyName, maxPlayers, options); // 2== Max players allowed
+            currentLobby = await Lobbies.Instance.CreateLobbyAsync(lobbyName, maxPlayers, options);
             Debug.Log($"Created lobby: {currentLobby.Name}");
         }
         catch (LobbyServiceException e)
@@ -132,19 +136,43 @@ public class LobbyManager : MonoBehaviour
 
         try
         {
+            // Create Relay allocation
+            Debug.Log("Creating relay allocation...");
+            Allocation allocation = await RelayService.Instance.CreateAllocationAsync(maxPlayers - 1);
+
+            // Get the join code
+            string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+            Debug.Log($"Got join code: {joinCode}");
+
+            // Configure the transport
+            var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+            transport.SetHostRelayData(
+                allocation.RelayServer.IpV4,
+                (ushort)allocation.RelayServer.Port,
+                allocation.AllocationIdBytes,
+                allocation.Key,
+                allocation.ConnectionData
+            );
+
+            // Update the lobby with game started status and join code
             var updateOptions = new UpdateLobbyOptions
             {
                 Data = new Dictionary<string, DataObject>
-            {
-                { "gameStarted", new DataObject(DataObject.VisibilityOptions.Member, "true") }
-            }
+                {
+                    { "gameStarted", new DataObject(DataObject.VisibilityOptions.Member, "true") },
+                    { "joinCode", new DataObject(DataObject.VisibilityOptions.Member, joinCode) }
+                }
             };
 
             await Lobbies.Instance.UpdateLobbyAsync(currentLobby.Id, updateOptions);
+            Debug.Log("Starting host with relay...");
             NetworkManager.Singleton.StartHost();
             NetworkManager.Singleton.SceneManager.LoadScene(gameSceneName, LoadSceneMode.Single);
         }
-
+        catch (RelayServiceException e)
+        {
+            Debug.LogError($"Relay service error: {e.Message}");
+        }
         catch (LobbyServiceException e)
         {
             Debug.LogError($"Failed to update lobby: {e}");
@@ -158,10 +186,14 @@ public class LobbyManager : MonoBehaviour
             try
             {
                 currentLobby = await Lobbies.Instance.GetLobbyAsync(currentLobby.Id);
-                if (currentLobby != null && currentLobby.Data.TryGetValue("gameStarted", out DataObject data) && data.Value == "true")
+                if (currentLobby != null &&
+                    currentLobby.Data.TryGetValue("gameStarted", out DataObject gameStartedData) &&
+                    gameStartedData.Value == "true" &&
+                    currentLobby.Data.TryGetValue("joinCode", out DataObject joinCodeData) &&
+                    !string.IsNullOrEmpty(joinCodeData.Value))
                 {
-                    Debug.Log("Game started by host, joining as client.");
-                    networkManager.StartClient();
+                    Debug.Log($"Game started by host, joining via relay with code: {joinCodeData.Value}");
+                    await JoinRelayAsClient(joinCodeData.Value);
                     break;
                 }
             }
@@ -174,6 +206,36 @@ public class LobbyManager : MonoBehaviour
         }
     }
 
+    private async Task JoinRelayAsClient(string joinCode)
+    {
+        try
+        {
+            Debug.Log($"Joining relay with code: {joinCode}");
+
+            // Join the relay with the given join code
+            JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
+
+            // Configure the transport
+            var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+            transport.SetClientRelayData(
+                joinAllocation.RelayServer.IpV4,
+                (ushort)joinAllocation.RelayServer.Port,
+                joinAllocation.AllocationIdBytes,
+                joinAllocation.Key,
+                joinAllocation.ConnectionData,
+                joinAllocation.HostConnectionData
+            );
+
+            // Start the client
+            NetworkManager.Singleton.StartClient();
+            Debug.Log("Started client with relay");
+        }
+        catch (RelayServiceException e)
+        {
+            Debug.LogError($"Failed to join relay: {e.Message}");
+        }
+    }
+
     private IEnumerator WaitForNetworkManagerReady()
     {
         while (NetworkManager.Singleton == null)
@@ -183,8 +245,6 @@ public class LobbyManager : MonoBehaviour
         }
         Debug.Log("[LobbyManager] NetworkManager.Singleton is ready.");
     }
-
-
 
     public async void LeaveLobby()
     {
