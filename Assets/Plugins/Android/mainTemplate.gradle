@@ -1,0 +1,84 @@
+apply plugin: 'com.android.library'
+**APPLY_PLUGINS**
+
+// Force resolution strategy for Kotlin conflicts
+configurations.all {
+    resolutionStrategy {
+        force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
+        // Exclude conflicting older versions
+        exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+        exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    
+    // AndroidX annotations
+    implementation 'androidx.annotation:annotation:1.6.0'
+    
+    // Kotlin stdlib with exclusions to prevent conflicts
+    implementation('org.jetbrains.kotlin:kotlin-stdlib:1.8.22') {
+        exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+        exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+    }
+    
+    // RevenueCat dependencies with Kotlin exclusions
+    implementation('com.revenuecat.purchases:purchases:7.+') {
+        exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+        exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+        exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-common'
+    }
+    implementation('com.revenuecat.purchases:purchases-hybrid-common:7.+') {
+        exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+        exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+        exclude group: 'org.jetbreans.kotlin', module: 'kotlin-stdlib-common'
+    }
+    
+**DEPS**}
+
+android {
+    namespace "com.unity3d.player"
+    ndkPath "**NDKPATH**"
+    compileSdkVersion **APIVERSION**
+    buildToolsVersion '**BUILDTOOLS**'
+    
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+    
+    defaultConfig {
+        minSdkVersion **MINSDKVERSION**
+        targetSdkVersion **TARGETSDKVERSION**
+        ndk {
+            abiFilters **ABIFILTERS**
+        }
+        versionCode **VERSIONCODE**
+        versionName '**VERSIONNAME**'
+        consumerProguardFiles 'proguard-unity.txt'**USER_PROGUARD**
+    }
+    
+    lintOptions {
+        abortOnError false
+    }
+    
+    aaptOptions {
+        noCompress = **BUILTIN_NOCOMPRESS** + unityStreamingAssets.tokenize(', ')
+        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~"
+    }**PACKAGING_OPTIONS**
+    
+    // Additional packaging options to handle duplicate files
+    packagingOptions {
+        pickFirst '**/libc++_shared.so'
+        pickFirst '**/libjsc.so'
+        exclude 'META-INF/kotlin-stdlib.kotlin_module'
+        exclude 'META-INF/kotlin-stdlib-common.kotlin_module'
+        exclude 'META-INF/kotlin-stdlib-jdk7.kotlin_module'
+        exclude 'META-INF/kotlin-stdlib-jdk8.kotlin_module'
+    }
+}
+
+**IL_CPP_BUILD_SETUP**
+**SOURCE_BUILD_SETUP**
+**EXTERNAL_SOURCES**
