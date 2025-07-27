@@ -1,17 +1,16 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading.Tasks;
+using UnityEngine;
+using Unity.Services.Lobbies;
+using Unity.Services.Lobbies.Models;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using Unity.Services.Authentication;
-using Unity.Services.Lobbies;
-using Unity.Services.Lobbies.Models;
 using Unity.Services.Relay;
 using Unity.Services.Relay.Models;
-using UnityEngine;
+using System;
+using System.Threading.Tasks;
 using UnityEngine.SceneManagement;
+using System.Collections;
 
 public class LobbyManager : MonoBehaviour
 {
@@ -139,11 +138,11 @@ public class LobbyManager : MonoBehaviour
             // Create Relay allocation
             Debug.Log("Creating relay allocation...");
             Allocation allocation = await RelayService.Instance.CreateAllocationAsync(maxPlayers - 1);
-
+            
             // Get the join code
             string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
             Debug.Log($"Got join code: {joinCode}");
-
+            
             // Configure the transport
             var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
             transport.SetHostRelayData(
@@ -153,7 +152,7 @@ public class LobbyManager : MonoBehaviour
                 allocation.Key,
                 allocation.ConnectionData
             );
-
+            
             // Update the lobby with game started status and join code
             var updateOptions = new UpdateLobbyOptions
             {
@@ -186,8 +185,8 @@ public class LobbyManager : MonoBehaviour
             try
             {
                 currentLobby = await Lobbies.Instance.GetLobbyAsync(currentLobby.Id);
-                if (currentLobby != null &&
-                    currentLobby.Data.TryGetValue("gameStarted", out DataObject gameStartedData) &&
+                if (currentLobby != null && 
+                    currentLobby.Data.TryGetValue("gameStarted", out DataObject gameStartedData) && 
                     gameStartedData.Value == "true" &&
                     currentLobby.Data.TryGetValue("joinCode", out DataObject joinCodeData) &&
                     !string.IsNullOrEmpty(joinCodeData.Value))
@@ -205,16 +204,16 @@ public class LobbyManager : MonoBehaviour
             await Task.Delay(1000);
         }
     }
-
+    
     private async Task JoinRelayAsClient(string joinCode)
     {
         try
         {
             Debug.Log($"Joining relay with code: {joinCode}");
-
+            
             // Join the relay with the given join code
             JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
-
+            
             // Configure the transport
             var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
             transport.SetClientRelayData(
@@ -225,7 +224,7 @@ public class LobbyManager : MonoBehaviour
                 joinAllocation.ConnectionData,
                 joinAllocation.HostConnectionData
             );
-
+            
             // Start the client
             NetworkManager.Singleton.StartClient();
             Debug.Log("Started client with relay");
