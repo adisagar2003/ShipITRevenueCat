@@ -35,17 +35,5 @@ public class AddAttachmentsToCharacter : NetworkBehaviour
             if (currentGlassesInstance != null) Destroy(currentGlassesInstance);
             currentGlassesInstance = Instantiate(customizationDatabase.glassPrefabs[glassesIndex], hatsContainer);
         }
-
-        // ---- Apply Body Material ----
-        if (customizationDatabase.bodyMaterials.Count > bodyIndex && bodyRenderer != null)
-        {
-            bodyRenderer.material = customizationDatabase.bodyMaterials[bodyIndex];
-        }
-
-        // ---- Apply Head Material ----
-        if (customizationDatabase.headMaterials.Count > headIndex && headRenderer != null)
-        {
-            headRenderer.material = customizationDatabase.headMaterials[headIndex];
-        }
     }
 }

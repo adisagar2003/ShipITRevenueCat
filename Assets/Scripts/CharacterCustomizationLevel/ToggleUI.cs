@@ -4,13 +4,16 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
+/// <summary>
+/// The Toggler class is a comprehensive UI component for character customization,
+/// allowing users to cycle through different appearance options for a 3D character model.
+/// </summary>
+
 public class Toggler : MonoBehaviour
 {
     public enum TogglerTypeName
     {
         Glasses,
-        BodyMaterial,
-        HeadMaterial,
         BodyMesh,
         Head
     }
@@ -111,8 +114,6 @@ public class Toggler : MonoBehaviour
         return toggleType switch
         {
             ToggleType.Glasses => customizationDatabase.glassPrefabs.Count,
-            ToggleType.BodyMaterial => customizationDatabase.bodyMaterials.Count,
-            ToggleType.HeadMaterial => customizationDatabase.headMaterials.Count,
             ToggleType.BodyMesh => customizationDatabase.bodyMeshes.Count,
             ToggleType.Head => customizationDatabase.headMeshes.Count,
             _ => 0
@@ -126,14 +127,6 @@ public class Toggler : MonoBehaviour
             case ToggleType.Glasses:
                 for (int i = 0; i < sceneGlassesInstances.Count; i++)
                     sceneGlassesInstances[i].SetActive(i == currentIndex);
-                break;
-            case ToggleType.BodyMaterial:
-                if (targetRenderer != null && customizationDatabase.bodyMaterials.Count > 0)
-                    targetRenderer.material = customizationDatabase.bodyMaterials[currentIndex];
-                break;
-            case ToggleType.HeadMaterial:
-                if (targetRenderer != null && customizationDatabase.headMaterials.Count > 0)
-                    targetRenderer.material = customizationDatabase.headMaterials[currentIndex];
                 break;
             case ToggleType.BodyMesh:
                 if (targetRenderer != null && customizationDatabase.bodyMeshes.Count > 0)
