@@ -130,6 +130,17 @@ public class GameManager : NetworkBehaviour
         SceneManager.LoadScene(lobbySceneName, LoadSceneMode.Single);
     }
 
+    // disconnect client from the server
+    [ContextMenu("Disconnect Client")]
+    public void DisconnectClient()
+    {
+        if (!IsOwner) return;
+        Debug.Log("<color=orange>Client disconnecting to return to offline lobby</color>");
+        NetworkManager.Singleton.Shutdown();
+        Destroy(NetworkManager.Singleton.gameObject);
+        SceneManager.LoadScene(lobbySceneName, LoadSceneMode.Single);
+    }
+
     public IEnumerator DelayedSceneReset()
     {
         while (countdownTimer.Value > 0f)

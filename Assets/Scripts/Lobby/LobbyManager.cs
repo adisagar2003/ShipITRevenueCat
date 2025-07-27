@@ -11,7 +11,7 @@ using System;
 using System.Threading.Tasks;
 using UnityEngine.SceneManagement;
 using System.Collections;
-
+    
 public class LobbyManager : MonoBehaviour
 {
     public static LobbyManager Instance { get; private set; }
