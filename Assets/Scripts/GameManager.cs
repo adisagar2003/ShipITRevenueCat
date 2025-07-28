@@ -73,7 +73,7 @@ public class GameManager : NetworkBehaviour
         //    {
         //        var setSpawnLocation = playerObject.GetComponent<SetSpawnLocation>();
         //        if (setSpawnLocation != null)
-        //        {
+        //        { 
         //            setSpawnLocation.AssignNewSpawnPosition();
         //        }
         //    }
