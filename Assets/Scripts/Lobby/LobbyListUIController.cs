@@ -24,6 +24,14 @@ public class LobbyListUIController : MonoBehaviour
             lobbyManager.OnLobbiesUpdated -= PopulateLobbyList;
     }
 
+    void OnDestroy()
+    {
+        foreach (Transform child in content.transform)
+        {
+            Destroy(child.gameObject);
+        }
+    }
+
     public void PopulateLobbyList()
     {
         foreach (Transform child in content.transform)

@@ -136,9 +136,9 @@ public class GameManager : NetworkBehaviour
     {
         if (!IsOwner) return;
         Debug.Log("<color=orange>Client disconnecting to return to offline lobby</color>");
-        NetworkManager.Singleton.Shutdown();
-        Destroy(NetworkManager.Singleton.gameObject);
         SceneManager.LoadScene(lobbySceneName, LoadSceneMode.Single);
+        if (!IsServer) NetworkManager.Singleton.Shutdown();
+        Destroy(NetworkManager.Singleton.gameObject);
     }
 
     public IEnumerator DelayedSceneReset()
