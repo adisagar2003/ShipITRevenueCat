@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.gamelovers.mcp-unity": "https://github.com/CoderGamester/mcp-unity.git",
     "com.revenuecat.purchases-unity": "7.6.0",
     "com.unity.adaptiveperformance": "4.0.1",
     "com.unity.adaptiveperformance.google.android": "5.1.4",

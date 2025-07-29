@@ -11,7 +11,8 @@ using System;
 using System.Threading.Tasks;
 using UnityEngine.SceneManagement;
 using System.Collections;
-    
+using UnityEngine.UI;
+
 public class LobbyManager : MonoBehaviour
 {
     public static LobbyManager Instance { get; private set; }
@@ -25,6 +26,9 @@ public class LobbyManager : MonoBehaviour
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private NetworkManager networkManager;
     [SerializeField] private string gameSceneName = "RaceLevel";
+    [SerializeField] private Button createLobbyButton;
+    [SerializeField] private GameObject creatingLobbyText; // Assign your "Creating Lobby..." UI Text in the inspector
+    [SerializeField] private GameObject startingGameText; // Assign your "Starting Game..." UI Text in the inspector
 
     private void Awake()
     {
@@ -64,6 +68,9 @@ public class LobbyManager : MonoBehaviour
             QueryResponse response = await Lobbies.Instance.QueryLobbiesAsync();
             availableLobbies = response.Results;
             OnLobbiesUpdated?.Invoke();
+            // Hide "Creating Lobby..." text after player has created a lobby
+            if (creatingLobbyText != null && !createLobbyButton.interactable)
+                creatingLobbyText.SetActive(false);
         }
         catch (LobbyServiceException e)
         {
@@ -93,16 +100,26 @@ public class LobbyManager : MonoBehaviour
     {
         try
         {
+            // Show "Creating Lobby..." text
+            if (creatingLobbyText != null)
+                creatingLobbyText.SetActive(true);
+
             var options = new CreateLobbyOptions
             {
                 Data = new Dictionary<string, DataObject>
                 {
                     { "gameStarted", new DataObject(DataObject.VisibilityOptions.Member, "false") },
-                    { "joinCode", new DataObject(DataObject.VisibilityOptions.Member, "") }
+                    { "joinCode", new DataObject(DataObject.VisibilityOptions.Member, "") } // join code for relay
                 }
             };
             currentLobby = await Lobbies.Instance.CreateLobbyAsync(lobbyName, maxPlayers, options);
             Debug.Log($"Created lobby: {currentLobby.Name}");
+
+            // disable lobby button to prevent multiple creations
+            if (createLobbyButton != null)
+            {
+                createLobbyButton.interactable = false;
+            }
         }
         catch (LobbyServiceException e)
         {
@@ -128,21 +145,25 @@ public class LobbyManager : MonoBehaviour
     public async void HostStartGame()
     {
         if (currentLobby == null)
-        {
+        {           
             Debug.LogWarning("No lobby to start the game.");
             return;
         }
 
         try
         {
+            // Show "Starting Game..." text
+            if (startingGameText != null)
+                startingGameText.SetActive(true);
+
             // Create Relay allocation
             Debug.Log("Creating relay allocation...");
             Allocation allocation = await RelayService.Instance.CreateAllocationAsync(maxPlayers - 1);
-            
+
             // Get the join code
             string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
             Debug.Log($"Got join code: {joinCode}");
-            
+
             // Configure the transport
             var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
             transport.SetHostRelayData(
@@ -152,7 +173,7 @@ public class LobbyManager : MonoBehaviour
                 allocation.Key,
                 allocation.ConnectionData
             );
-            
+
             // Update the lobby with game started status and join code
             var updateOptions = new UpdateLobbyOptions
             {
@@ -175,6 +196,12 @@ public class LobbyManager : MonoBehaviour
         catch (LobbyServiceException e)
         {
             Debug.LogError($"Failed to update lobby: {e}");
+        }
+        finally
+        {
+            // Hide "Starting Game..." text after attempt (success or fail)
+            if (startingGameText != null)
+                startingGameText.SetActive(false);
         }
     }
 
