@@ -37,7 +37,6 @@ public class AudioManager : MonoBehaviour
 
     private void InitializeAudio()
     {
-        // If no audio sources are assigned, try to get them from this GameObject
         if (musicSource == null)
         {
             musicSource = GetComponent<AudioSource>();
@@ -45,11 +44,9 @@ public class AudioManager : MonoBehaviour
 
         if (sfxSource == null)
         {
-            // Create a second AudioSource for sound effects
             sfxSource = gameObject.AddComponent<AudioSource>();
         }
 
-        // Configure the audio sources
         if (musicSource != null)
         {
             musicSource.loop = true;
@@ -179,7 +176,6 @@ public class AudioManager : MonoBehaviour
 
     private void OnValidate()
     {
-        // Update volumes when values change in inspector
         UpdateVolumes();
     }
 }

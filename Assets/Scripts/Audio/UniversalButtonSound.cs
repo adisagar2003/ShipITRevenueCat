@@ -20,7 +20,6 @@ public class UniversalButtonSound : MonoBehaviour
 
     private void Start()
     {
-        // Get the button component
         button = GetComponent<Button>();
 
         if (button == null)
@@ -31,7 +30,6 @@ public class UniversalButtonSound : MonoBehaviour
 
         if (autoSetup)
         {
-            // Automatically add the sound effect to the button's onClick event
             button.onClick.AddListener(PlayButtonSound);
             Debug.Log($"Button sound automatically added to {gameObject.name}");
         }
@@ -43,7 +41,6 @@ public class UniversalButtonSound : MonoBehaviour
     /// </summary>
     public void PlayButtonSound()
     {
-        // Use the singleton pattern - no inspector assignment needed!
         if (AudioManager.Instance != null)
         {
             if (customButtonSound != null)
@@ -75,18 +72,15 @@ public class UniversalButtonSound : MonoBehaviour
 
     private void OnDestroy()
     {
-        // Clean up the listener when this object is destroyed
         if (button != null)
         {
             button.onClick.RemoveListener(PlayButtonSound);
         }
     }
 
-    // This method can be called from inspector events too
     public void PlaySoundByName(string soundName)
     {
-        // You could extend this to play sounds by name if you create a sound library
         Debug.Log($"Playing sound: {soundName}");
-        PlayButtonSound(); // For now, just play the default button sound
+        PlayButtonSound(); 
     }
 }

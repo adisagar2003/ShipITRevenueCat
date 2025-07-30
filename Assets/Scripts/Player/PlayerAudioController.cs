@@ -60,18 +60,16 @@ public class PlayerAudioController : NetworkBehaviour
 
     private void Update()
     {
-        // Only handle audio for the local player or if this is the server
         if (!IsOwner && !IsServer) return;
 
         UpdateMovementState();
         UpdateGroundState();
         HandleFootsteps();
-        UpdateAudioSourceVolumes(); // NEW - sync with AudioManager volumes
+        UpdateAudioSourceVolumes();
     }
 
     private void InitializeComponents()
     {
-        // Auto-find components if not assigned
         if (playerRigidbody == null)
             playerRigidbody = GetComponent<Rigidbody>();
 
@@ -79,24 +77,24 @@ public class PlayerAudioController : NetworkBehaviour
             playerMovement = GetComponent<PlayerMovement>();
     }
 
-    // NEW METHOD: Create local 3D AudioSources for spatial audio
+    /// <summary>
+    /// Create spatial audio sources for footsteps, jump, and landing sounds.
+    /// Necessary for 3D spatial audio effects.
+    /// </summary>
     private void CreateSpatialAudioSources()
     {
-        // Create footstep audio source
         GameObject footstepObj = new GameObject("FootstepAudioSource");
         footstepObj.transform.SetParent(transform);
         footstepObj.transform.localPosition = Vector3.zero;
         footstepAudioSource = footstepObj.AddComponent<AudioSource>();
         ConfigureSpatialAudioSource(footstepAudioSource);
 
-        // Create jump audio source
         GameObject jumpObj = new GameObject("JumpAudioSource");
         jumpObj.transform.SetParent(transform);
         jumpObj.transform.localPosition = Vector3.zero;
         jumpAudioSource = jumpObj.AddComponent<AudioSource>();
         ConfigureSpatialAudioSource(jumpAudioSource);
 
-        // Create landing audio source
         GameObject landingObj = new GameObject("LandingAudioSource");
         landingObj.transform.SetParent(transform);
         landingObj.transform.localPosition = Vector3.zero;
@@ -104,28 +102,25 @@ public class PlayerAudioController : NetworkBehaviour
         ConfigureSpatialAudioSource(landingAudioSource);
     }
 
-    // NEW METHOD: Configure AudioSource for 3D spatial audio
+
     private void ConfigureSpatialAudioSource(AudioSource audioSource)
     {
-        // Configure for 3D spatial audio
-        audioSource.spatialBlend = 1f; // Fully 3D (0 = 2D, 1 = 3D)
+        audioSource.spatialBlend = 1f; // FULLY 3D
         audioSource.playOnAwake = false;
         audioSource.loop = false;
 
-        // Distance settings for falloff
         audioSource.minDistance = minAudioDistance;
         audioSource.maxDistance = maxAudioDistance;
         audioSource.rolloffMode = AudioRolloffMode.Custom;
         audioSource.SetCustomCurve(AudioSourceCurveType.CustomRolloff, audioFalloffCurve);
 
-        // Optional: Doppler effect (can sound weird for footsteps, so keep it low)
         audioSource.dopplerLevel = 0.3f;
-
-        // Spread for more natural sound
         audioSource.spread = 45f;
     }
 
-    // NEW METHOD: Update volumes based on AudioManager settings
+    /// <summary>
+    /// nfigure the volumes of the audio sources based on AudioManager settings.
+    /// </summary>
     private void UpdateAudioSourceVolumes()
     {
         if (AudioManager.Instance != null)
@@ -144,9 +139,11 @@ public class PlayerAudioController : NetworkBehaviour
         }
     }
 
+    /// <summary>
+    /// Chore: Same implementation in PlayerAnimationController, unify logic later.
+    /// </summary>
     private void UpdateMovementState()
     {
-        // Calculate movement speed
         Vector3 currentPosition = transform.position;
         Vector3 velocity = (currentPosition - lastPosition) / Time.deltaTime;
         currentSpeed = new Vector3(velocity.x, 0, velocity.z).magnitude;
@@ -155,6 +152,9 @@ public class PlayerAudioController : NetworkBehaviour
         lastPosition = currentPosition;
     }
 
+    /// <summary>
+    /// Coupled with PlayerMovement's ground check.
+    /// </summary>
     private void UpdateGroundState()
     {
         bool previousGrounded = wasGrounded;
@@ -182,7 +182,7 @@ public class PlayerAudioController : NetworkBehaviour
         if (playerMovement.isGrounded && isMoving && Time.time > lastFootstepTime + footstepCooldown)
         {
             PlayFootstepSound();
-            lastFootstepTime = Time.time;
+            lastFootstepTime = Time.time; // Reset cooldown timer
         }
     }
 
@@ -193,13 +193,11 @@ public class PlayerAudioController : NetworkBehaviour
     /// </summary>
     public void PlayJumpSound()
     {
-        // MODIFIED: Use local 3D AudioSource instead of global AudioManager
         if (jumpClips != null && jumpClips.Length > 0 && jumpAudioSource != null)
         {
             AudioClip clipToPlay = jumpClips[Random.Range(0, jumpClips.Length)];
             jumpAudioSource.PlayOneShot(clipToPlay);
 
-            // Network the sound for multiplayer (Netcode 1.8.1 syntax)
             if (IsOwner)
             {
                 int clipIndex = System.Array.IndexOf(jumpClips, clipToPlay);
@@ -208,7 +206,6 @@ public class PlayerAudioController : NetworkBehaviour
         }
         else
         {
-            // Fallback to AudioManager for non-spatial sounds (like UI)
             if (AudioManager.Instance != null)
                 AudioManager.Instance.PlayButtonClick();
         }
@@ -219,13 +216,11 @@ public class PlayerAudioController : NetworkBehaviour
     /// </summary>
     public void PlayFootstepSound()
     {
-        // MODIFIED: Use local 3D AudioSource instead of global AudioManager
         if (footstepClips != null && footstepClips.Length > 0 && footstepAudioSource != null)
         {
             AudioClip clipToPlay = footstepClips[Random.Range(0, footstepClips.Length)];
             footstepAudioSource.PlayOneShot(clipToPlay);
 
-            // Network the sound for multiplayer (Netcode 1.8.1 syntax)
             if (IsOwner)
             {
                 int clipIndex = System.Array.IndexOf(footstepClips, clipToPlay);
@@ -266,18 +261,17 @@ public class PlayerAudioController : NetworkBehaviour
     #endregion
 
     #region Network RPCs (Netcode 1.8.1 Syntax) - MODIFIED for clip synchronization
+    // !isOwner is used to not play sounds twice on the owner client.
 
     [ServerRpc]
     private void PlayJumpSoundServerRpc(int clipIndex)
     {
-        // Server receives the request and broadcasts to all clients
         PlayJumpSoundClientRpc(clipIndex);
     }
 
     [ClientRpc]
     private void PlayJumpSoundClientRpc(int clipIndex)
     {
-        // Only play for non-owners (owner already played it locally)
         if (!IsOwner && jumpClips != null && clipIndex >= 0 && clipIndex < jumpClips.Length && jumpAudioSource != null)
         {
             AudioClip clipToPlay = jumpClips[clipIndex];
@@ -319,14 +313,4 @@ public class PlayerAudioController : NetworkBehaviour
 
     #endregion
 
-    // NEW: Gizmos for debugging audio distance in Scene view
-    private void OnDrawGizmosSelected()
-    {
-        // Visualize audio distance ranges
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(transform.position, minAudioDistance);
-
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, maxAudioDistance);
-    }
 }
