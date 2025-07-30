@@ -125,20 +125,21 @@ public class GameManager : NetworkBehaviour
     private void RequestClientDisconnectClientRpc()
     {
         Debug.Log("<color=orange>Client disconnecting to return to offline lobby</color>");
-        NetworkManager.Singleton.Shutdown();
-        Destroy(NetworkManager.Singleton.gameObject);
         SceneManager.LoadScene(lobbySceneName, LoadSceneMode.Single);
+        DisconnectClient();
     }
 
     // disconnect client from the server
     [ContextMenu("Disconnect Client")]
     public void DisconnectClient()
     {
-        if (!IsOwner) return;
-        Debug.Log("<color=orange>Client disconnecting to return to offline lobby</color>");
-        SceneManager.LoadScene(lobbySceneName, LoadSceneMode.Single);
-        if (!IsServer) NetworkManager.Singleton.Shutdown();
-        Destroy(NetworkManager.Singleton.gameObject);
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsClient)
+        {
+            NetworkManager.Singleton.Shutdown();
+
+            UnityEngine.SceneManagement.SceneManager.LoadScene(lobbySceneName);
+        }
+
     }
 
     public IEnumerator DelayedSceneReset()

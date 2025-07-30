@@ -8,7 +8,6 @@ public class LobbyListUIController : MonoBehaviour
     [SerializeField] private GameObject content;
     [SerializeField] private GameObject lobbySlotPrefab;
     [SerializeField] private float slotSpacing = 50f;
-
     private LobbyManager lobbyManager;
 
     void OnEnable()
@@ -51,4 +50,4 @@ public class LobbyListUIController : MonoBehaviour
             slotData.Initialize(lobby);
         }
     }
-} 
+}
