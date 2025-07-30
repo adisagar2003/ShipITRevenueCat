@@ -329,7 +329,7 @@ PrefabInstance:
     - target: {fileID: 4609471799615961114, guid: b392c3e38cb625d438f6abc837a08a86,
         type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.0061902152
+      value: 0.006190207
       objectReference: {fileID: 0}
     - target: {fileID: 4609471799615961114, guid: b392c3e38cb625d438f6abc837a08a86,
         type: 3}
@@ -339,7 +339,7 @@ PrefabInstance:
     - target: {fileID: 4609471799615961114, guid: b392c3e38cb625d438f6abc837a08a86,
         type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.00012273855
+      value: 0.00012273829
       objectReference: {fileID: 0}
     - target: {fileID: 5283300501140329024, guid: b392c3e38cb625d438f6abc837a08a86,
         type: 3}
@@ -489,6 +489,10 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 8163320802841317583}
+    - targetCorrespondingSourceObject: {fileID: 5283300501140329024, guid: b392c3e38cb625d438f6abc837a08a86,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2790824714103526810}
     - targetCorrespondingSourceObject: {fileID: 5118720966661149149, guid: b392c3e38cb625d438f6abc837a08a86,
         type: 3}
       insertIndex: -1
@@ -817,3 +821,28 @@ MonoBehaviour:
   availablePowers:
   - {fileID: 11400000, guid: d40761e2fb3fdad45a57c2cf0b61cde6, type: 2}
   - {fileID: 11400000, guid: 6328238dbe0c1c8499517808f579ca97, type: 2}
+--- !u!114 &2790824714103526810
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7682948083103429099}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8dbfe2f0a0d8eba4da7b989d246cdf82, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  footstepClips:
+  - {fileID: 8300000, guid: 46b5b0d3e69013340a553c00b351b12d, type: 3}
+  - {fileID: 8300000, guid: 0ad0ffe576e615545954dd70daa25b67, type: 3}
+  - {fileID: 8300000, guid: af46aa820a9787c4284e7d8bae932d50, type: 3}
+  - {fileID: 8300000, guid: 1e833e40cb52a434d94a7ef47cb3914c, type: 3}
+  jumpClips:
+  - {fileID: 8300000, guid: 7d8256552b35151488e92729b0661721, type: 3}
+  landingClips:
+  - {fileID: 8300000, guid: 763aa4c6276336c41a26074a7257ff6a, type: 3}
+  footstepCooldown: 0.26
+  minWalkSpeed: 0.1
+  playerRigidbody: {fileID: 0}
+  playerMovement: {fileID: 0}

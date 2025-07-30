@@ -204,8 +204,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 996032748}
   m_HandleRect: {fileID: 996032747}
   m_Direction: 2
-  m_Value: -0.0000006933562
-  m_Size: 0.48616266
+  m_Value: -0.000005348748
+  m_Size: 0.4864887
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -468,8 +468,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1170562517}
   m_HandleRect: {fileID: 1170562516}
   m_Direction: 0
-  m_Value: 0
-  m_Size: 1
+  m_Value: 1
+  m_Size: 0.9999999
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -1068,6 +1068,7 @@ GameObject:
   - component: {fileID: 827546371}
   - component: {fileID: 827546370}
   - component: {fileID: 827546369}
+  - component: {fileID: 827546372}
   m_Layer: 5
   m_Name: CreateLobby
   m_TagString: Untagged
@@ -1189,6 +1190,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 827546367}
   m_CullTransparentMesh: 1
+--- !u!114 &827546372
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 827546367}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60c79700b2b392a4e9c8676cab0c934d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  customButtonSound: {fileID: 8300000, guid: 8d6053e248d05c645b77964e5a4fa3dd, type: 3}
+  autoSetup: 1
 --- !u!1 &896953234
 GameObject:
   m_ObjectHideFlags: 0
@@ -1458,7 +1473,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 154.05011}
+  m_AnchoredPosition: {x: 0, y: 154.05084}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &998687371

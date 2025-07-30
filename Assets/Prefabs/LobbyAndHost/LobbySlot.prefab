@@ -148,6 +148,7 @@ GameObject:
   - component: {fileID: 279803441941736371}
   - component: {fileID: 3333010690489939874}
   - component: {fileID: 5527909116988386779}
+  - component: {fileID: 5384994022806583710}
   m_Layer: 5
   m_Name: JoinLobbyButton
   m_TagString: Untagged
@@ -269,6 +270,20 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+--- !u!114 &5384994022806583710
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 587121012752425040}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60c79700b2b392a4e9c8676cab0c934d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  customButtonSound: {fileID: 8300000, guid: 72b73f6de1680af4488bfd4a28ae4eea, type: 3}
+  autoSetup: 1
 --- !u!1 &891946539469393880
 GameObject:
   m_ObjectHideFlags: 0
@@ -781,6 +796,7 @@ GameObject:
   - component: {fileID: 5008868563182181372}
   - component: {fileID: 3746375297346230520}
   - component: {fileID: 350032738488024119}
+  - component: {fileID: 4123931750910245827}
   m_Layer: 5
   m_Name: StartGame
   m_TagString: Untagged
@@ -902,3 +918,17 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+--- !u!114 &4123931750910245827
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8937609420775130418}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60c79700b2b392a4e9c8676cab0c934d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  customButtonSound: {fileID: 8300000, guid: a9768dde5d0ad8040b7fe7dd8de021a3, type: 3}
+  autoSetup: 1

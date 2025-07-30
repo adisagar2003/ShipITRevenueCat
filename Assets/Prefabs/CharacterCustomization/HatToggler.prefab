@@ -319,18 +319,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a03710b5f0a9df4fae47eff6b3f8a69, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  togglerName: Hat
+  togglerName: 0
   previewImage: {fileID: 0}
   headingText: {fileID: 1320949085353806867}
-  gameObjectOptions:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  materialOptions: []
-  targetRenderer: {fileID: 0}
-  meshOptions: []
-  previewSprites: []
+  glassGameObjectContainer: {fileID: 0}
+  customizationDatabase: {fileID: 0}
   toggleType: 0
+  targetRenderer: {fileID: 0}
   leftButton: {fileID: 4133430324303903467}
   rightButton: {fileID: 4166660836816329541}
 --- !u!1 &4585246229166999868
@@ -479,6 +474,7 @@ GameObject:
   - component: {fileID: 6210453772013409687}
   - component: {fileID: 3538832825583989156}
   - component: {fileID: 4133430324303903467}
+  - component: {fileID: 4130626126935545818}
   m_Layer: 5
   m_Name: LeftButton
   m_TagString: Untagged
@@ -600,6 +596,20 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+--- !u!114 &4130626126935545818
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7276729647944765017}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60c79700b2b392a4e9c8676cab0c934d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  customButtonSound: {fileID: 8300000, guid: 5b80546aa51a4d44ea9a77035cd4e29c, type: 3}
+  autoSetup: 1
 --- !u!1 &8179180252555348654
 GameObject:
   m_ObjectHideFlags: 0
@@ -612,6 +622,7 @@ GameObject:
   - component: {fileID: 3215623127192693234}
   - component: {fileID: 1153277501911232765}
   - component: {fileID: 4166660836816329541}
+  - component: {fileID: 4815328399852448856}
   m_Layer: 5
   m_Name: RightButton
   m_TagString: Untagged
@@ -721,3 +732,17 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &4815328399852448856
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8179180252555348654}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60c79700b2b392a4e9c8676cab0c934d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  customButtonSound: {fileID: 8300000, guid: 722335a9959c85f43b0a66288b3d8c85, type: 3}
+  autoSetup: 1
