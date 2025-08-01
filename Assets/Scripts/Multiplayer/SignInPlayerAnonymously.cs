@@ -1,55 +1,227 @@
-using System.Collections;
-using System.Collections.Generic;
 using Unity.Services.Core;
 using UnityEngine;
 using Unity.Services.Authentication;
 using Unity.Services;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System;
 
+/// <summary>
+/// Handles anonymous player sign-in for Unity Services.
+/// This component initializes Unity Services and creates an anonymous player session.
+/// </summary>
 public class SignInPlayerAnonymously : MonoBehaviour
 {
+    [Header("Authentication Settings")]
+    [SerializeField, Tooltip("Automatically sign in on Start")]
+    private bool autoSignIn = true;
+    
+    [SerializeField, Tooltip("Retry count for failed sign-in attempts")]
+    private int maxRetries = 3;
+    
+    [SerializeField, Tooltip("Delay between retry attempts in seconds")]
+    private float retryDelay = 2f;
+    
     private string playerId = "Not signed in yet.";
-    private string playerName;
+    private string playerName = "";
+    private bool isSigningIn = false;
+    private int currentRetryCount = 0;
+    
+    public static SignInPlayerAnonymously Instance { get; private set; }
+    public bool IsSignedIn => AuthenticationService.Instance?.IsSignedIn ?? false;
+    public string PlayerId => playerId;
+    public string PlayerName => playerName;
+    
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+    
+    private async void Start()
+    {
+        if (autoSignIn)
+        {
+            await SignInCachedUserAsync();
+        }
+    }
+    
+    /// <summary>
+    /// Attempts to sign in the user anonymously with retry logic.
+    /// </summary>
+    public async Task SignInCachedUserAsync()
+    {
+        if (isSigningIn)
+        {
+            Debug.LogWarning("Sign-in already in progress");
+            return;
+        }
+        
+        isSigningIn = true;
+        currentRetryCount = 0;
+        
+        while (currentRetryCount < maxRetries)
+        {
+            try
+            {
+                await AttemptSignIn();
+                isSigningIn = false;
+                return; // Success
+            }
+            catch (Exception ex)
+            {
+                currentRetryCount++;
+                Debug.LogWarning($"Sign-in attempt {currentRetryCount} failed: {ex.Message}");
+                
+                if (currentRetryCount >= maxRetries)
+                {
+                    HandleSignInFailure(ex);
+                    break;
+                }
+                
+                // Wait before retry
+                await Task.Delay(TimeSpan.FromSeconds(retryDelay));
+            }
+        }
+        
+        isSigningIn = false;
+    }
+    
+    private async Task AttemptSignIn()
+    {
+        // Initialize Unity Services
+        if (UnityServices.State == ServicesInitializationState.Uninitialized)
+        {
+            Debug.Log("Initializing Unity Services...");
+            await UnityServices.InitializeAsync();
+        }
+        
+        if (UnityServices.State != ServicesInitializationState.Initialized)
+        {
+            throw new InvalidOperationException($"Unity Services initialization failed. State: {UnityServices.State}");
+        }
+        
+        // Check if already signed in
+        if (AuthenticationService.Instance.IsSignedIn)
+        {
+            Debug.Log("Player already signed in");
+            playerId = AuthenticationService.Instance.PlayerId;
+            return;
+        }
+        
+        // Sign in anonymously
+        Debug.Log("Signing in anonymously...");
+        await AuthenticationService.Instance.SignInAnonymouslyAsync();
+        
+        if (!AuthenticationService.Instance.IsSignedIn)
+        {
+            throw new InvalidOperationException("Sign-in completed but user is not marked as signed in");
+        }
+        
+        playerId = AuthenticationService.Instance.PlayerId;
+        
+        if (string.IsNullOrEmpty(playerId))
+        {
+            throw new InvalidOperationException("Sign-in succeeded but PlayerId is null or empty");
+        }
+        
+        Debug.Log("Sign in anonymously succeeded!");
+        
+        // Generate and set player name
+        try
+        {
+            playerName = await CallARandomAPIToGenerateRandomUsername();
+            
+            if (!string.IsNullOrEmpty(playerName))
+            {
+                await AuthenticationService.Instance.UpdatePlayerNameAsync(playerName);
+                Debug.Log($"Player name updated to: {playerName}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"Failed to update player name: {ex.Message}");
+            playerName = $"Player_{playerId.Substring(0, 4)}";
+        }
+        
+        Debug.Log($"PlayerID: {playerId}");
+        Debug.Log($"PlayerName: {playerName}");
+    }
+    
+    private void HandleSignInFailure(Exception finalException)
+    {
+        string errorMessage = finalException switch
+        {
+            AuthenticationException authEx => $"Authentication failed: {authEx.Message}",
+            RequestFailedException reqEx => $"Request failed: {reqEx.Message}",
+            InvalidOperationException invEx => $"Invalid operation: {invEx.Message}",
+            _ => $"Unexpected error: {finalException.Message}"
+        };
+        
+        Debug.LogError($"Sign-in failed after {maxRetries} attempts: {errorMessage}");
+        playerId = errorMessage;
+        playerName = "Sign-in failed";
+    }
 
- 
-    async System.Threading.Tasks.Task SignInCachedUserAsync()
+    /// <summary>
+    /// Generates a random username. In a real implementation, this could call an external API.
+    /// </summary>
+    private async Task<string> CallARandomAPIToGenerateRandomUsername()
     {
         try
         {
-            await UnityServices.InitializeAsync();
-            await AuthenticationService.Instance.SignInAnonymouslyAsync();
-            Debug.Log("Sign in anonymously succeeded!");
-            playerId = AuthenticationService.Instance.PlayerId;
-            playerName = await CallARandomAPIToGenerateRandomUsername();
-           await AuthenticationService.Instance.UpdatePlayerNameAsync(playerName);
-            Debug.Log($"PlayerID: {playerId}");
-            Debug.Log($"PlayerName: {playerName}");
+            // Simulate API call delay
+            await Task.Delay(500);
+            
+            // Generate a random username
+            string username = $"Player_{Random.Range(1000, 9999)}";
+            
+            // Validate generated username
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                throw new InvalidOperationException("Generated username is null or empty");
+            }
+            
+            return username;
         }
-        catch (AuthenticationException ex)
+        catch (Exception ex)
         {
-            Debug.LogException(ex);
-            playerId = $"AuthException: {ex.Message}";
-        }
-        catch (RequestFailedException ex)
-        {
-            Debug.LogException(ex);
-            playerId = $"RequestFailed: {ex.Message}";
+            Debug.LogWarning($"Failed to generate username: {ex.Message}");
+            // Fallback to simple random name
+            return $"Player_{UnityEngine.Random.Range(100, 999)}";
         }
     }
 
-    async Task<string> CallARandomAPIToGenerateRandomUsername()
-    {
-        using HttpClient client = new HttpClient();
 
-        await Task.Delay(500); // simulate network delay
-        return "Player_" + Random.Range(1000, 9999);
-    }
-
-
+    /// <summary>
+    /// Static helper to check if any player is currently signed in.
+    /// </summary>
     public static bool IsSignedIn()
     {
-        return AuthenticationService.Instance.IsSignedIn;
+        try
+        {
+            return AuthenticationService.Instance?.IsSignedIn ?? false;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"Error checking sign-in status: {ex.Message}");
+            return false;
+        }
+    }
+    
+    /// <summary>
+    /// Public method to manually trigger sign-in.
+    /// </summary>
+    public async void TriggerSignIn()
+    {
+        await SignInCachedUserAsync();
     }
 #if ONGUI
     void OnGUI()
