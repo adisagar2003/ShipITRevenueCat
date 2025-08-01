@@ -27,8 +27,9 @@ public class LobbyManager : MonoBehaviour
     [SerializeField] private NetworkManager networkManager;
     [SerializeField] private string gameSceneName = "RaceLevel";
     [SerializeField] private Button createLobbyButton;
-    [SerializeField] private GameObject creatingLobbyText; // Assign your "Creating Lobby..." UI Text in the inspector
-    [SerializeField] private GameObject startingGameText; // Assign your "Starting Game..." UI Text in the inspector
+    [SerializeField] private GameObject creatingLobbyText;
+    [SerializeField] private GameObject startingGameText;
+    [SerializeField] private string previousSceneName = "CharacterCustomizer";
 
     private void Awake()
     {
@@ -270,6 +271,28 @@ public class LobbyManager : MonoBehaviour
             yield return null; // check every frame
         }
         Debug.Log("[LobbyManager] NetworkManager.Singleton is ready.");
+    }
+
+    public void BackToPreviousScene()
+    {
+        if (currentLobby != null)
+        {
+            LeaveLobby();
+        }
+        
+        if (createLobbyButton != null)
+        {
+            createLobbyButton.interactable = true;
+        }
+        
+        if (creatingLobbyText != null)
+            creatingLobbyText.SetActive(false);
+        
+        if (startingGameText != null)
+            startingGameText.SetActive(false);
+        
+        Debug.Log($"Returning to previous scene: {previousSceneName}");
+        SceneManager.LoadScene(previousSceneName, LoadSceneMode.Single);
     }
 
     public async void LeaveLobby()
