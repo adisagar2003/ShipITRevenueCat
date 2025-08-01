@@ -26,7 +26,7 @@ using System;
         rb = GetComponent<Rigidbody>();
         if (rb == null)
         {
-            Debug.LogError($"Rigidbody component is required on {gameObject.name} but was not found");
+            GameLogger.LogCritical(GameLogger.LogCategory.Gameplay, $"Rigidbody component is required on {gameObject.name} but was not found", this);
             enabled = false;
             return;
         }
@@ -48,19 +48,19 @@ using System;
         // Validate ground check configuration
         if (groundCheckRaycastOriginPoint == null)
         {
-            Debug.LogError($"Ground check raycast origin point is not assigned on {gameObject.name}");
+            GameLogger.LogError(GameLogger.LogCategory.Gameplay, $"Ground check raycast origin point is not assigned on {gameObject.name}", this);
         }
         
         // Validate movement parameters
         if (moveSpeed <= 0)
         {
-            Debug.LogWarning($"Move speed is {moveSpeed} on {gameObject.name}, setting to default value 5");
+            GameLogger.LogWarning(GameLogger.LogCategory.Gameplay, $"Move speed is {moveSpeed} on {gameObject.name}, setting to default value 5", this);
             moveSpeed = 5f;
         }
         
         if (maxSpeed <= 0)
         {
-            Debug.LogWarning($"Max speed is {maxSpeed} on {gameObject.name}, setting to default value 8");
+            GameLogger.LogWarning(GameLogger.LogCategory.Gameplay, $"Max speed is {maxSpeed} on {gameObject.name}, setting to default value 8", this);
             maxSpeed = 8f;
         }
     }
@@ -83,6 +83,7 @@ using System;
     private void EnableMovement()
     {
         canMove = true;
+        GameLogger.LogInfo(GameLogger.LogCategory.Gameplay, $"Movement enabled for {gameObject.name}", this);
     }
 
     private void SetOwnedCameraOnly()
@@ -97,7 +98,7 @@ using System;
 
         if (cameraTransform == null)
         {
-            Debug.LogWarning("PlayerMovement: cameraTransform is null after SetOwnedCameraOnly.");
+            GameLogger.LogWarning(GameLogger.LogCategory.Gameplay, "PlayerMovement: cameraTransform is null after SetOwnedCameraOnly.", this);
         }
     }
 

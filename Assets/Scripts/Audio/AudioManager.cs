@@ -78,8 +78,8 @@ public class AudioManager : MonoBehaviour
     /// </summary>
     public void PlayButtonClick()
     {
+        GameLogger.LogUserAction("ButtonClick", "Playing button click sound");
         PlaySFX(buttonClickSound);
-        Debug.Log("Button click sound played!");
     }
 
     /// <summary>
@@ -91,17 +91,19 @@ public class AudioManager : MonoBehaviour
         if (clip != null && sfxSource != null)
         {
             sfxSource.PlayOneShot(clip, sfxVolume * masterVolume);
+            GameLogger.LogDebug(GameLogger.LogCategory.Audio, $"Playing SFX: {clip.name}");
         }
         else
         {
-            Debug.LogWarning($"Cannot play SFX: {(clip == null ? "AudioClip is null" : "SFX AudioSource is null")}");
+            string reason = clip == null ? "AudioClip is null" : "SFX AudioSource is null";
+            GameLogger.LogWarning(GameLogger.LogCategory.Audio, $"Cannot play SFX: {reason}");
         }
     }
 
     public void PlayArrowButtonClick()
     {
+        GameLogger.LogUserAction("ArrowButtonClick", "Playing arrow button click sound");
         PlaySFX(arrowClickSound);
-        Debug.Log("Arrow click sound played!");
     }
 
     /// <summary>
@@ -113,6 +115,11 @@ public class AudioManager : MonoBehaviour
         {
             musicSource.clip = backgroundMusic;
             musicSource.Play();
+            GameLogger.LogInfo(GameLogger.LogCategory.Audio, $"Started background music: {backgroundMusic.name}");
+        }
+        else
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.Audio, "Cannot play background music: missing clip or source");
         }
     }
 
@@ -124,6 +131,11 @@ public class AudioManager : MonoBehaviour
         if (musicSource != null)
         {
             musicSource.Stop();
+            GameLogger.LogInfo(GameLogger.LogCategory.Audio, "Stopped background music");
+        }
+        else
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.Audio, "Cannot stop background music: musicSource is null");
         }
     }
 
