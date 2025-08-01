@@ -23,12 +23,12 @@ public class RaceLevelManager : NetworkBehaviour
 
     private IEnumerator WaitForPlayersAndSpawn()
     {
-        int expectedPlayers = 2;
+        int expectedPlayers = GameConstants.Networking.DEFAULT_MAX_PLAYERS;
 
         while (NetworkManager.Singleton.ConnectedClients.Count < expectedPlayers)
         {
             Debug.Log($"Waiting for players: {NetworkManager.Singleton.ConnectedClients.Count}/{expectedPlayers}");
-            yield return new WaitForSeconds(0.5f);
+            yield return new WaitForSeconds(GameConstants.Networking.PLAYER_WAIT_POLLING_INTERVAL);
         }
 
         Debug.Log("All players connected! Spawning...");

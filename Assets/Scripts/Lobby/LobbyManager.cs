@@ -20,16 +20,16 @@ public class LobbyManager : MonoBehaviour
     public List<Lobby> availableLobbies { get; private set; } = new List<Lobby>();
     public Lobby currentLobby;
     private bool shouldRefreshLobbies = true;
-    private int maxPlayers = 2;
+    private int maxPlayers = GameConstants.Networking.DEFAULT_MAX_PLAYERS;
     public event Action OnLobbiesUpdated;
 
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private NetworkManager networkManager;
-    [SerializeField] private string gameSceneName = "RaceLevel";
+    [SerializeField] private string gameSceneName = GameConstants.Graphics.SCENE_RACE_LEVEL;
     [SerializeField] private Button createLobbyButton;
     [SerializeField] private GameObject creatingLobbyText;
     [SerializeField] private GameObject startingGameText;
-    [SerializeField] private string previousSceneName = "CharacterCustomizer";
+    [SerializeField] private string previousSceneName = GameConstants.Graphics.SCENE_CHARACTER_CUSTOMIZER;
 
     private void Awake()
     {
@@ -58,7 +58,7 @@ public class LobbyManager : MonoBehaviour
         while (shouldRefreshLobbies)
         {
             await FetchAvailableLobbies();
-            await Task.Delay(3000);
+            await Task.Delay((int)(GameConstants.Networking.LOBBY_POLLING_INTERVAL * 3000));
         }
     }
 
@@ -212,7 +212,7 @@ public class LobbyManager : MonoBehaviour
                 Debug.LogError($"Polling failed: {e}");
                 break;
             }
-            await Task.Delay(1000);
+            await Task.Delay((int)(GameConstants.Networking.LOBBY_POLLING_INTERVAL * 1000));
         }
     }
     

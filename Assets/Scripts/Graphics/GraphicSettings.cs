@@ -4,7 +4,7 @@ public class GraphicSettings : MonoBehaviour
 {
     void Start()
     {
-        QualitySettings.vSyncCount = 0;
-        Application.targetFrameRate = 120; // No FPS Limit
+        QualitySettings.vSyncCount = GameConstants.Graphics.VSYNC_DISABLED;
+        Application.targetFrameRate = GameConstants.Graphics.TARGET_FRAME_RATE;
     }
 }

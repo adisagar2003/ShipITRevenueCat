@@ -5,12 +5,12 @@ using System.Collections.Generic;
 public class DebugLogGUI : MonoBehaviour
 {
     [Header("UI Settings")]
-    public int maxLines = 30;
-    public float backgroundAlpha = 0.7f;
+    public int maxLines = GameConstants.Debug.MAX_DEBUG_LOG_LINES;
+    public float backgroundAlpha = GameConstants.Debug.DEBUG_BACKGROUND_ALPHA;
     public Color backgroundColor = Color.black;
     public Color textColor = Color.white;
-    public int fontSize = 16;
-    [SerializeField] public float logLifetime = 4f; // Seconds before a log is cleared
+    public int fontSize = GameConstants.Debug.DEBUG_FONT_SIZE;
+    [SerializeField] public float logLifetime = GameConstants.Debug.LOG_LIFETIME_SECONDS;
 
     private Queue<(string message, float timestamp)> logLines = new Queue<(string, float)>();
     private Text logText;

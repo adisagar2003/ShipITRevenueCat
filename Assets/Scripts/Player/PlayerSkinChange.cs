@@ -17,9 +17,9 @@ public class PlayerSkinChange : NetworkBehaviour
     {
         if (IsOwner)
         {
-            int body = PlayerPrefs.GetInt("Body_Index", 0);
-            int head = PlayerPrefs.GetInt("Head_Index", 0);
-            int hat = PlayerPrefs.GetInt("Glasses_Index", 0);
+            int body = PlayerPrefs.GetInt(GameConstants.PlayerPrefsKeys.BODY_INDEX, 0);
+            int head = PlayerPrefs.GetInt(GameConstants.PlayerPrefsKeys.HEAD_INDEX, 0);
+            int hat = PlayerPrefs.GetInt(GameConstants.PlayerPrefsKeys.GLASSES_INDEX, 0);
 
             body = Mathf.Clamp(body, 0, customizationDatabase.bodyMeshes.Count - 1);
             head = Mathf.Clamp(head, 0, customizationDatabase.headMeshes.Count - 1);
