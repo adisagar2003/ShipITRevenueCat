@@ -38,10 +38,34 @@ public class SignInPlayerAnonymously : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            ValidateConfiguration();
         }
         else
         {
             Destroy(gameObject);
+            return;
+        }
+    }
+    
+    private void OnDestroy()
+    {
+        // Clean up singleton reference
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+        
+        // Cancel any ongoing sign-in operations
+        isSigningIn = false;
+        
+        GameLogger.LogInfo(GameLogger.LogCategory.Authentication, "SignInPlayerAnonymously disposed");
+    }
+    
+    private void OnApplicationPause(bool pauseStatus)
+    {
+        if (pauseStatus)
+        {
+            GameLogger.LogInfo(GameLogger.LogCategory.Authentication, "Application paused during authentication");
         }
     }
     
@@ -50,6 +74,21 @@ public class SignInPlayerAnonymously : MonoBehaviour
         if (autoSignIn)
         {
             await SignInCachedUserAsync();
+        }
+    }
+    
+    private void ValidateConfiguration()
+    {
+        if (maxRetries <= 0)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.Authentication, $"Invalid maxRetries value: {maxRetries}, setting to 3");
+            maxRetries = 3;
+        }
+        
+        if (retryDelay <= 0)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.Authentication, $"Invalid retryDelay value: {retryDelay}, setting to 2.0");
+            retryDelay = 2f;
         }
     }
     

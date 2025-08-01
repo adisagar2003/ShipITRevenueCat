@@ -49,6 +49,62 @@ public class LobbyManager : MonoBehaviour
         else
             Destroy(gameObject);
     }
+    
+    private void OnDestroy()
+    {
+        // Clean up singleton reference
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+        
+        // Stop lobby operations
+        shouldRefreshLobbies = false;
+        
+        // Leave current lobby if in one
+        if (currentLobby != null)
+        {
+            _ = LeaveLobbyOnDestroy();
+        }
+        
+        GameLogger.LogInfo(GameLogger.LogCategory.Network, "LobbyManager disposed");
+    }
+    
+    private async Task LeaveLobbyOnDestroy()
+    {
+        try
+        {
+            if (currentLobby != null && AuthenticationService.Instance.IsSignedIn)
+            {
+                await Lobbies.Instance.RemovePlayerAsync(currentLobby.Id, AuthenticationService.Instance.PlayerId);
+                GameLogger.LogInfo(GameLogger.LogCategory.Network, "Left lobby during cleanup");
+            }
+        }
+        catch (Exception ex)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.Network, $"Failed to leave lobby during cleanup: {ex.Message}");
+        }
+    }
+    
+    private void OnApplicationPause(bool pauseStatus)
+    {
+        if (pauseStatus)
+        {
+            // Temporarily stop lobby refresh to save battery/data
+            shouldRefreshLobbies = false;
+            GameLogger.LogInfo(GameLogger.LogCategory.Network, "Lobby operations paused");
+        }
+        else
+        {
+            // Resume lobby operations if we were refreshing
+            if (currentLobby == null) // Only resume if not in a specific lobby
+            {
+                shouldRefreshLobbies = true;
+                _ = RefreshLobbiesLoop();
+                GameLogger.LogInfo(GameLogger.LogCategory.Network, "Lobby operations resumed");
+            }
+        }
+    }
 
     private async void Start()
     {

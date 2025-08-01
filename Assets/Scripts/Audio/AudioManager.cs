@@ -37,6 +37,51 @@ public class AudioManager : MonoBehaviour
             Destroy(gameObject);
         }
     }
+    
+    private void OnDestroy()
+    {
+        // Clean up singleton reference
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+        
+        // Stop all audio sources to prevent memory leaks
+        if (musicSource != null)
+        {
+            musicSource.Stop();
+            musicSource.clip = null;
+        }
+        
+        if (sfxSource != null)
+        {
+            sfxSource.Stop();
+        }
+        
+        GameLogger.LogInfo(GameLogger.LogCategory.Audio, "AudioManager disposed");
+    }
+    
+    private void OnApplicationPause(bool pauseStatus)
+    {
+        if (pauseStatus)
+        {
+            // Pause audio when application is paused
+            if (musicSource != null && musicSource.isPlaying)
+            {
+                musicSource.Pause();
+                GameLogger.LogInfo(GameLogger.LogCategory.Audio, "Audio paused due to application pause");
+            }
+        }
+        else
+        {
+            // Resume audio when application is unpaused
+            if (musicSource != null && !musicSource.isPlaying && musicSource.clip != null)
+            {
+                musicSource.UnPause();
+                GameLogger.LogInfo(GameLogger.LogCategory.Audio, "Audio resumed after application unpause");
+            }
+        }
+    }
 
     private void InitializeAudio()
     {
