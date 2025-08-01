@@ -4,7 +4,7 @@ using UnityEngine;
 /// Handles RevenueCat SDK initialization and configuration.
 /// This component should be present in the initial scene to set up in-app purchases.
 /// </summary>
-public class RevenueCatInitializer : MonoBehaviour
+public class RevenueCatInitializer : ThreadSafeSingleton<RevenueCatInitializer>
 {
     [Header("RevenueCat Configuration")]
     [SerializeField, Tooltip("Enable debug logging for RevenueCat")]
@@ -23,24 +23,13 @@ public class RevenueCatInitializer : MonoBehaviour
     [SerializeField, Tooltip("API keys are loaded securely from environment variables or encrypted storage")]
     private bool apiKeysLoadedSecurely = true;
     
-    private bool isInitialized = false;
-    
-    public static RevenueCatInitializer Instance { get; private set; }
+    private volatile bool isInitialized = false;
+    private readonly object initializationLock = new object();
     public bool IsInitialized => isInitialized;
     
-    private void Awake()
+    protected override void Initialize()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
-            return;
-        }
-        
+        base.Initialize();
         ValidateConfiguration();
     }
     
@@ -143,30 +132,39 @@ public class RevenueCatInitializer : MonoBehaviour
     
     private void InitializeRevenueCat()
     {
-        string apiKey = SecureCredentialManager.GetRevenueCatApiKey();
-        
-        if (string.IsNullOrWhiteSpace(apiKey))
+        lock (initializationLock)
         {
-            GameLogger.LogError(GameLogger.LogCategory.Purchase, "Cannot initialize RevenueCat without API key. Check environment variables or secure storage.");
-            isInitialized = false;
-            return;
-        }
-        
-        try
-        {
-            GameLogger.LogInfo(GameLogger.LogCategory.Purchase, "Initializing RevenueCat SDK");
+            if (isInitialized)
+            {
+                GameLogger.LogDebug(GameLogger.LogCategory.Purchase, "RevenueCat already initialized");
+                return;
+            }
             
-            // TODO: Initialize RevenueCat SDK here when integrated
-            // Example: Purchases.Configure(new PurchasesConfiguration.Builder(apiKey).SetAppUserId(userId).Build());
+            string apiKey = SecureCredentialManager.GetRevenueCatApiKey();
             
-            // Simulate initialization for now
-            isInitialized = true;
-            GameLogger.LogInfo(GameLogger.LogCategory.Purchase, "RevenueCat initialized successfully");
-        }
-        catch (System.Exception e)
-        {
-            GameLogger.LogError(GameLogger.LogCategory.Purchase, $"Failed to initialize RevenueCat: {e.Message}");
-            isInitialized = false;
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                GameLogger.LogError(GameLogger.LogCategory.Purchase, "Cannot initialize RevenueCat without API key. Check environment variables or secure storage.");
+                isInitialized = false;
+                return;
+            }
+            
+            try
+            {
+                GameLogger.LogInfo(GameLogger.LogCategory.Purchase, "Initializing RevenueCat SDK");
+                
+                // TODO: Initialize RevenueCat SDK here when integrated
+                // Example: Purchases.Configure(new PurchasesConfiguration.Builder(apiKey).SetAppUserId(userId).Build());
+                
+                // Simulate initialization for now
+                isInitialized = true;
+                GameLogger.LogInfo(GameLogger.LogCategory.Purchase, "RevenueCat initialized successfully");
+            }
+            catch (System.Exception e)
+            {
+                GameLogger.LogError(GameLogger.LogCategory.Purchase, $"Failed to initialize RevenueCat: {e.Message}");
+                isInitialized = false;
+            }
         }
     }
     

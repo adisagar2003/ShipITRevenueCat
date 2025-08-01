@@ -5,26 +5,17 @@ using Unity.Netcode;
 
 /// <summary>
 /// Centralized spawn manager that handles random player spawning
-/// Should be attached to a singleton GameObject in the scene
+/// Thread-safe networked singleton for managing player spawn points
 /// </summary>
-public class SpawnManager : NetworkBehaviour
+public class SpawnManager : ThreadSafeNetworkSingleton<SpawnManager>
 {
     [SerializeField] private List<Transform> spawnPoints = new List<Transform>();
     private List<bool> occupiedSpawnPoints = new List<bool>();
-    public static SpawnManager Instance { get; private set; }
-    private void Awake()
+    private readonly object spawnLock = new object();
+    protected override void Initialize()
     {
-        Debug.Log("[SpawnManager] Awake called");
-        if (Instance == null)
-        {
-            Instance = this;
-            Debug.Log("[SpawnManager] Instance set successfully");
-        }
-        else
-        {
-            Debug.LogWarning("[SpawnManager] Duplicate SpawnManager found, destroying...");
-            Destroy(gameObject);
-        }
+        base.Initialize();
+        GameLogger.LogInfo(GameLogger.LogCategory.Gameplay, "SpawnManager initialized");
     }
 
     private void Start()
@@ -44,52 +35,92 @@ public class SpawnManager : NetworkBehaviour
 
     public Transform GetRandomAvailableSpawnPoint()
     {
-        Debug.Log($"[SpawnManager] GetRandomAvailableSpawnPoint called. Total spawn points: {spawnPoints.Count}");
-        
-        List<int> availableIndices = new List<int>();
-        // Initialize occupation tracking
-        occupiedSpawnPoints = new List<bool>(new bool[spawnPoints.Count]);
-
-        // Find all available spawn points
-        for (int i = 0; i < spawnPoints.Count; i++)
+        lock (spawnLock)
         {
-            if (!occupiedSpawnPoints[i])
+            GameLogger.LogDebug(GameLogger.LogCategory.Gameplay, $"GetRandomAvailableSpawnPoint called. Total spawn points: {spawnPoints.Count}");
+            
+            if (spawnPoints.Count == 0)
             {
-                availableIndices.Add(i);
+                GameLogger.LogWarning(GameLogger.LogCategory.Gameplay, "No spawn points configured");
+                return null;
             }
+            
+            // Ensure occupation tracking is initialized
+            if (occupiedSpawnPoints.Count != spawnPoints.Count)
+            {
+                occupiedSpawnPoints = new List<bool>(new bool[spawnPoints.Count]);
+            }
+            
+            List<int> availableIndices = new List<int>();
+            
+            // Find all available spawn points
+            for (int i = 0; i < spawnPoints.Count; i++)
+            {
+                if (spawnPoints[i] != null && !occupiedSpawnPoints[i])
+                {
+                    availableIndices.Add(i);
+                }
+            }
+            
+            GameLogger.LogDebug(GameLogger.LogCategory.Gameplay, $"Available spawn points: {availableIndices.Count}");
+            
+            if (availableIndices.Count == 0)
+            {
+                GameLogger.LogWarning(GameLogger.LogCategory.Gameplay, "No available spawn points!");
+                return null;
+            }
+            
+            int randomIndex = availableIndices[Random.Range(0, availableIndices.Count)];
+            occupiedSpawnPoints[randomIndex] = true;
+            
+            Transform selectedSpawn = spawnPoints[randomIndex];
+            GameLogger.LogInfo(GameLogger.LogCategory.Gameplay, $"Selected spawn point {randomIndex}: {selectedSpawn.name} at {selectedSpawn.position}");
+            
+            return selectedSpawn;
         }
-        
-        Debug.Log($"[SpawnManager] Available spawn points: {availableIndices.Count}");
-        
-        if (availableIndices.Count == 0)
-        {
-            Debug.LogWarning("No available spawn points!");
-            return null;
-        }
-        int randomIndex = availableIndices[Random.Range(0, availableIndices.Count)];
-        occupiedSpawnPoints[randomIndex] = true;
-        
-        Transform selectedSpawn = spawnPoints[randomIndex];
-        Debug.Log($"[SpawnManager] Selected spawn point {randomIndex}: {selectedSpawn.name} at {selectedSpawn.position}");
-        
-        return selectedSpawn;
     }
 
     public void FreeSpawnPoint(Transform spawnPoint)
     {
         if (!IsServer) return;
-        int index = spawnPoints.IndexOf(spawnPoint);
-        if (index >= 0)
+        
+        lock (spawnLock)
         {
-            occupiedSpawnPoints[index] = false;
+            int index = spawnPoints.IndexOf(spawnPoint);
+            if (index >= 0 && index < occupiedSpawnPoints.Count)
+            {
+                occupiedSpawnPoints[index] = false;
+                GameLogger.LogDebug(GameLogger.LogCategory.Gameplay, $"Freed spawn point {index}");
+            }
+            else
+            {
+                GameLogger.LogWarning(GameLogger.LogCategory.Gameplay, $"Could not free spawn point: not found in list");
+            }
         }
     }
 
     public Transform GetRandomSpawnPoint()
     {
-        if (spawnPoints.Count == 0) return null;
-        int randomIndex = Random.Range(0, spawnPoints.Count);
-        return spawnPoints[randomIndex];
+        lock (spawnLock)
+        {
+            if (spawnPoints.Count == 0) return null;
+            
+            // Filter out null spawn points
+            var validSpawnPoints = new List<Transform>();
+            foreach (var spawn in spawnPoints)
+            {
+                if (spawn != null) validSpawnPoints.Add(spawn);
+            }
+            
+            if (validSpawnPoints.Count == 0)
+            {
+                GameLogger.LogWarning(GameLogger.LogCategory.Gameplay, "All spawn points are null");
+                return null;
+            }
+            
+            int randomIndex = Random.Range(0, validSpawnPoints.Count);
+            return validSpawnPoints[randomIndex];
+        }
     }
 
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && OnGUI

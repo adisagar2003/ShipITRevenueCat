@@ -1,9 +1,9 @@
 using UnityEngine;
 
-public class AudioManager : MonoBehaviour
+public class AudioManager : ThreadSafeSingleton<AudioManager>
 {
-    #region Singleton
-    public static AudioManager Instance { get; private set; }
+    #region Singleton - Handled by ThreadSafeSingleton base class
+    // Instance property is inherited from ThreadSafeSingleton<AudioManager>
     #endregion
 
     #region Serialized Fields
@@ -24,28 +24,14 @@ public class AudioManager : MonoBehaviour
 
     #region Unity Lifecycle
 
-    private void Awake()
+    protected override void Initialize()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-            InitializeAudio();
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+        base.Initialize();
+        InitializeAudio();
     }
     
-    private void OnDestroy()
+    protected override void OnSingletonDestroyed()
     {
-        // Clean up singleton reference
-        if (Instance == this)
-        {
-            Instance = null;
-        }
-        
         // Stop all audio sources to prevent memory leaks
         if (musicSource != null)
         {
@@ -59,6 +45,7 @@ public class AudioManager : MonoBehaviour
         }
         
         GameLogger.LogInfo(GameLogger.LogCategory.Audio, "AudioManager disposed");
+        base.OnSingletonDestroyed();
     }
     
     private void OnApplicationPause(bool pauseStatus)

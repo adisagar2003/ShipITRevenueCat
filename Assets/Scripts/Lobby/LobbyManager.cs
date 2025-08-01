@@ -13,10 +13,9 @@ using UnityEngine.SceneManagement;
 using System.Collections;
 using UnityEngine.UI;
 
-public class LobbyManager : MonoBehaviour
+public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 {
-    #region Singleton & Events
-    public static LobbyManager Instance { get; private set; }
+    #region Singleton & Events - Singleton handled by ThreadSafeSingleton base class
     public event Action OnLobbiesUpdated;
     #endregion
 
@@ -42,22 +41,14 @@ public class LobbyManager : MonoBehaviour
 
     #region Unity Lifecycle
 
-    private void Awake()
+    protected override void Initialize()
     {
-        if (Instance == null)
-            Instance = this;
-        else
-            Destroy(gameObject);
+        base.Initialize();
+        GameLogger.LogInfo(GameLogger.LogCategory.Network, "LobbyManager initialized");
     }
     
-    private void OnDestroy()
+    protected override void OnSingletonDestroyed()
     {
-        // Clean up singleton reference
-        if (Instance == this)
-        {
-            Instance = null;
-        }
-        
         // Stop lobby operations
         shouldRefreshLobbies = false;
         
@@ -68,6 +59,7 @@ public class LobbyManager : MonoBehaviour
         }
         
         GameLogger.LogInfo(GameLogger.LogCategory.Network, "LobbyManager disposed");
+        base.OnSingletonDestroyed();
     }
     
     private async Task LeaveLobbyOnDestroy()

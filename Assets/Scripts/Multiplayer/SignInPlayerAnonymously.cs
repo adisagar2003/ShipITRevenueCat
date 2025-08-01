@@ -10,7 +10,7 @@ using System;
 /// Handles anonymous player sign-in for Unity Services.
 /// This component initializes Unity Services and creates an anonymous player session.
 /// </summary>
-public class SignInPlayerAnonymously : MonoBehaviour
+public class SignInPlayerAnonymously : ThreadSafeSingleton<SignInPlayerAnonymously>
 {
     [Header("Authentication Settings")]
     [SerializeField, Tooltip("Automatically sign in on Start")]
@@ -24,41 +24,29 @@ public class SignInPlayerAnonymously : MonoBehaviour
     
     private string playerId = "Not signed in yet.";
     private string playerName = "";
-    private bool isSigningIn = false;
+    private volatile bool isSigningIn = false; // volatile for thread safety
     private int currentRetryCount = 0;
-    
-    public static SignInPlayerAnonymously Instance { get; private set; }
+    private readonly object signInLock = new object();
     public bool IsSignedIn => AuthenticationService.Instance?.IsSignedIn ?? false;
     public string PlayerId => playerId;
     public string PlayerName => playerName;
     
-    private void Awake()
+    protected override void Initialize()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-            ValidateConfiguration();
-        }
-        else
-        {
-            Destroy(gameObject);
-            return;
-        }
+        base.Initialize();
+        ValidateConfiguration();
     }
     
-    private void OnDestroy()
+    protected override void OnSingletonDestroyed()
     {
-        // Clean up singleton reference
-        if (Instance == this)
+        // Cancel any ongoing sign-in operations
+        lock (signInLock)
         {
-            Instance = null;
+            isSigningIn = false;
         }
         
-        // Cancel any ongoing sign-in operations
-        isSigningIn = false;
-        
         GameLogger.LogInfo(GameLogger.LogCategory.Authentication, "SignInPlayerAnonymously disposed");
+        base.OnSingletonDestroyed();
     }
     
     private void OnApplicationPause(bool pauseStatus)
@@ -97,14 +85,17 @@ public class SignInPlayerAnonymously : MonoBehaviour
     /// </summary>
     public async Task SignInCachedUserAsync()
     {
-        if (isSigningIn)
+        lock (signInLock)
         {
-            Debug.LogWarning("Sign-in already in progress");
-            return;
+            if (isSigningIn)
+            {
+                GameLogger.LogWarning(GameLogger.LogCategory.Authentication, "Sign-in already in progress");
+                return;
+            }
+            
+            isSigningIn = true;
+            currentRetryCount = 0;
         }
-        
-        isSigningIn = true;
-        currentRetryCount = 0;
         
         while (currentRetryCount < maxRetries)
         {
@@ -130,7 +121,10 @@ public class SignInPlayerAnonymously : MonoBehaviour
             }
         }
         
-        isSigningIn = false;
+        lock (signInLock)
+        {
+            isSigningIn = false;
+        }
     }
     
     private async Task AttemptSignIn()
