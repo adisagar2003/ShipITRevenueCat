@@ -15,14 +15,22 @@ using UnityEngine.UI;
 
 public class LobbyManager : MonoBehaviour
 {
+    #region Singleton & Events
     public static LobbyManager Instance { get; private set; }
+    public event Action OnLobbiesUpdated;
+    #endregion
 
+    #region Public Properties
     public List<Lobby> availableLobbies { get; private set; } = new List<Lobby>();
     public Lobby currentLobby;
+    #endregion
+
+    #region Private Fields
     private bool shouldRefreshLobbies = true;
     private int maxPlayers = GameConstants.Networking.DEFAULT_MAX_PLAYERS;
-    public event Action OnLobbiesUpdated;
+    #endregion
 
+    #region Serialized Fields
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private NetworkManager networkManager;
     [SerializeField] private string gameSceneName = GameConstants.Graphics.SCENE_RACE_LEVEL;
@@ -30,6 +38,9 @@ public class LobbyManager : MonoBehaviour
     [SerializeField] private GameObject creatingLobbyText;
     [SerializeField] private GameObject startingGameText;
     [SerializeField] private string previousSceneName = GameConstants.Graphics.SCENE_CHARACTER_CUSTOMIZER;
+    #endregion
+
+    #region Unity Lifecycle
 
     private void Awake()
     {
@@ -47,6 +58,9 @@ public class LobbyManager : MonoBehaviour
         _ = RefreshLobbiesLoop();
     }
 
+    #endregion
+
+    #region Lobby Management
     private async Task WaitForGameInitializer()
     {
         while (!GameInitializer.IsInitialized)
@@ -80,6 +94,9 @@ public class LobbyManager : MonoBehaviour
     }
 
 
+    #endregion
+
+    #region Lobby Operations
     public async void CreateLobby(string lobbyName = "MyLobby")
     {
         try
@@ -126,6 +143,9 @@ public class LobbyManager : MonoBehaviour
         }
     }
 
+    #endregion
+
+    #region Relay & Networking
     public async void HostStartGame()
     {
         if (currentLobby == null)
@@ -256,6 +276,9 @@ public class LobbyManager : MonoBehaviour
         Debug.Log("[LobbyManager] NetworkManager.Singleton is ready.");
     }
 
+    #endregion
+
+    #region Scene Navigation
     public void BackToPreviousScene()
     {
         if (currentLobby != null)
@@ -298,4 +321,5 @@ public class LobbyManager : MonoBehaviour
             }
         }
     }
+    #endregion
 }

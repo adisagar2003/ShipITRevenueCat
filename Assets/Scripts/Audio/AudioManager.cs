@@ -2,6 +2,11 @@ using UnityEngine;
 
 public class AudioManager : MonoBehaviour
 {
+    #region Singleton
+    public static AudioManager Instance { get; private set; }
+    #endregion
+
+    #region Serialized Fields
     [Header("Audio Sources")]
     public AudioSource musicSource;
     public AudioSource sfxSource;
@@ -18,8 +23,9 @@ public class AudioManager : MonoBehaviour
     public float musicVolume = 0.3f;
     [Range(0f, 1f)]
     public float sfxVolume = 1f;
+    #endregion
 
-    public static AudioManager Instance { get; private set; }
+    #region Unity Lifecycle
 
     private void Awake()
     {
@@ -66,6 +72,7 @@ public class AudioManager : MonoBehaviour
             PlayBackgroundMusic();
         }
     }
+    #endregion
 
     #region Public Methods
 
