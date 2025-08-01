@@ -7,12 +7,6 @@ using UnityEngine;
 public class RevenueCatInitializer : MonoBehaviour
 {
     [Header("RevenueCat Configuration")]
-    [SerializeField, Tooltip("RevenueCat API key for this platform")]
-    private string apiKey = "";
-    
-    [SerializeField, Tooltip("User ID for RevenueCat (leave empty for anonymous)")]
-    private string userId = "";
-    
     [SerializeField, Tooltip("Enable debug logging for RevenueCat")]
     private bool enableDebugLogs = true;
     
@@ -21,6 +15,13 @@ public class RevenueCatInitializer : MonoBehaviour
     
     [SerializeField, Tooltip("Product IDs to validate during initialization")]
     private string[] expectedProductIds = new string[0];
+    
+    [SerializeField, Tooltip("User ID for RevenueCat (leave empty for anonymous)")]
+    private string userId = "";
+    
+    [Header("Security Notice")]
+    [SerializeField, Tooltip("API keys are loaded securely from environment variables or encrypted storage")]
+    private bool apiKeysLoadedSecurely = true;
     
     private bool isInitialized = false;
     
@@ -52,17 +53,22 @@ public class RevenueCatInitializer : MonoBehaviour
     {
         GameLogger.LogInfo(GameLogger.LogCategory.Purchase, "Validating RevenueCat configuration");
         
-        // Validate API key
+        // Validate API key from secure storage
+        string apiKey = SecureCredentialManager.GetRevenueCatApiKey();
         if (string.IsNullOrWhiteSpace(apiKey))
         {
-            GameLogger.LogError(GameLogger.LogCategory.Purchase, "RevenueCat API key is not set. In-app purchases will not work.");
+            GameLogger.LogError(GameLogger.LogCategory.Purchase, "RevenueCat API key is not available from secure storage. In-app purchases will not work.");
         }
         else
         {
-            // Basic API key format validation
-            if (apiKey.Length < 10 || !apiKey.StartsWith("appl_") && !apiKey.StartsWith("goog_"))
+            // Basic API key format validation (without logging the actual key)
+            if (apiKey.Length < 10 || (!apiKey.StartsWith("appl_") && !apiKey.StartsWith("goog_")))
             {
                 GameLogger.LogWarning(GameLogger.LogCategory.Purchase, "API key format appears invalid. Expected format: 'appl_' or 'goog_' prefix");
+            }
+            else
+            {
+                GameLogger.LogInfo(GameLogger.LogCategory.Purchase, $"Valid API key loaded (length: {apiKey.Length})");
             }
         }
         
@@ -102,16 +108,24 @@ public class RevenueCatInitializer : MonoBehaviour
         switch (Application.platform)
         {
             case RuntimePlatform.Android:
-                if (!string.IsNullOrEmpty(apiKey) && !apiKey.StartsWith("goog_"))
+                if (SecureCredentialManager.HasCredential(SecureCredentialManager.REVENUE_CAT_API_KEY_ANDROID))
                 {
-                    GameLogger.LogWarning(GameLogger.LogCategory.Purchase, "Android platform detected but API key doesn't start with 'goog_'");
+                    GameLogger.LogInfo(GameLogger.LogCategory.Purchase, "Android RevenueCat API key is available");
+                }
+                else
+                {
+                    GameLogger.LogWarning(GameLogger.LogCategory.Purchase, "Android platform detected but no Android API key found");
                 }
                 break;
                 
             case RuntimePlatform.IPhonePlayer:
-                if (!string.IsNullOrEmpty(apiKey) && !apiKey.StartsWith("appl_"))
+                if (SecureCredentialManager.HasCredential(SecureCredentialManager.REVENUE_CAT_API_KEY_IOS))
                 {
-                    GameLogger.LogWarning(GameLogger.LogCategory.Purchase, "iOS platform detected but API key doesn't start with 'appl_'");
+                    GameLogger.LogInfo(GameLogger.LogCategory.Purchase, "iOS RevenueCat API key is available");
+                }
+                else
+                {
+                    GameLogger.LogWarning(GameLogger.LogCategory.Purchase, "iOS platform detected but no iOS API key found");
                 }
                 break;
                 
@@ -129,23 +143,29 @@ public class RevenueCatInitializer : MonoBehaviour
     
     private void InitializeRevenueCat()
     {
+        string apiKey = SecureCredentialManager.GetRevenueCatApiKey();
+        
         if (string.IsNullOrWhiteSpace(apiKey))
         {
-            Debug.LogError("Cannot initialize RevenueCat without API key");
+            GameLogger.LogError(GameLogger.LogCategory.Purchase, "Cannot initialize RevenueCat without API key. Check environment variables or secure storage.");
+            isInitialized = false;
             return;
         }
         
         try
         {
+            GameLogger.LogInfo(GameLogger.LogCategory.Purchase, "Initializing RevenueCat SDK");
+            
             // TODO: Initialize RevenueCat SDK here when integrated
             // Example: Purchases.Configure(new PurchasesConfiguration.Builder(apiKey).SetAppUserId(userId).Build());
             
+            // Simulate initialization for now
             isInitialized = true;
-            Debug.Log("RevenueCat initialized successfully");
+            GameLogger.LogInfo(GameLogger.LogCategory.Purchase, "RevenueCat initialized successfully");
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"Failed to initialize RevenueCat: {e.Message}");
+            GameLogger.LogError(GameLogger.LogCategory.Purchase, $"Failed to initialize RevenueCat: {e.Message}");
             isInitialized = false;
         }
     }
