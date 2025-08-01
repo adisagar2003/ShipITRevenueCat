@@ -329,7 +329,7 @@ PrefabInstance:
     - target: {fileID: 4609471799615961114, guid: b392c3e38cb625d438f6abc837a08a86,
         type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.006190216
+      value: 0.006190493
       objectReference: {fileID: 0}
     - target: {fileID: 4609471799615961114, guid: b392c3e38cb625d438f6abc837a08a86,
         type: 3}
@@ -339,7 +339,7 @@ PrefabInstance:
     - target: {fileID: 4609471799615961114, guid: b392c3e38cb625d438f6abc837a08a86,
         type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.00012273858
+      value: 0.00012274722
       objectReference: {fileID: 0}
     - target: {fileID: 5283300501140329024, guid: b392c3e38cb625d438f6abc837a08a86,
         type: 3}
@@ -476,6 +476,10 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 5283300501140329024, guid: b392c3e38cb625d438f6abc837a08a86,
         type: 3}
       insertIndex: -1
+      addedObject: {fileID: 3370416642287813256}
+    - targetCorrespondingSourceObject: {fileID: 5283300501140329024, guid: b392c3e38cb625d438f6abc837a08a86,
+        type: 3}
+      insertIndex: -1
       addedObject: {fileID: 2446334756564463780}
     - targetCorrespondingSourceObject: {fileID: 5283300501140329024, guid: b392c3e38cb625d438f6abc837a08a86,
         type: 3}
@@ -596,7 +600,7 @@ MonoBehaviour:
   jumpEnergy: 600
   testMode: 0
   groundCheckRaycastOriginPoint: {fileID: 5252161914697915363}
-  rayDistance: 1.3
+  rayDistance: 1.29
   groundMask:
     serializedVersion: 2
     m_Bits: 64
@@ -748,6 +752,26 @@ MonoBehaviour:
   hatsContainer: {fileID: 6105826244701067161}
   bodyRenderer: {fileID: 5451237610081825596}
   headRenderer: {fileID: 8620753245463607655}
+--- !u!114 &3370416642287813256
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7682948083103429099}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7c55ec07f0da7b41b97c9066123e952, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  edgeCheckDistance: 0.6
+  edgeCheckHeight: 0.1
+  obstacleMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  enableEdgeDetection: 1
+  sphereRadius: 0.68
+  positionOffset: {x: 0, y: -0.57, z: 0}
 --- !u!114 &2446334756564463780
 MonoBehaviour:
   m_ObjectHideFlags: 0

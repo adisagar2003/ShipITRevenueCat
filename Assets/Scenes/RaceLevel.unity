@@ -10256,6 +10256,11 @@ PrefabInstance:
       propertyPath: m_AdditionalShaderChannelsFlag
       value: 25
       objectReference: {fileID: 0}
+    - target: {fileID: 4253350014805849700, guid: 66728b66a1d01074cb6661d4e431a7e2,
+        type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -242.5
+      objectReference: {fileID: 0}
     - target: {fileID: 4309041257675109761, guid: 66728b66a1d01074cb6661d4e431a7e2,
         type: 3}
       propertyPath: m_Pivot.x
