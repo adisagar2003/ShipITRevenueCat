@@ -8,21 +8,18 @@ public class AudioManager : MonoBehaviour
 
     #region Serialized Fields
     [Header("Audio Sources")]
-    public AudioSource musicSource;
-    public AudioSource sfxSource;
+    [SerializeField] private AudioSource musicSource;
+    [SerializeField] private AudioSource sfxSource;
 
     [Header("Audio Clips")]
-    public AudioClip buttonClickSound;
-    public AudioClip arrowClickSound;
-    public AudioClip backgroundMusic;
+    [SerializeField] private AudioClip buttonClickSound;
+    [SerializeField] private AudioClip arrowClickSound;
+    [SerializeField] private AudioClip backgroundMusic;
 
     [Header("Volume Settings")]
-    [Range(0f, 1f)]
-    public float masterVolume = 1f;
-    [Range(0f, 1f)]
-    public float musicVolume = 0.3f;
-    [Range(0f, 1f)]
-    public float sfxVolume = 1f;
+    [SerializeField, Range(0f, 1f)] private float masterVolume = 1f;
+    [SerializeField, Range(0f, 1f)] private float musicVolume = 0.3f;
+    [SerializeField, Range(0f, 1f)] private float sfxVolume = 1f;
     #endregion
 
     #region Unity Lifecycle

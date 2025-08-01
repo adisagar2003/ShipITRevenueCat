@@ -3,7 +3,7 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Player/Special Powers/Dash Power")]
 public class DashPower : SpecialPower
 {   
-    public float dashForce = 500f;
+    [SerializeField] private float dashForce = 500f;
 
     public override void ApplyEffect(GameObject player)
     {

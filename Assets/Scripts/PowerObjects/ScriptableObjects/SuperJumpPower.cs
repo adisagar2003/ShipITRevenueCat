@@ -7,8 +7,8 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Player/Special Powers/Super Jump Power")]
 public class SuperJumpPower : SpecialPower
 {
-    public float jumpForce = 100f;
-    public float jumpDuration = 1f; // Duration for which the jump force is applied
+    [SerializeField] private float jumpForce = 100f;
+    [SerializeField] private float jumpDuration = 1f; // Duration for which the jump force is applied
 
     public override void ApplyEffect(GameObject player)
     {
