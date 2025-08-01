@@ -71,7 +71,19 @@ public class LobbyManager : MonoBehaviour
     {
         while (shouldRefreshLobbies)
         {
-            await FetchAvailableLobbies();
+            try
+            {
+                await FetchAvailableLobbies();
+            }
+            catch (System.Exception ex)
+            {
+                GameLogger.LogError(GameLogger.LogCategory.Network, $"Error in lobby refresh loop: {ex.Message}");
+                
+                // Use exponential backoff on errors to avoid spam
+                await Task.Delay((int)(GameConstants.Networking.LOBBY_POLLING_INTERVAL * 6000));
+                continue;
+            }
+            
             await Task.Delay((int)(GameConstants.Networking.LOBBY_POLLING_INTERVAL * 3000));
         }
     }
@@ -324,28 +336,52 @@ public class LobbyManager : MonoBehaviour
 
     private async void StartPollingForGameStart()
     {
-        while (currentLobby != null)
+        int failureCount = 0;
+        const int MAX_FAILURES = 5;
+        
+        while (currentLobby != null && failureCount < MAX_FAILURES)
         {
             try
             {
                 currentLobby = await Lobbies.Instance.GetLobbyAsync(currentLobby.Id);
+                
+                // Reset failure count on successful request
+                failureCount = 0;
+                
                 if (currentLobby != null && 
                     currentLobby.Data.TryGetValue("gameStarted", out DataObject gameStartedData) && 
                     gameStartedData.Value == "true" &&
                     currentLobby.Data.TryGetValue("joinCode", out DataObject joinCodeData) &&
                     !string.IsNullOrEmpty(joinCodeData.Value))
                 {
-                    Debug.Log($"Game started by host, joining via relay with code: {joinCodeData.Value}");
+                    GameLogger.LogNetwork("GameStartDetected", $"Joining relay with code: {joinCodeData.Value}");
                     await JoinRelayAsClient(joinCodeData.Value);
                     break;
                 }
             }
             catch (LobbyServiceException e)
             {
-                Debug.LogError($"Polling failed: {e}");
-                break;
+                failureCount++;
+                GameLogger.LogError(GameLogger.LogCategory.Network, $"Polling failed (attempt {failureCount}/{MAX_FAILURES}): {e.Message}");
+                
+                if (failureCount >= MAX_FAILURES)
+                {
+                    GameLogger.LogError(GameLogger.LogCategory.Network, "Max polling failures reached, stopping polling");
+                    break;
+                }
+                
+                // Use exponential backoff for retries
+                int backoffDelay = (int)(GameConstants.Networking.LOBBY_POLLING_INTERVAL * 1000 * Math.Pow(2, failureCount));
+                await Task.Delay(Math.Min(backoffDelay, 30000)); // Cap at 30 seconds
+                continue;
             }
+            
             await Task.Delay((int)(GameConstants.Networking.LOBBY_POLLING_INTERVAL * 1000));
+        }
+        
+        if (failureCount >= MAX_FAILURES)
+        {
+            GameLogger.LogError(GameLogger.LogCategory.Network, "Lobby polling stopped due to repeated failures");
         }
     }
     

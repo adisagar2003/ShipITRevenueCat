@@ -19,6 +19,10 @@ using System;
     public bool isGrounded { get; private set; }
     [SerializeField] private float rayDistance = 1.3f;
     [SerializeField] private LayerMask groundMask;
+    
+    // Performance optimization - cache frequently used values
+    private float nextGroundCheckTime = 0f;
+    private const float GROUND_CHECK_INTERVAL = 0.02f; // 50 FPS for ground checking
 
     private void Start()
     {
@@ -67,7 +71,12 @@ using System;
 
     private void Update()
     {
-        GroundCheckAndDebug();
+        // Only perform ground check at intervals, not every frame
+        if (Time.time >= nextGroundCheckTime)
+        {
+            GroundCheckAndDebug();
+            nextGroundCheckTime = Time.time + GROUND_CHECK_INTERVAL;
+        }
     }
 
     private void OnEnable()
@@ -126,7 +135,8 @@ using System;
         }
 
         // Validate input magnitude to avoid unnecessary calculations
-        if (input.sqrMagnitude < 0.01f)
+        float inputMagnitudeSqrd = input.sqrMagnitude;
+        if (inputMagnitudeSqrd < 0.01f)
         {
             return; // No significant input
         }
@@ -147,9 +157,10 @@ using System;
         camRight.Normalize();
 
         Vector3 moveDirection = camForward * input.y + camRight * input.x;
+        float moveMagnitudeSqrd = moveDirection.sqrMagnitude;
 
         // Edge detection check using separate component
-        if (edgeDetection != null && moveDirection.sqrMagnitude > 0.1f)
+        if (edgeDetection != null && moveMagnitudeSqrd > 0.1f)
         {
             if (edgeDetection.IsMovementBlocked(moveDirection))
             {
@@ -157,11 +168,15 @@ using System;
             }
         }
         
+        // Cache the magnitude for rotation check to avoid recalculation
+        bool shouldRotate = moveMagnitudeSqrd > 0.1f;
+        
         Vector3 desiredVelocity = moveDirection * moveSpeed;
         desiredVelocity.y = rb.velocity.y;
         rb.velocity = Vector3.ClampMagnitude(desiredVelocity, maxSpeed);
 
-        if (moveDirection.sqrMagnitude > 0.1f)
+        // Use cached magnitude check for rotation
+        if (shouldRotate)
         {
             Quaternion directionToFace = Quaternion.LookRotation(moveDirection);
             rb.rotation = directionToFace;

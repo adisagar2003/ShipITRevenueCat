@@ -17,6 +17,9 @@ public class DebugLogGUI : MonoBehaviour
     private GameObject canvasObj;
     private GameObject panelObj;
     private bool isVisible = false;
+    private bool logTextNeedsUpdate = false;
+    private float lastLogCheckTime = 0f;
+    private const float LOG_CHECK_INTERVAL = 0.1f; // Check for expired logs every 100ms instead of every frame
 
     void Awake()
     {
@@ -78,35 +81,83 @@ public class DebugLogGUI : MonoBehaviour
             SetPanelVisibility(isVisible);
         }
 
-        // Remove logs older than logLifetime
-        bool changed = false;
-        while (logLines.Count > 0 && Time.unscaledTime - logLines.Peek().timestamp > logLifetime)
+        // Only check for expired logs periodically, not every frame
+        if (Time.unscaledTime - lastLogCheckTime > LOG_CHECK_INTERVAL)
         {
-            logLines.Dequeue();
-            changed = true;
+            lastLogCheckTime = Time.unscaledTime;
+            
+            // Remove logs older than logLifetime
+            bool changed = false;
+            while (logLines.Count > 0 && Time.unscaledTime - logLines.Peek().timestamp > logLifetime)
+            {
+                logLines.Dequeue();
+                changed = true;
+            }
+            
+            if (changed)
+            {
+                logTextNeedsUpdate = true;
+            }
         }
-        if (changed)
+        
+        // Update log text only when needed and visible
+        if (logTextNeedsUpdate && isVisible)
         {
             UpdateLogText();
+            logTextNeedsUpdate = false;
         }
     }
 
     void HandleLog(string logString, string stackTrace, LogType type)
     {
-        string colorTag = type == LogType.Error || type == LogType.Exception ? "<color=red>" : type == LogType.Warning ? "<color=yellow>" : "<color=white>";
+        // Use static color tags to avoid string allocation
+        string colorTag = GetColorTagForLogType(type);
         string formatted = $"{colorTag}{logString}</color>";
+        
         logLines.Enqueue((formatted, Time.unscaledTime));
+        
+        // Trim excess logs
         while (logLines.Count > maxLines)
             logLines.Dequeue();
-        UpdateLogText();
+        
+        // Mark for update instead of updating immediately
+        logTextNeedsUpdate = true;
+        
+        // If visible, update immediately for responsiveness
+        if (isVisible)
+        {
+            UpdateLogText();
+            logTextNeedsUpdate = false;
+        }
+    }
+    
+    private string GetColorTagForLogType(LogType type)
+    {
+        return type switch
+        {
+            LogType.Error or LogType.Exception => "<color=red>",
+            LogType.Warning => "<color=yellow>",
+            _ => "<color=white>"
+        };
     }
 
     void UpdateLogText()
     {
-        List<string> messages = new List<string>();
+        if (logText == null) return;
+        
+        // Use StringBuilder for better performance with string concatenation
+        var sb = new System.Text.StringBuilder(logLines.Count * 50); // Pre-allocate capacity
+        
+        bool first = true;
         foreach (var entry in logLines)
-            messages.Add(entry.message);
-        logText.text = string.Join("\n", messages);
+        {
+            if (!first)
+                sb.AppendLine();
+            sb.Append(entry.message);
+            first = false;
+        }
+        
+        logText.text = sb.ToString();
     }
 
     void SetPanelVisibility(bool visible)
