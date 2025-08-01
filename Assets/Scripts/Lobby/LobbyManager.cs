@@ -79,23 +79,6 @@ public class LobbyManager : MonoBehaviour
         }
     }
 
-    [Obsolete]
-    private void AddPlayerPrefab()
-    {
-        if (playerPrefab == null)
-        {
-            Debug.LogError("Player prefab not assigned!");
-            return;
-        }
-
-        // Register the prefab with Netcode
-        NetworkManager.Singleton.AddNetworkPrefab(playerPrefab);
-        Debug.Log("Player prefab added via AddNetworkPrefab.");
-
-        // Assign it as the player prefab
-        NetworkManager.Singleton.NetworkConfig.PlayerPrefab = playerPrefab;
-        Debug.Log("Player prefab set in NetworkManager configuration.");
-    }
 
     public async void CreateLobby(string lobbyName = "MyLobby")
     {

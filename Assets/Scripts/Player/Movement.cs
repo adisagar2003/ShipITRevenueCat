@@ -1,4 +1,3 @@
-#define DEBUG_MOVEMENT
 using UnityEngine;
 using Unity.Netcode;
 using System;
@@ -82,21 +81,8 @@ using System;
 
     public void Move(Vector2 input)
     {
-        if (!canMove) 
-        {
-#if DEBUG_MOVEMENT
-            Debug.Log($"<color=red>[MOVEMENT BLOCKED]</color> canMove = false for {gameObject.name}");
-#endif
-            return;
-        }
-        
-        if (!IsOwner && !testMode) 
-        {
-#if DEBUG_MOVEMENT
-            Debug.Log($"<color=red>[MOVEMENT BLOCKED]</color> Not owner and not in test mode for {gameObject.name}");
-#endif
-            return;
-        }
+        if (!canMove) return;
+        if (!IsOwner && !testMode) return;
         
         if (cameraTransform == null)
         {
@@ -113,31 +99,14 @@ using System;
 
         Vector3 moveDirection = camForward * input.y + camRight * input.x;
 
-#if DEBUG_MOVEMENT
-        if (moveDirection.sqrMagnitude > 0.1f)
-        {
-            Debug.Log($"<color=cyan>[MOVEMENT INPUT]</color> Direction: {moveDirection.normalized}, Magnitude: {moveDirection.magnitude:F2}");
-        }
-#endif
-
         // Edge detection check using separate component
         if (edgeDetection != null && moveDirection.sqrMagnitude > 0.1f)
         {
             if (edgeDetection.IsMovementBlocked(moveDirection))
             {
-#if DEBUG_MOVEMENT
-                Debug.Log($"<color=red>[MOVEMENT BLOCKED]</color> Edge detection prevented movement in direction: {moveDirection.normalized}");
-#endif
                 return; // Block movement
             }
         }
-        
-#if DEBUG_MOVEMENT
-        if (moveDirection.sqrMagnitude > 0.1f)
-        {
-            Debug.Log($"<color=green>[MOVEMENT ALLOWED]</color> Moving in direction: {moveDirection.normalized} at speed: {moveSpeed}");
-        }
-#endif
         
         Vector3 desiredVelocity = moveDirection * moveSpeed;
         desiredVelocity.y = rb.velocity.y;

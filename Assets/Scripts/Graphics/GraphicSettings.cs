@@ -12,9 +12,4 @@ public class GraphicSettings : MonoBehaviour
     }
 
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 }
