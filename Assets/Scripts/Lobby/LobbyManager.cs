@@ -81,15 +81,37 @@ public class LobbyManager : MonoBehaviour
         try
         {
             QueryResponse response = await Lobbies.Instance.QueryLobbiesAsync();
-            availableLobbies = response.Results;
-            OnLobbiesUpdated?.Invoke();
-            // Hide "Creating Lobby..." text after player has created a lobby
-            if (creatingLobbyText != null && !createLobbyButton.interactable)
-                creatingLobbyText.SetActive(false);
+            
+            if (response?.Results != null)
+            {
+                availableLobbies = response.Results;
+                OnLobbiesUpdated?.Invoke();
+                
+                // Hide "Creating Lobby..." text after player has created a lobby
+                if (creatingLobbyText != null && createLobbyButton != null && !createLobbyButton.interactable)
+                    creatingLobbyText.SetActive(false);
+            }
+            else
+            {
+                Debug.LogWarning("Query response or results is null");
+                availableLobbies?.Clear();
+            }
         }
         catch (LobbyServiceException e)
         {
-            Debug.LogError($"Failed to fetch lobbies: {e}");
+            Debug.LogError($"Failed to fetch lobbies: {e.Message} (Reason: {e.Reason})");
+            
+            // Clear lobbies on error to avoid showing stale data
+            availableLobbies?.Clear();
+            OnLobbiesUpdated?.Invoke();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Unexpected error fetching lobbies: {e.Message}");
+            
+            // Clear lobbies on error to avoid showing stale data
+            availableLobbies?.Clear();
+            OnLobbiesUpdated?.Invoke();
         }
     }
 
@@ -99,6 +121,19 @@ public class LobbyManager : MonoBehaviour
     #region Lobby Operations
     public async void CreateLobby(string lobbyName = "MyLobby")
     {
+        // Input validation
+        if (string.IsNullOrWhiteSpace(lobbyName))
+        {
+            Debug.LogError("Lobby name cannot be null or empty");
+            return;
+        }
+
+        if (currentLobby != null)
+        {
+            Debug.LogWarning("Already in a lobby, cannot create another");
+            return;
+        }
+
         try
         {
             // Show "Creating Lobby..." text
@@ -124,12 +159,41 @@ public class LobbyManager : MonoBehaviour
         }
         catch (LobbyServiceException e)
         {
-            Debug.LogError($"Failed to create lobby: {e}");
+            Debug.LogError($"Failed to create lobby: {e.Message} (Reason: {e.Reason})");
+            
+            // Reset UI state on failure
+            if (creatingLobbyText != null)
+                creatingLobbyText.SetActive(false);
+            if (createLobbyButton != null)
+                createLobbyButton.interactable = true;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Unexpected error creating lobby: {e.Message}");
+            
+            // Reset UI state on failure
+            if (creatingLobbyText != null)
+                creatingLobbyText.SetActive(false);
+            if (createLobbyButton != null)
+                createLobbyButton.interactable = true;
         }
     }
 
     public async void JoinLobbyById(string lobbyId)
     {
+        // Input validation
+        if (string.IsNullOrWhiteSpace(lobbyId))
+        {
+            Debug.LogError("Lobby ID cannot be null or empty");
+            return;
+        }
+
+        if (currentLobby != null)
+        {
+            Debug.LogWarning("Already in a lobby, leave current lobby first");
+            return;
+        }
+
         try
         {
             currentLobby = await Lobbies.Instance.JoinLobbyByIdAsync(lobbyId);
@@ -139,7 +203,19 @@ public class LobbyManager : MonoBehaviour
         }
         catch (LobbyServiceException e)
         {
-            Debug.LogError($"Failed to join lobby: {e}");
+            Debug.LogError($"Failed to join lobby: {e.Message} (Reason: {e.Reason})");
+            
+            // Reset state if join failed
+            currentLobby = null;
+            shouldRefreshLobbies = true;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Unexpected error joining lobby: {e.Message}");
+            
+            // Reset state if join failed
+            currentLobby = null;
+            shouldRefreshLobbies = true;
         }
     }
 
@@ -154,6 +230,18 @@ public class LobbyManager : MonoBehaviour
             return;
         }
 
+        if (NetworkManager.Singleton == null)
+        {
+            Debug.LogError("NetworkManager.Singleton is null, cannot start host");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(gameSceneName))
+        {
+            Debug.LogError("Game scene name is not set");
+            return;
+        }
+
         try
         {
             // Show "Starting Game..." text
@@ -164,12 +252,28 @@ public class LobbyManager : MonoBehaviour
             Debug.Log("Creating relay allocation...");
             Allocation allocation = await RelayService.Instance.CreateAllocationAsync(maxPlayers - 1);
 
+            if (allocation == null)
+            {
+                throw new InvalidOperationException("Failed to create relay allocation");
+            }
+
             // Get the join code
             string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+            
+            if (string.IsNullOrEmpty(joinCode))
+            {
+                throw new InvalidOperationException("Failed to get join code from relay");
+            }
+            
             Debug.Log($"Got join code: {joinCode}");
 
             // Configure the transport
             var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+            if (transport == null)
+            {
+                throw new InvalidOperationException("UnityTransport component not found on NetworkManager");
+            }
+            
             transport.SetHostRelayData(
                 allocation.RelayServer.IpV4,
                 (ushort)allocation.RelayServer.Port,
@@ -190,16 +294,25 @@ public class LobbyManager : MonoBehaviour
 
             await Lobbies.Instance.UpdateLobbyAsync(currentLobby.Id, updateOptions);
             Debug.Log("Starting host with relay...");
-            NetworkManager.Singleton.StartHost();
+            
+            if (!NetworkManager.Singleton.StartHost())
+            {
+                throw new InvalidOperationException("Failed to start NetworkManager as host");
+            }
+            
             NetworkManager.Singleton.SceneManager.LoadScene(gameSceneName, LoadSceneMode.Single);
         }
         catch (RelayServiceException e)
         {
-            Debug.LogError($"Relay service error: {e.Message}");
+            Debug.LogError($"Relay service error: {e.Message} (Reason: {e.Reason})");
         }
         catch (LobbyServiceException e)
         {
-            Debug.LogError($"Failed to update lobby: {e}");
+            Debug.LogError($"Failed to update lobby: {e.Message} (Reason: {e.Reason})");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Unexpected error starting host game: {e.Message}");
         }
         finally
         {
