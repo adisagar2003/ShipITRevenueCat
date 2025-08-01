@@ -14,11 +14,35 @@ public class AddAttachmentsToCharacter : NetworkBehaviour
 
     private GameObject currentHatInstance;
     private GameObject currentGlassesInstance;
+    private Material originalBodyMaterial;
+    private Material originalHeadMaterial;
 
     public override void OnNetworkSpawn()
     {
         if (!IsOwner) return;
+        
+        // Store original materials for cleanup
+        if (bodyRenderer != null)
+        {
+            originalBodyMaterial = bodyRenderer.material;
+        }
+        if (headRenderer != null)
+        {
+            originalHeadMaterial = headRenderer.material;
+        }
+        
         ApplyCustomization();
+    }
+    
+    public override void OnNetworkDespawn()
+    {
+        CleanupCustomization();
+        base.OnNetworkDespawn();
+    }
+    
+    private void OnDestroy()
+    {
+        CleanupCustomization();
     }
 
     private void ApplyCustomization()
@@ -30,22 +54,78 @@ public class AddAttachmentsToCharacter : NetworkBehaviour
 
   
         // ---- Apply Glasses ----
-        if (customizationDatabase.glassPrefabs.Count > glassesIndex)
+        if (customizationDatabase != null && customizationDatabase.glassPrefabs != null && 
+            customizationDatabase.glassPrefabs.Count > glassesIndex && hatsContainer != null)
         {
-            if (currentGlassesInstance != null) Destroy(currentGlassesInstance);
-            currentGlassesInstance = Instantiate(customizationDatabase.glassPrefabs[glassesIndex], hatsContainer);
+            // Clean up existing glasses
+            if (currentGlassesInstance != null)
+            {
+                ResourceManager.SafeDestroy(currentGlassesInstance);
+                currentGlassesInstance = null;
+            }
+            
+            // Instantiate new glasses
+            var glassPrefab = customizationDatabase.glassPrefabs[glassesIndex];
+            if (glassPrefab != null)
+            {
+                currentGlassesInstance = Instantiate(glassPrefab, hatsContainer);
+                ResourceManager.TrackObject(currentGlassesInstance, $"Glasses_{GetInstanceID()}");
+            }
         }
 
         // ---- Apply Body Material ----
-        if (customizationDatabase.bodyMaterials.Count > bodyIndex && bodyRenderer != null)
+        if (customizationDatabase != null && customizationDatabase.bodyMaterials != null &&
+            customizationDatabase.bodyMaterials.Count > bodyIndex && bodyRenderer != null)
         {
-            bodyRenderer.material = customizationDatabase.bodyMaterials[bodyIndex];
+            var bodyMaterial = customizationDatabase.bodyMaterials[bodyIndex];
+            if (bodyMaterial != null)
+            {
+                bodyRenderer.material = bodyMaterial;
+            }
         }
 
         // ---- Apply Head Material ----
-        if (customizationDatabase.headMaterials.Count > headIndex && headRenderer != null)
+        if (customizationDatabase != null && customizationDatabase.headMaterials != null &&
+            customizationDatabase.headMaterials.Count > headIndex && headRenderer != null)
         {
-            headRenderer.material = customizationDatabase.headMaterials[headIndex];
+            var headMaterial = customizationDatabase.headMaterials[headIndex];
+            if (headMaterial != null)
+            {
+                headRenderer.material = headMaterial;
+            }
         }
+    }
+    
+    /// <summary>
+    /// Clean up all customization objects and reset materials.
+    /// </summary>
+    private void CleanupCustomization()
+    {
+        // Clean up glasses instance
+        if (currentGlassesInstance != null)
+        {
+            ResourceManager.SafeDestroy(currentGlassesInstance);
+            currentGlassesInstance = null;
+        }
+        
+        // Clean up hat instance
+        if (currentHatInstance != null)
+        {
+            ResourceManager.SafeDestroy(currentHatInstance);
+            currentHatInstance = null;
+        }
+        
+        // Reset materials to originals to prevent material leaks
+        if (bodyRenderer != null && originalBodyMaterial != null)
+        {
+            bodyRenderer.material = originalBodyMaterial;
+        }
+        
+        if (headRenderer != null && originalHeadMaterial != null)
+        {
+            headRenderer.material = originalHeadMaterial;
+        }
+        
+        GameLogger.LogDebug(GameLogger.LogCategory.Gameplay, "Character customization cleaned up");
     }
 }

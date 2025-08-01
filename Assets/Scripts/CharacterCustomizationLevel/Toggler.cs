@@ -35,7 +35,8 @@ public class Toggler : MonoBehaviour
 
     [Header("For Glasses")]
     private List<GameObject> sceneGlassesInstances = new List<GameObject>();
-
+    private Material originalMaterial; // Store original material for cleanup
+    private Mesh originalMesh; // Store original mesh for cleanup
 
     private int currentIndex = 0;
     private void Awake()
@@ -45,6 +46,37 @@ public class Toggler : MonoBehaviour
 
         if (rightButton != null)
             rightButton.onClick.AddListener(MoveRightCircular);
+            
+        // Store original material and mesh for cleanup
+        if (targetRenderer != null)
+        {
+            originalMaterial = targetRenderer.material;
+            originalMesh = targetRenderer.sharedMesh;
+        }
+    }
+    
+    private void OnDestroy()
+    {
+        // Clean up event listeners
+        if (leftButton != null)
+            leftButton.onClick.RemoveListener(MoveLeftCircular);
+
+        if (rightButton != null)
+            rightButton.onClick.RemoveListener(MoveRightCircular);
+            
+        // Reset to original material and mesh to prevent leaks
+        if (targetRenderer != null)
+        {
+            if (originalMaterial != null)
+                targetRenderer.material = originalMaterial;
+            if (originalMesh != null)
+                targetRenderer.sharedMesh = originalMesh;
+        }
+        
+        // Clear the glasses instances list
+        sceneGlassesInstances?.Clear();
+        
+        GameLogger.LogDebug(GameLogger.LogCategory.UI, "Toggler cleaned up");
     }
 
     private void Start()
@@ -72,23 +104,42 @@ public class Toggler : MonoBehaviour
 
     private void CacheGlassesInstancesInScene()
     {
-        Debug.Log("Caching objeccts");
+        if (customizationDatabase == null || customizationDatabase.glassPrefabs == null)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "Customization database or glass prefabs is null");
+            return;
+        }
+        
+        if (glassGameObjectContainer == null)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "Glass game object container is null");
+            return;
+        }
+        
+        GameLogger.LogDebug(GameLogger.LogCategory.UI, "Caching glasses objects");
+        
+        // Clear existing instances to prevent duplicates
+        sceneGlassesInstances.Clear();
+        
         foreach (var prefab in customizationDatabase.glassPrefabs)
         {
+            if (prefab == null) continue;
             
             string targetName = prefab.name;
             Transform found = glassGameObjectContainer.transform.Find(targetName);
             if (found != null)
             {
-                Debug.Log("Now getting the cached item here" + found.ToString());
+                GameLogger.LogDebug(GameLogger.LogCategory.UI, $"Found cached glasses item: {found.name}");
                 sceneGlassesInstances.Add(found.gameObject);
                 found.gameObject.SetActive(false); // Ensure all are disabled initially
             }
             else
             {
-                Debug.LogWarning($"Glasses object named '{targetName}' not found in hierarchy under {transform.name}.");
+                GameLogger.LogWarning(GameLogger.LogCategory.UI, $"Glasses object named '{targetName}' not found in hierarchy under {transform.name}.");
             }
         }
+        
+        GameLogger.LogInfo(GameLogger.LogCategory.UI, $"Cached {sceneGlassesInstances.Count} glasses instances");
     }
 
     public void MoveLeftCircular()
@@ -107,46 +158,108 @@ public class Toggler : MonoBehaviour
 
     private int GetOptionCount()
     {
+        if (customizationDatabase == null) return 0;
+        
         return toggleType switch
         {
-            ToggleType.Glasses => customizationDatabase.glassPrefabs.Count,
-            ToggleType.BodyMaterial => customizationDatabase.bodyMaterials.Count,
-            ToggleType.HeadMaterial => customizationDatabase.headMaterials.Count,
-            ToggleType.BodyMesh => customizationDatabase.bodyMeshes.Count,
-            ToggleType.Head => customizationDatabase.headMeshes.Count,
+            ToggleType.Glasses => customizationDatabase.glassPrefabs?.Count ?? 0,
+            ToggleType.BodyMaterial => customizationDatabase.bodyMaterials?.Count ?? 0,
+            ToggleType.HeadMaterial => customizationDatabase.headMaterials?.Count ?? 0,
+            ToggleType.BodyMesh => customizationDatabase.bodyMeshes?.Count ?? 0,
+            ToggleType.Head => customizationDatabase.headMeshes?.Count ?? 0,
             _ => 0
         };
     }
 
     private void ApplySelection()
     {
+        if (customizationDatabase == null)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "Cannot apply selection: customization database is null");
+            return;
+        }
+        
         switch (toggleType)
         {
             case ToggleType.Glasses:
-                for (int i = 0; i < sceneGlassesInstances.Count; i++)
-                    sceneGlassesInstances[i].SetActive(i == currentIndex);
+                ApplyGlassesSelection();
                 break;
             case ToggleType.BodyMaterial:
-                if (targetRenderer != null && customizationDatabase.bodyMaterials.Count > 0)
-                    targetRenderer.material = customizationDatabase.bodyMaterials[currentIndex];
+                ApplyMaterialSelection(customizationDatabase.bodyMaterials);
                 break;
             case ToggleType.HeadMaterial:
-                if (targetRenderer != null && customizationDatabase.headMaterials.Count > 0)
-                    targetRenderer.material = customizationDatabase.headMaterials[currentIndex];
+                ApplyMaterialSelection(customizationDatabase.headMaterials);
                 break;
             case ToggleType.BodyMesh:
-                if (targetRenderer != null && customizationDatabase.bodyMeshes.Count > 0)
-                    targetRenderer.sharedMesh = customizationDatabase.bodyMeshes[currentIndex];
+                ApplyMeshSelection(customizationDatabase.bodyMeshes);
                 break;
             case ToggleType.Head:
-                if (targetRenderer != null && customizationDatabase.headMeshes.Count > 0)
-                    targetRenderer.sharedMesh = customizationDatabase.headMeshes[currentIndex];
+                ApplyMeshSelection(customizationDatabase.headMeshes);
                 break;
         }
 
         if (previewImage != null)
         {
             // Optionally handle preview sprite updates if added to your SO
+        }
+    }
+    
+    private void ApplyGlassesSelection()
+    {
+        if (sceneGlassesInstances == null || sceneGlassesInstances.Count == 0)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "No glasses instances cached");
+            return;
+        }
+        
+        for (int i = 0; i < sceneGlassesInstances.Count; i++)
+        {
+            if (sceneGlassesInstances[i] != null)
+            {
+                sceneGlassesInstances[i].SetActive(i == currentIndex);
+            }
+        }
+    }
+    
+    private void ApplyMaterialSelection(List<Material> materials)
+    {
+        if (targetRenderer == null)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "Target renderer is null");
+            return;
+        }
+        
+        if (materials == null || materials.Count == 0 || currentIndex >= materials.Count)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "Invalid material selection");
+            return;
+        }
+        
+        var selectedMaterial = materials[currentIndex];
+        if (selectedMaterial != null)
+        {
+            targetRenderer.material = selectedMaterial;
+        }
+    }
+    
+    private void ApplyMeshSelection(List<Mesh> meshes)
+    {
+        if (targetRenderer == null)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "Target renderer is null");
+            return;
+        }
+        
+        if (meshes == null || meshes.Count == 0 || currentIndex >= meshes.Count)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "Invalid mesh selection");
+            return;
+        }
+        
+        var selectedMesh = meshes[currentIndex];
+        if (selectedMesh != null)
+        {
+            targetRenderer.sharedMesh = selectedMesh;
         }
     }
 
