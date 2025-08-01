@@ -90,7 +90,7 @@ public class AudioManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("Cannot play SFX: " + (clip == null ? "AudioClip is null" : "SFX AudioSource is null"));
+            Debug.LogWarning($"Cannot play SFX: {(clip == null ? "AudioClip is null" : "SFX AudioSource is null")}");
         }
     }
 
