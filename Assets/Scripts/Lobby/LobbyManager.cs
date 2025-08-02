@@ -388,7 +388,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                     if (currentSession != null && currentSession.Properties.TryGetValue("GameStarted", out var gameStarted) && gameStarted.Value == "true")
                     {
                         GameLogger.LogNetwork("GameStartDetected", "Joining game as client");
-                        if (currentSession.Properties.TryGetValue("joinCode", out var joinCode))
+                        if (currentSession.Properties.TryGetValue("JoinCode", out var joinCode))
                         {
                             await JoinRelayAsClient(joinCode.Value);
                         }
