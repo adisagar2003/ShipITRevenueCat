@@ -195,7 +195,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             Debug.LogWarning("Already in a session, cannot create another");
             return;
         }
-        
+
         if (!AuthenticationService.Instance.IsSignedIn)
         {
             Debug.LogError("Not authenticated, cannot create session");
@@ -222,6 +222,13 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             {
                 createLobbyButton.interactable = false;
             }
+
+            // Hide "Creating Lobby..." text
+            if (creatingLobbyText != null)
+                creatingLobbyText.SetActive(false);
+
+            // Refresh available sessions to trigger UI update and show the newly created session
+            await FetchAvailableSessions();
         }
         catch (SessionException e)
         {
@@ -259,7 +266,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             Debug.LogWarning("Already in a session, leave current session first");
             return;
         }
-        
+
         if (!AuthenticationService.Instance.IsSignedIn)
         {
             Debug.LogError("Not authenticated, cannot join session");
@@ -444,7 +451,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 
                 // Join the relay with the given join code
                 var joinAllocation = await Unity.Services.Relay.Relay.Instance.JoinAllocationAsync(joinCode);
-                
+
                 // Configure the transport
                 var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
                 transport.SetClientRelayData(
