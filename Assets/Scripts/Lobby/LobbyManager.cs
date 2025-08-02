@@ -192,7 +192,13 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 
         if (currentSession != null)
         {
-            Debug.LogWarning("Already in a lobby, cannot create another");
+            Debug.LogWarning("Already in a session, cannot create another");
+            return;
+        }
+        
+        if (!AuthenticationService.Instance.IsSignedIn)
+        {
+            Debug.LogError("Not authenticated, cannot create session");
             return;
         }
 
@@ -202,8 +208,12 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             if (creatingLobbyText != null)
                 creatingLobbyText.SetActive(true);
 
-            // Lobby options will be set through the simplified API
-            var sessionOptions = new SessionOptions(){ Name = lobbyName, MaxPlayers = maxPlayers };
+            // Configure session options with proper network setup
+            var sessionOptions = new SessionOptions
+            {
+                Name = lobbyName,
+                MaxPlayers = maxPlayers
+            }.WithRelayNetwork();
             currentSession = await MultiplayerService.Instance.CreateSessionAsync(sessionOptions);
             Debug.Log($"Created lobby: {currentSession.Name}");
 
@@ -246,7 +256,13 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 
         if (currentSession != null)
         {
-            Debug.LogWarning("Already in a lobby, leave current lobby first");
+            Debug.LogWarning("Already in a session, leave current session first");
+            return;
+        }
+        
+        if (!AuthenticationService.Instance.IsSignedIn)
+        {
+            Debug.LogError("Not authenticated, cannot join session");
             return;
         }
 
