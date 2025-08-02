@@ -119,7 +119,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 
     private async Task RefreshSessionsLoop()
     {
-        while (shouldRefreshSessions)
+        while (shouldRefreshSessions && currentSession == null)
         {
             try
             {
@@ -130,12 +130,15 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                 GameLogger.LogError(GameLogger.LogCategory.Network, $"Error in lobby refresh loop: {ex.Message}");
 
                 // Use exponential backoff on errors to avoid spam
-                await Task.Delay((int)(GameConstants.Networking.LOBBY_POLLING_INTERVAL * 6000));
+                await Task.Delay(30000); // 30 second backoff on error
                 continue;
             }
 
-            await Task.Delay((int)(GameConstants.Networking.LOBBY_POLLING_INTERVAL * 3000));
+            // Increased interval to 15 seconds to avoid rate limiting
+            await Task.Delay(15000);
         }
+        
+        GameLogger.LogInfo(GameLogger.LogCategory.Network, "RefreshSessionsLoop stopped - either shouldRefreshSessions=false or currentSession exists");
     }
 
     public async Task FetchAvailableSessions()
