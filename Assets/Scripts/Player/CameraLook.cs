@@ -15,7 +15,10 @@ public class CameraLook : MonoBehaviour
     public void Look(Vector2 delta)
     {
         if (cinemachineFreeLook == null) return;
-        cinemachineFreeLook.m_XAxis.m_InputAxisValue = delta.x;
-        cinemachineFreeLook.m_YAxis.m_InputAxisValue = delta.y;
+        
+        // Unity 6 / Cinemachine 3.x compatible input handling
+        // Apply input directly to axis values with speed modifiers
+        cinemachineFreeLook.m_XAxis.m_InputAxisValue = delta.x * cameraFloatSpeedX;
+        cinemachineFreeLook.m_YAxis.m_InputAxisValue = delta.y * cameraFloatSpeedY;
     }
 }
