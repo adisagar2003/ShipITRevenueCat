@@ -22,13 +22,12 @@ public class LobbySlotData : MonoBehaviour
         startGameButton.onClick.AddListener(StartGame);
     }
 
-    public void Initialize(Lobby lobby)
+    public void Initialize(ISessionInfo lobby)
     {
         lobbyId = lobby.Id;
         lobbyNameText.text = lobby.Name;
-        playerCountText.text = $"{lobby.Players.Count}/{lobby.MaxPlayers}";
+        playerCountText.text = $"{lobby.AvailableSlots}/{lobby.MaxPlayers}";
         isHost = lobby.HostId == GameInitializer.PlayerId;
-        hasJoined = lobby.Players.Any(p => p.Id == GameInitializer.PlayerId);
         UpdateButtonStates();
     }
 
@@ -38,12 +37,28 @@ public class LobbySlotData : MonoBehaviour
         startGameButton.gameObject.SetActive(isHost && hasJoined);
     }
 
-    private void JoinLobby()
+    private async void JoinLobby()
     {
         if (LobbyManager.Instance == null || hasJoined) return;
-        LobbyManager.Instance.JoinLobbyById(lobbyId);
-        hasJoined = true;
-        UpdateButtonStates();
+        
+        try
+        {
+            var session = await MultiplayerService.Instance.JoinSessionByIdAsync(lobbyId);
+            LobbyManager.Instance.currentSession = session;
+            hasJoined = true;
+            UpdateButtonStates();
+            Debug.Log($"Successfully joined lobby: {session.Name}");
+        }
+        catch (SessionException e)
+        {
+            Debug.LogError($"Failed to join lobby: {e.Message}");
+            hasJoined = false;
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Unexpected error joining lobby: {e.Message}");
+            hasJoined = false;
+        }
     }
 
     private void StartGame()
