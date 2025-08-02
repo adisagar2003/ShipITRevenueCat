@@ -391,8 +391,8 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             {
                 try
                 {
-                    List<string> currentLobbiesPlayerIsIn = await MultiplayerService.Instance.GetJoinedSessionIdsAsync();
-                    currentSession = MultiplayerService.Instance.Sessions[currentLobbiesPlayerIsIn[0]];
+                    // Refresh current session to get latest data
+                    await currentSession.RefreshAsync();
                     // Reset failure count on successful request
                     failureCount = 0;
 
