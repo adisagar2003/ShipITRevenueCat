@@ -4,9 +4,12 @@
     "references": [
         "Unity.Cinemachine",
         "Unity.Netcode.Runtime",
+        "Unity.Transport",
         "Unity.Services.Authentication",
         "Unity.Services.Core",
         "Unity.Services.Multiplayer",
+        "Unity.Services.Lobbies",
+        "Unity.Services.Relay",
         "Unity.InputSystem",
         "Unity.ugui"
     ],
