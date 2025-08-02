@@ -35,12 +35,16 @@ public class RaceLevelManager : NetworkBehaviour
         foreach (var client in NetworkManager.Singleton.ConnectedClients)
         {
             GameObject player = Instantiate(playerPrefab);
-            player.GetComponent<NetworkObject>().SpawnAsPlayerObject(client.Key);
-
-            // sets random position
+            
+            // Set position BEFORE spawning for proper network sync
         #if PRODUCTION
-            player.GetComponent<Rigidbody>().MovePosition(SpawnManager.Instance.GetRandomAvailableSpawnPoint().position);
+            if (SpawnManager.Instance != null)
+            {
+                player.transform.position = SpawnManager.Instance.GetRandomAvailableSpawnPoint().position;
+            }
         #endif
+            
+            player.GetComponent<NetworkObject>().SpawnAsPlayerObject(client.Key);
         }
         StartGame();
         //EnableMovementEventClientRPC();
