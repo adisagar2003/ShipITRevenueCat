@@ -12,7 +12,7 @@ public class RaceLevelManager : NetworkBehaviour
     public static event System.Action OnAllPlayersReady;
     public override void OnNetworkSpawn()
     {
-
+        base.OnNetworkSpawn();
         if (IsServer) Debug.Log($"OnNetworkSpawn called. IsServer: {IsServer}, Connected clients: {NetworkManager.Singleton.ConnectedClients.Count}");
 
         if (IsServer)
@@ -51,12 +51,12 @@ public class RaceLevelManager : NetworkBehaviour
     private void StartGame()
     {
         waitingForPlayersUI.SetActive(false); // this would only set server's UI false, calling clientRPC at bottom.
-        DisableUIClientRpc();
+        DisableUIRpc();
         OnAllPlayersReady?.Invoke();
     }
 
-    [ClientRpc]
-    private void DisableUIClientRpc()
+    [Rpc(SendTo.NotServer)]
+    private void DisableUIRpc()
     {
         waitingForPlayersUI.SetActive(false); 
     }

@@ -12,18 +12,20 @@ public class PlayerRespawn : NetworkBehaviour
 
     public void RequestRespawn()
     {
+        if (!IsSpawned) return;
+        
         if (IsServer)
         {
             RespawnPlayerAtNearestPoint();
         }
         else if (IsOwner)
         {
-            RequestRespawnServerRpc();
+            RequestRespawnRpc();
         }
     }
 
-    [ServerRpc]
-    private void RequestRespawnServerRpc()
+    [Rpc(SendTo.Server)]
+    private void RequestRespawnRpc()
     {
         Debug.Log("Server received respawn request, proceeding to respawn player.");
         RespawnPlayerAtNearestPoint();
@@ -35,12 +37,12 @@ public class PlayerRespawn : NetworkBehaviour
         if (respawnPoint != null)
         {
             StartCoroutine(RespawnRoutine(respawnPoint.position));
-            RespawnClientRpc(respawnPoint.position);
+            RespawnRpc(respawnPoint.position);
         }
     }
 
-    [ClientRpc]
-    private void RespawnClientRpc(Vector3 position)
+    [Rpc(SendTo.NotServer)]
+    private void RespawnRpc(Vector3 position)
     {
         if (IsOwner)
         {
