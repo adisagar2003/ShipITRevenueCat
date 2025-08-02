@@ -327,12 +327,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                     throw new InvalidOperationException("Failed to create relay allocation.");
 
                 // Step 2: Get the Join Code
-                // Use reflection to avoid compile-time ambiguity for RelayService
-                var relayServiceType = System.Type.GetType("Unity.Services.Relay.RelayService, Unity.Services.Relay");
-                var relayServiceInstance = relayServiceType?.GetProperty("Instance")?.GetValue(null);
-                var getJoinCodeMethod = relayServiceType?.GetMethod("GetJoinCodeAsync", new[] { typeof(System.Guid) });
-                var joinCodeTask = getJoinCodeMethod?.Invoke(relayServiceInstance, new object[] { allocation.AllocationId });
-                string joinCode = await (System.Threading.Tasks.Task<string>)joinCodeTask;
+                string joinCode = await Unity.Services.Relay.Relay.Instance.GetJoinCodeAsync(allocation.AllocationId);
 
                 if (string.IsNullOrEmpty(joinCode))
                     throw new InvalidOperationException("Failed to retrieve join code.");
@@ -444,54 +439,18 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                 Debug.Log($"Joining relay with code: {joinCode}");
 
                 // Join the relay with the given join code
-                // Use reflection to avoid compile-time ambiguity
-                var relayServiceType = System.Type.GetType("Unity.Services.Relay.RelayService, Unity.Services.Relay");
-                if (relayServiceType != null)
-                {
-                    var instance = relayServiceType.GetProperty("Instance")?.GetValue(null);
-                    var method = relayServiceType.GetMethod("JoinAllocationAsync", new[] { typeof(string) });
-                    if (instance != null && method != null)
-                    {
-                        var taskResult = method.Invoke(instance, new object[] { joinCode });
-                        if (taskResult is System.Threading.Tasks.Task task)
-                        {
-                            await task.ConfigureAwait(false);
-                            
-                            // Get the result from the task
-                            var resultProperty = task.GetType().GetProperty("Result");
-                            var joinAllocation = resultProperty?.GetValue(task);
-                            
-                            if (joinAllocation != null)
-                            {
-                                // Use reflection to access properties since we can't cast to the ambiguous type
-                                var relayServerProp = joinAllocation.GetType().GetProperty("RelayServer");
-                                var relayServer = relayServerProp?.GetValue(joinAllocation);
-                                
-                                var ipProp = relayServer?.GetType().GetProperty("IpV4");
-                                var portProp = relayServer?.GetType().GetProperty("Port");
-                                var allocIdProp = joinAllocation.GetType().GetProperty("AllocationIdBytes");
-                                var keyProp = joinAllocation.GetType().GetProperty("Key");
-                                var connDataProp = joinAllocation.GetType().GetProperty("ConnectionData");
-                                var hostConnDataProp = joinAllocation.GetType().GetProperty("HostConnectionData");
-                                
-                                // Configure the transport
-                                var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
-                                transport.SetClientRelayData(
-                                    (string)ipProp?.GetValue(relayServer),
-                                    (ushort)(int)portProp?.GetValue(relayServer),
-                                    (byte[])allocIdProp?.GetValue(joinAllocation),
-                                    (byte[])keyProp?.GetValue(joinAllocation),
-                                    (byte[])connDataProp?.GetValue(joinAllocation),
-                                    (byte[])hostConnDataProp?.GetValue(joinAllocation)
-                                );
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    throw new System.InvalidOperationException("Could not resolve RelayService type");
-                }
+                var joinAllocation = await Unity.Services.Relay.Relay.Instance.JoinAllocationAsync(joinCode);
+                
+                // Configure the transport
+                var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+                transport.SetClientRelayData(
+                    joinAllocation.RelayServer.IpV4,
+                    (ushort)joinAllocation.RelayServer.Port,
+                    joinAllocation.AllocationIdBytes,
+                    joinAllocation.Key,
+                    joinAllocation.ConnectionData,
+                    joinAllocation.HostConnectionData
+                );
 
                 // Start the client
                 NetworkManager.Singleton.StartClient();
