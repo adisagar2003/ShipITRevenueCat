@@ -55,9 +55,12 @@ public class LobbySlotData : MonoBehaviour
         Debug.Log($"<color=purple><b>[LOBBY SLOT]</b></color> 👑 isHost: {isHost} (HostId: {lobby.HostId}, PlayerId: {GameInitializer.PlayerId})");
         
         // Check if we're already in this session (either as host or joined client)
-        bool isCurrentSession = LobbyManager.Instance != null && 
-                               LobbyManager.Instance.currentSession != null && 
-                               LobbyManager.Instance.currentSession.Id == lobby.Id;
+        bool hasLobbyManager = LobbyManager.Instance != null;
+        bool hasCurrentSession = hasLobbyManager && LobbyManager.Instance.currentSession != null;
+        string currentSessionId = hasCurrentSession ? LobbyManager.Instance.currentSession.Id : "NULL";
+        bool isCurrentSession = hasCurrentSession && LobbyManager.Instance.currentSession.Id == lobby.Id;
+        
+        Debug.Log($"<color=purple><b>[LOBBY SLOT DEBUG]</b></color> 🔍 Session check: LobbyManager={hasLobbyManager}, CurrentSession={hasCurrentSession}, CurrentId='{currentSessionId}', LobbyId='{lobby.Id}', Match={isCurrentSession}");
         
         if (isCurrentSession)
         {
