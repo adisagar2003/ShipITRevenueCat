@@ -230,8 +230,13 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             if (creatingLobbyText != null)
                 creatingLobbyText.SetActive(false);
 
-            // Refresh available sessions to trigger UI update and show the newly created session
-            await FetchAvailableSessions();
+            // Stop background session polling since we're now in a session
+            shouldRefreshSessions = false;
+            
+            // Manually trigger UI update for the current session without API call
+            availableSessions.Clear();
+            availableSessions.Add(currentSession);
+            OnSessionsUpdated?.Invoke();
         }
         catch (SessionException e)
         {
@@ -280,7 +285,11 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         {
             currentSession = await MultiplayerService.Instance.JoinSessionByIdAsync(lobbyId);
             Debug.Log($"Joined lobby: {currentSession.Name}");
+            
+            // Stop background session polling since we're now in a session
             shouldRefreshSessions = false;
+            
+            // Start polling for game start detection
             _ = StartPollingForGameStart();
         }
         catch (SessionException e)
