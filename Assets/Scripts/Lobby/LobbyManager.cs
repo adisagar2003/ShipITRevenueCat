@@ -29,6 +29,8 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     #region Private Fields
     private bool shouldRefreshSessions = true;
     private int maxPlayers = GameConstants.Networking.DEFAULT_MAX_PLAYERS;
+    private DateTime lastFetchTime = DateTime.MinValue;
+    private const int MIN_FETCH_INTERVAL_SECONDS = 5;
     #endregion
 
     #region Serialized Fields
@@ -143,6 +145,16 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 
     public async Task FetchAvailableSessions()
     {
+        // Rate limiting safeguard - prevent calls within 5 seconds
+        var timeSinceLastFetch = DateTime.Now - lastFetchTime;
+        if (timeSinceLastFetch.TotalSeconds < MIN_FETCH_INTERVAL_SECONDS)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.Network, $"FetchAvailableSessions called too soon, skipping. Time since last call: {timeSinceLastFetch.TotalSeconds:F1}s");
+            return;
+        }
+        
+        lastFetchTime = DateTime.Now;
+        
         try
         {
             var response = await MultiplayerService.Instance.QuerySessionsAsync(new QuerySessionsOptions());
