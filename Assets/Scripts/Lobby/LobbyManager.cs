@@ -432,12 +432,13 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                     }
 
                     // Use exponential backoff for retries
-                    int backoffDelay = (int)(GameConstants.Networking.LOBBY_POLLING_INTERVAL * 1000 * Math.Pow(2, failureCount));
-                    await Task.Delay(Math.Min(backoffDelay, 30000)); // Cap at 30 seconds
+                    int backoffDelay = (int)(10000 * Math.Pow(2, failureCount));
+                    await Task.Delay(Math.Min(backoffDelay, 60000)); // Cap at 60 seconds
                     continue;
                 }
 
-                await Task.Delay((int)(GameConstants.Networking.LOBBY_POLLING_INTERVAL * 1000));
+                // Increased interval to 10 seconds to avoid rate limiting  
+                await Task.Delay(10000);
             }
 
             if (failureCount >= MAX_FAILURES)
