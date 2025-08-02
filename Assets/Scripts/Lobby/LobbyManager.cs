@@ -139,7 +139,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             // Increased interval to 15 seconds to avoid rate limiting
             await Task.Delay(15000);
         }
-        
+
         GameLogger.LogInfo(GameLogger.LogCategory.Network, "RefreshSessionsLoop stopped - either shouldRefreshSessions=false or currentSession exists");
     }
 
@@ -152,9 +152,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             GameLogger.LogWarning(GameLogger.LogCategory.Network, $"FetchAvailableSessions called too soon, skipping. Time since last call: {timeSinceLastFetch.TotalSeconds:F1}s");
             return;
         }
-        
+
         lastFetchTime = DateTime.Now;
-        
+
         try
         {
             var response = await MultiplayerService.Instance.QuerySessionsAsync(new QuerySessionsOptions());
@@ -244,10 +244,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 
             // Stop background session polling since we're now in a session
             shouldRefreshSessions = false;
-            
-            // Manually trigger UI update for the current session without API call
+
+            // Clear available sessions since we're now in a session (not browsing)
             availableSessions.Clear();
-            availableSessions.Add(currentSession);
             OnSessionsUpdated?.Invoke();
         }
         catch (SessionException e)
@@ -297,10 +296,10 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         {
             currentSession = await MultiplayerService.Instance.JoinSessionByIdAsync(lobbyId);
             Debug.Log($"Joined lobby: {currentSession.Name}");
-            
+
             // Stop background session polling since we're now in a session
             shouldRefreshSessions = false;
-            
+
             // Start polling for game start detection
             _ = StartPollingForGameStart();
         }
@@ -458,7 +457,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                     continue;
                 }
 
-                // Increased interval to 10 seconds to avoid rate limiting  
+                // Increased interval to 10 seconds to avoid rate limiting
                 await Task.Delay(10000);
             }
 
