@@ -52,7 +52,7 @@ public class LobbyDebugUI : NetworkBehaviour
         rect.anchoredPosition = new Vector2(10, -10);
         rect.sizeDelta = new Vector2(600, 800);
 
-        if (Type.GetType("TMPro.TextMeshProUGUI, Unity.TextMeshPro") != null)
+        if (Type.GetType("TMPro.TextMeshProUGUI, Unity.ugui") != null)
         {
             debugTextTMP = textGO.AddComponent<TextMeshProUGUI>();
             debugTextTMP.fontSize = 18;

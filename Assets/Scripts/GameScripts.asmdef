@@ -8,7 +8,7 @@
         "Unity.Services.Core",
         "Unity.Services.Multiplayer",
         "Unity.InputSystem",
-        "Unity.TextMeshPro"
+        "Unity.ugui"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
