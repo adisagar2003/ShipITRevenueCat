@@ -28,6 +28,13 @@ public class LobbySlotData : MonoBehaviour
         lobbyNameText.text = lobby.Name;
         playerCountText.text = $"{lobby.MaxPlayers - lobby.AvailableSlots}/{lobby.MaxPlayers}";
         isHost = lobby.HostId == GameInitializer.PlayerId;
+        
+        // Host is automatically considered "joined" to their own session
+        if (isHost)
+        {
+            hasJoined = true;
+        }
+        
         UpdateButtonStates();
     }
 
