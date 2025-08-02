@@ -17,21 +17,22 @@ public class StartRaceCountdown : NetworkBehaviour
 
     [SerializeField] private TextMesh countdownText;
     [SerializeField] private float countdownDuration = 3f; // 3 seconds
-    private void OnEnable()
+    public override void OnNetworkSpawn()
     {
+        base.OnNetworkSpawn();
         RaceLevelManager.OnAllPlayersReady += StartCountdown;
     }
-    private void OnDisable()
+
+    public override void OnNetworkDespawn()
     {
         RaceLevelManager.OnAllPlayersReady -= StartCountdown;
+        base.OnNetworkDespawn();
     }
 
     private void StartCountdown()
     {
-        if (IsServer)
-        {
-            StartCoroutine(CountdownRoutine());
-        }
+        if (!IsSpawned || !IsServer) return;
+        StartCoroutine(CountdownRoutine());
     }
 
     private IEnumerator CountdownRoutine()
@@ -40,26 +41,26 @@ public class StartRaceCountdown : NetworkBehaviour
 
         while (currentTime > 0)
         {
-            UpdateCountdownClientRpc(Mathf.CeilToInt(currentTime));
+            UpdateCountdownRpc(Mathf.CeilToInt(currentTime));
             yield return new WaitForSeconds(1f);
             currentTime -= 1f;
         }
 
-        UpdateCountdownClientRpc(0);
+        UpdateCountdownRpc(0);
         OnPlayerPossessionEvent?.Invoke();
-        PossessPlayerClientRpc();
+        PossessPlayerRpc();
     }
 
-    [ClientRpc]
-    private void UpdateCountdownClientRpc(int time)
+    [Rpc(SendTo.NotServer)]
+    private void UpdateCountdownRpc(int time)
     {
         if (countdownText == null) return;
 
         countdownText.text = time > 0 ? time.ToString() : "GO!";
     }
 
-    [ClientRpc]
-    private void PossessPlayerClientRpc()
+    [Rpc(SendTo.NotServer)]
+    private void PossessPlayerRpc()
     {
         OnPlayerPossessionEvent?.Invoke();
     }

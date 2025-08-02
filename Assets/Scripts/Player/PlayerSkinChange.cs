@@ -15,6 +15,7 @@ public class PlayerSkinChange : NetworkBehaviour
     }
     public override void OnNetworkSpawn()
     {
+        base.OnNetworkSpawn();
         if (IsOwner)
         {
             int body = PlayerPrefs.GetInt(GameConstants.PlayerPrefsKeys.BODY_INDEX, 0);
@@ -25,7 +26,7 @@ public class PlayerSkinChange : NetworkBehaviour
             head = Mathf.Clamp(head, 0, customizationDatabase.headMeshes.Count - 1);
             hat = Mathf.Clamp(hat, 0, customizationDatabase.glassPrefabs.Count - 1);
 
-            SetCustomizationServerRpc(body, head, hat);
+            SetCustomizationRpc(body, head, hat);
         }
 
         ApplyCustomization();
@@ -35,8 +36,16 @@ public class PlayerSkinChange : NetworkBehaviour
         hatIndex.OnValueChanged += (_, _) => ApplyCustomization();
     }
 
-    [ServerRpc]
-    private void SetCustomizationServerRpc(int body, int head, int hat)
+    public override void OnNetworkDespawn()
+    {
+        bodyMeshIndex.OnValueChanged -= (_, _) => ApplyCustomization();
+        headMeshIndex.OnValueChanged -= (_, _) => ApplyCustomization();
+        hatIndex.OnValueChanged -= (_, _) => ApplyCustomization();
+        base.OnNetworkDespawn();
+    }
+
+    [Rpc(SendTo.Server)]
+    private void SetCustomizationRpc(int body, int head, int hat)
     {
         bodyMeshIndex.Value = body;
         headMeshIndex.Value = head;
