@@ -7,6 +7,7 @@ using System.Text;
 /// <summary>
 /// Secure credential management system that prevents hardcoded sensitive data.
 /// Handles API keys, tokens, and other sensitive configuration securely.
+/// Compatible with Unity 6 - uses standard .NET APIs that remain stable across Unity versions.
 /// </summary>
 public static class SecureCredentialManager
 {

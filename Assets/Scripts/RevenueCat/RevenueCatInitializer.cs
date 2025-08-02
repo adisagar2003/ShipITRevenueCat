@@ -3,6 +3,7 @@ using UnityEngine;
 /// <summary>
 /// Handles RevenueCat SDK initialization and configuration.
 /// This component should be present in the initial scene to set up in-app purchases.
+/// Compatible with Unity 6 and RevenueCat SDK 7.6.0+ which supports Unity 6.
 /// </summary>
 public class RevenueCatInitializer : ThreadSafeSingleton<RevenueCatInitializer>
 {
