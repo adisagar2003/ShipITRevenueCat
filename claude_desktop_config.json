@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "mcp-unity": {
+      "command": "node",
+      "args": [
+        "/home/aditya/Game_Dev/ShipITRevenueCat/Library/PackageCache/com.gamelovers.mcp-unity@7c049c653090/Server~/build/index.js"
+      ]
+    }
+  }
+}
