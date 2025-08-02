@@ -26,7 +26,7 @@ public class LobbySlotData : MonoBehaviour
     {
         lobbyId = lobby.Id;
         lobbyNameText.text = lobby.Name;
-        playerCountText.text = $"{lobby.AvailableSlots}/{lobby.MaxPlayers}";
+        playerCountText.text = $"{lobby.MaxPlayers - lobby.AvailableSlots}/{lobby.MaxPlayers}";
         isHost = lobby.HostId == GameInitializer.PlayerId;
         UpdateButtonStates();
     }
