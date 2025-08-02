@@ -54,11 +54,20 @@ public class LobbySlotData : MonoBehaviour
         isHost = lobby.HostId == GameInitializer.PlayerId;
         Debug.Log($"<color=purple><b>[LOBBY SLOT]</b></color> 👑 isHost: {isHost} (HostId: {lobby.HostId}, PlayerId: {GameInitializer.PlayerId})");
         
-        // Host is automatically considered "joined" to their own session
-        if (isHost)
+        // Check if we're already in this session (either as host or joined client)
+        bool isCurrentSession = LobbyManager.Instance != null && 
+                               LobbyManager.Instance.currentSession != null && 
+                               LobbyManager.Instance.currentSession.Id == lobby.Id;
+        
+        if (isCurrentSession)
         {
             hasJoined = true;
-            Debug.Log("<color=green><b>[LOBBY SLOT]</b></color> ✅ Host automatically marked as joined");
+            Debug.Log("<color=green><b>[LOBBY SLOT]</b></color> ✅ Already in this session, marked as joined");
+        }
+        else
+        {
+            hasJoined = false;
+            Debug.Log("<color=purple><b>[LOBBY SLOT]</b></color> ⚫ Not in this session, marked as not joined");
         }
         
         Debug.Log("<color=purple><b>[LOBBY SLOT]</b></color> 🔄 Calling UpdateButtonStates...");
@@ -69,22 +78,24 @@ public class LobbySlotData : MonoBehaviour
     {
         Debug.Log($"<color=purple><b>[LOBBY SLOT]</b></color> 🔘 UpdateButtonStates: hasJoined={hasJoined}, isHost={isHost}");
         
+        // Join button logic: Show for clients who haven't joined this session
         if (joinLobbyButton != null)
         {
-            bool showJoinButton = !hasJoined;
+            bool showJoinButton = !isHost && !hasJoined;  // Only non-hosts who haven't joined
             joinLobbyButton.gameObject.SetActive(showJoinButton);
-            Debug.Log($"<color=green><b>[LOBBY SLOT UI]</b></color> ✅ Join button active: {showJoinButton}");
+            Debug.Log($"<color=green><b>[LOBBY SLOT UI]</b></color> ✅ Join button active: {showJoinButton} (isHost={isHost}, hasJoined={hasJoined})");
         }
         else
         {
             Debug.LogError("<color=red><b>[LOBBY SLOT ERROR]</b></color> ❌ joinLobbyButton is null!");
         }
         
+        // Start button logic: Only show for hosts who are in this session
         if (startGameButton != null)
         {
-            bool showStartButton = isHost && hasJoined;
+            bool showStartButton = isHost && hasJoined;  // Only hosts in their own session
             startGameButton.gameObject.SetActive(showStartButton);
-            Debug.Log($"<color=green><b>[LOBBY SLOT UI]</b></color> ✅ Start button active: {showStartButton}");
+            Debug.Log($"<color=green><b>[LOBBY SLOT UI]</b></color> ✅ Start button active: {showStartButton} (isHost={isHost}, hasJoined={hasJoined})");
         }
         else
         {
