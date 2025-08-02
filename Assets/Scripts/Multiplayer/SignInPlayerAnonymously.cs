@@ -236,7 +236,7 @@ public class SignInPlayerAnonymously : ThreadSafeSingleton<SignInPlayerAnonymous
     /// <summary>
     /// Static helper to check if any player is currently signed in.
     /// </summary>
-    public static bool IsSignedIn()
+    public static bool IsPlayerSignedIn()
     {
         try
         {
