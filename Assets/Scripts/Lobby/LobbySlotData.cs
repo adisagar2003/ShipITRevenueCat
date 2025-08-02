@@ -1,9 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using Unity.Services.Lobbies.Models;
+using Unity.Services.Multiplayer;
 using System.Linq;
-using LobbyService = Unity.Services.Lobbies;
 
 public class LobbySlotData : MonoBehaviour
 {
@@ -23,8 +22,7 @@ public class LobbySlotData : MonoBehaviour
         startGameButton.onClick.AddListener(StartGame);
     }
 
-    // CHANGE THIS LINE:
-    public void Initialize(LobbyService.Models.Lobby lobby)  // Fixed!
+    public void Initialize(ILobby lobby)
     {
         lobbyId = lobby.Id;
         lobbyNameText.text = lobby.Name;

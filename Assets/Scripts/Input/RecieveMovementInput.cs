@@ -4,5 +4,7 @@ using UnityEngine;
 
 public class RecieveMovementInput : MonoBehaviour
 {
+#if JOYSTICK_PACK
     private Joystick joystick;
+#endif
 }

@@ -6,9 +6,9 @@
         "Unity.Netcode.Runtime",
         "Unity.Services.Authentication",
         "Unity.Services.Core",
-        "Unity.Services.Lobbies",
-        "Unity.Services.Relay",
-        "Unity.InputSystem"
+        "Unity.Services.Multiplayer",
+        "Unity.InputSystem",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

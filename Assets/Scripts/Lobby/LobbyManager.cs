@@ -1,12 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
-using Unity.Services.Lobbies;
-using Unity.Services.Lobbies.Models;
+using Unity.Services.Multiplayer;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using Unity.Services.Authentication;
-using Unity.Services.Relay;
-using Unity.Services.Relay.Models;
 using System;
 using System.Threading.Tasks;
 using UnityEngine.SceneManagement;
@@ -25,8 +22,8 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     #endregion
 
     #region Public Properties
-    public List<Lobby> availableLobbies { get; private set; } = new List<Lobby>();
-    public Lobby currentLobby;
+    public List<ILobby> availableLobbies { get; private set; } = new List<ILobby>();
+    public ILobby currentLobby;
     #endregion
 
     #region Private Fields
@@ -73,7 +70,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         {
             if (currentLobby != null && AuthenticationService.Instance.IsSignedIn)
             {
-                await Lobbies.Instance.RemovePlayerAsync(currentLobby.Id, AuthenticationService.Instance.PlayerId);
+                await MultiplayerService.Instance.LeaveLobbyAsync(currentLobby.Id);
                 GameLogger.LogInfo(GameLogger.LogCategory.Network, "Left lobby during cleanup");
             }
         }
@@ -145,7 +142,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     {
         try
         {
-            QueryResponse response = await Lobbies.Instance.QueryLobbiesAsync();
+            var response = await MultiplayerService.Instance.GetAvailableLobbiesAsync();
             
             if (response?.Results != null)
             {
@@ -205,15 +202,8 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             if (creatingLobbyText != null)
                 creatingLobbyText.SetActive(true);
 
-            var options = new CreateLobbyOptions
-            {
-                Data = new Dictionary<string, DataObject>
-                {
-                    { "gameStarted", new DataObject(DataObject.VisibilityOptions.Member, "false") },
-                    { "joinCode", new DataObject(DataObject.VisibilityOptions.Member, "") } // join code for relay
-                }
-            };
-            currentLobby = await Lobbies.Instance.CreateLobbyAsync(lobbyName, maxPlayers, options);
+            // Lobby options will be set through the simplified API
+            currentLobby = await MultiplayerService.Instance.CreateLobbyAsync(lobbyName, maxPlayers);
             Debug.Log($"Created lobby: {currentLobby.Name}");
 
             // disable lobby button to prevent multiple creations
@@ -261,7 +251,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 
         try
         {
-            currentLobby = await Lobbies.Instance.JoinLobbyByIdAsync(lobbyId);
+            currentLobby = await MultiplayerService.Instance.JoinLobbyAsync(lobbyId);
             Debug.Log($"Joined lobby: {currentLobby.Name}");
             shouldRefreshLobbies = false;
             StartPollingForGameStart();
@@ -315,7 +305,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 
             // Create Relay allocation
             Debug.Log("Creating relay allocation...");
-            Allocation allocation = await RelayService.Instance.CreateAllocationAsync(maxPlayers - 1);
+            var allocation = await MultiplayerService.Instance.CreateRelayAllocationAsync(maxPlayers - 1);
 
             if (allocation == null)
             {
@@ -323,7 +313,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             }
 
             // Get the join code
-            string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+            string joinCode = await MultiplayerService.Instance.GetRelayJoinCodeAsync(allocation.AllocationId);
             
             if (string.IsNullOrEmpty(joinCode))
             {
@@ -348,16 +338,8 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             );
 
             // Update the lobby with game started status and join code
-            var updateOptions = new UpdateLobbyOptions
-            {
-                Data = new Dictionary<string, DataObject>
-                {
-                    { "gameStarted", new DataObject(DataObject.VisibilityOptions.Member, "true") },
-                    { "joinCode", new DataObject(DataObject.VisibilityOptions.Member, joinCode) }
-                }
-            };
 
-            await Lobbies.Instance.UpdateLobbyAsync(currentLobby.Id, updateOptions);
+            await MultiplayerService.Instance.UpdateLobbyAsync(currentLobby.Id, joinCode, true);
             Debug.Log("Starting host with relay...");
             
             if (!NetworkManager.Singleton.StartHost())
@@ -396,23 +378,19 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         {
             try
             {
-                currentLobby = await Lobbies.Instance.GetLobbyAsync(currentLobby.Id);
+                currentLobby = await MultiplayerService.Instance.GetLobbyAsync(currentLobby.Id);
                 
                 // Reset failure count on successful request
                 failureCount = 0;
                 
-                if (currentLobby != null && 
-                    currentLobby.Data.TryGetValue("gameStarted", out DataObject gameStartedData) && 
-                    gameStartedData.Value == "true" &&
-                    currentLobby.Data.TryGetValue("joinCode", out DataObject joinCodeData) &&
-                    !string.IsNullOrEmpty(joinCodeData.Value))
+                if (currentLobby != null && currentLobby.IsGameStarted)
                 {
-                    GameLogger.LogNetwork("GameStartDetected", $"Joining relay with code: {joinCodeData.Value}");
-                    await JoinRelayAsClient(joinCodeData.Value);
+                    GameLogger.LogNetwork("GameStartDetected", "Joining game as client");
+                    await JoinRelayAsClient(currentLobby.JoinCode);
                     break;
                 }
             }
-            catch (LobbyServiceException e)
+            catch (System.Exception e)
             {
                 failureCount++;
                 GameLogger.LogError(GameLogger.LogCategory.Network, $"Polling failed (attempt {failureCount}/{MAX_FAILURES}): {e.Message}");
@@ -445,7 +423,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             Debug.Log($"Joining relay with code: {joinCode}");
             
             // Join the relay with the given join code
-            JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
+            var joinAllocation = await MultiplayerService.Instance.JoinRelayAllocationAsync(joinCode);
             
             // Configure the transport
             var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
@@ -509,10 +487,10 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         {
             try
             {
-                await Lobbies.Instance.RemovePlayerAsync(currentLobby.Id, AuthenticationService.Instance.PlayerId);
+                await MultiplayerService.Instance.LeaveLobbyAsync(currentLobby.Id);
                 Debug.Log("Left lobby successfully");
             }
-            catch (LobbyServiceException e)
+            catch (System.Exception e)
             {
                 Debug.LogError($"Failed to leave lobby: {e}");
             }

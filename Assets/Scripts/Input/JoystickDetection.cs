@@ -11,7 +11,9 @@ public class JoystickDetection : MonoBehaviour
 {
     [SerializeField] private bool usingJoystick;
     [SerializeField] private bool usingKeyboard;
+#if JOYSTICK_PACK
     private FixedJoystick fixedJoystick;
+#endif
     private InputActions inputActions;
     private Vector2 inputValue;
     float x;
