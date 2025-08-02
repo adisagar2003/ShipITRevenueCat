@@ -271,10 +271,22 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> ⏹️ Stopping background session polling");
             shouldRefreshSessions = false;
 
-            // Clear available sessions since we're now in a session (not browsing)
+            // Add current session to available sessions for UI display
             Debug.Log($"<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🧹 Clearing availableSessions (count before: {availableSessions.Count})");
             availableSessions.Clear();
-            Debug.Log($"<color=cyan><b>[LOBBY WORKFLOW]</b></color> 📢 Invoking OnSessionsUpdated event...");
+            
+            // Try to cast ISession to ISessionInfo for UI display
+            if (currentSession is ISessionInfo sessionInfo)
+            {
+                availableSessions.Add(sessionInfo);
+                Debug.Log($"<color=green><b>[LOBBY WORKFLOW SUCCESS]</b></color> ✅ Added current session to availableSessions as ISessionInfo");
+            }
+            else
+            {
+                Debug.LogError($"<color=red><b>[LOBBY WORKFLOW ERROR]</b></color> ❌ Cannot cast ISession to ISessionInfo for UI display");
+            }
+            
+            Debug.Log($"<color=cyan><b>[LOBBY WORKFLOW]</b></color> 📢 Invoking OnSessionsUpdated event (sessions count: {availableSessions.Count})...");
             OnSessionsUpdated?.Invoke();
             Debug.Log("<color=green><b>[LOBBY WORKFLOW SUCCESS]</b></color> ✅ OnSessionsUpdated event invoked");
         }
