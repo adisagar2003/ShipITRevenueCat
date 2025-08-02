@@ -13,6 +13,11 @@ using UnityEngine.SceneManagement;
 using System.Collections;
 using UnityEngine.UI;
 
+/// <summary>
+/// Manages multiplayer lobby creation, joining, and relay connectivity.
+/// Compatible with Unity 6 Multiplayer Services package - uses individual Lobby/Relay services
+/// which are wrapped by the unified package for backward compatibility.
+/// </summary>
 public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 {
     #region Singleton & Events - Singleton handled by ThreadSafeSingleton base class
