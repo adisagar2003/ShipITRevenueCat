@@ -12,8 +12,8 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Manages multiplayer lobby creation, joining, and relay connectivity.
-/// Compatible with Unity 6 Multiplayer Services package - uses individual Lobby/Relay services
-/// which are wrapped by the unified package for backward compatibility.
+/// Compatible with Unity 6 Multiplayer Services package - uses the unified services approach.
+/// Individual Lobby/Relay packages are deprecated in Unity 6.
 /// </summary>
 public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 {
@@ -159,9 +159,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                 availableLobbies?.Clear();
             }
         }
-        catch (LobbyServiceException e)
+        catch (SessionException e)
         {
-            Debug.LogError($"Failed to fetch lobbies: {e.Message} (Reason: {e.Reason})");
+            Debug.LogError($"Failed to fetch lobbies: {e.Message}");
             
             // Clear lobbies on error to avoid showing stale data
             availableLobbies?.Clear();
@@ -212,9 +212,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                 createLobbyButton.interactable = false;
             }
         }
-        catch (LobbyServiceException e)
+        catch (SessionException e)
         {
-            Debug.LogError($"Failed to create lobby: {e.Message} (Reason: {e.Reason})");
+            Debug.LogError($"Failed to create lobby: {e.Message}");
             
             // Reset UI state on failure
             if (creatingLobbyText != null)
@@ -256,9 +256,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             shouldRefreshLobbies = false;
             StartPollingForGameStart();
         }
-        catch (LobbyServiceException e)
+        catch (SessionException e)
         {
-            Debug.LogError($"Failed to join lobby: {e.Message} (Reason: {e.Reason})");
+            Debug.LogError($"Failed to join lobby: {e.Message}");
             
             // Reset state if join failed
             currentLobby = null;
@@ -349,13 +349,13 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             
             NetworkManager.Singleton.SceneManager.LoadScene(gameSceneName, LoadSceneMode.Single);
         }
-        catch (RelayServiceException e)
+        catch (SessionException e)
         {
-            Debug.LogError($"Relay service error: {e.Message} (Reason: {e.Reason})");
+            Debug.LogError($"Relay service error: {e.Message}");
         }
-        catch (LobbyServiceException e)
+        catch (SessionException e)
         {
-            Debug.LogError($"Failed to update lobby: {e.Message} (Reason: {e.Reason})");
+            Debug.LogError($"Failed to update lobby: {e.Message}");
         }
         catch (Exception e)
         {
@@ -440,7 +440,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             NetworkManager.Singleton.StartClient();
             Debug.Log("Started client with relay");
         }
-        catch (RelayServiceException e)
+        catch (SessionException e)
         {
             Debug.LogError($"Failed to join relay: {e.Message}");
         }
