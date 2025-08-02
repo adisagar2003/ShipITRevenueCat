@@ -24,12 +24,12 @@ public class FinishLineTrigger : NetworkBehaviour
         winnerClientId.Value = netObj.OwnerClientId;
         Debug.Log($"Player with ClientId {netObj.OwnerClientId} has finished first!");
 
-        NotifyClientsWinnerClientRpc(netObj.OwnerClientId);
+        NotifyClientsWinnerRpc(netObj.OwnerClientId);
        
     }
 
-    [ClientRpc]
-    private void NotifyClientsWinnerClientRpc(ulong winnerId)
+    [Rpc(SendTo.NotServer)]
+    private void NotifyClientsWinnerRpc(ulong winnerId)
     {
         if (NetworkManager.Singleton.LocalClientId == winnerId)
         {

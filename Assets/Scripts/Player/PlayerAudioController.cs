@@ -201,7 +201,7 @@ public class PlayerAudioController : NetworkBehaviour
             if (IsOwner)
             {
                 int clipIndex = System.Array.IndexOf(jumpClips, clipToPlay);
-                PlayJumpSoundServerRpc(clipIndex);
+                PlayJumpSoundRpc(clipIndex);
             }
         }
         else
@@ -224,7 +224,7 @@ public class PlayerAudioController : NetworkBehaviour
             if (IsOwner)
             {
                 int clipIndex = System.Array.IndexOf(footstepClips, clipToPlay);
-                PlayFootstepSoundServerRpc(clipIndex);
+                PlayFootstepSoundRpc(clipIndex);
             }
         }
     }
@@ -244,7 +244,7 @@ public class PlayerAudioController : NetworkBehaviour
             if (IsOwner)
             {
                 int clipIndex = System.Array.IndexOf(landingClips, clipToPlay);
-                PlayLandingSoundServerRpc(clipIndex);
+                PlayLandingSoundRpc(clipIndex);
             }
         }
     }
@@ -263,14 +263,14 @@ public class PlayerAudioController : NetworkBehaviour
     #region Network RPCs (Netcode 1.8.1 Syntax) - MODIFIED for clip synchronization
     // !isOwner is used to not play sounds twice on the owner client.
 
-    [ServerRpc]
-    private void PlayJumpSoundServerRpc(int clipIndex)
+    [Rpc(SendTo.Server)]
+    private void PlayJumpSoundRpc(int clipIndex)
     {
-        PlayJumpSoundClientRpc(clipIndex);
+        PlayJumpSoundRpc(clipIndex);
     }
 
-    [ClientRpc]
-    private void PlayJumpSoundClientRpc(int clipIndex)
+    [Rpc(SendTo.NotServer)]
+    private void PlayJumpSoundRpc(int clipIndex)
     {
         if (!IsOwner && jumpClips != null && clipIndex >= 0 && clipIndex < jumpClips.Length && jumpAudioSource != null)
         {
@@ -279,14 +279,14 @@ public class PlayerAudioController : NetworkBehaviour
         }
     }
 
-    [ServerRpc]
-    private void PlayFootstepSoundServerRpc(int clipIndex)
+    [Rpc(SendTo.Server)]
+    private void PlayFootstepSoundRpc(int clipIndex)
     {
-        PlayFootstepSoundClientRpc(clipIndex);
+        PlayFootstepSoundRpc(clipIndex);
     }
 
-    [ClientRpc]
-    private void PlayFootstepSoundClientRpc(int clipIndex)
+    [Rpc(SendTo.NotServer)]
+    private void PlayFootstepSoundRpc(int clipIndex)
     {
         if (!IsOwner && footstepClips != null && clipIndex >= 0 && clipIndex < footstepClips.Length && footstepAudioSource != null)
         {
@@ -295,14 +295,14 @@ public class PlayerAudioController : NetworkBehaviour
         }
     }
 
-    [ServerRpc]
-    private void PlayLandingSoundServerRpc(int clipIndex)
+    [Rpc(SendTo.Server)]
+    private void PlayLandingSoundRpc(int clipIndex)
     {
-        PlayLandingSoundClientRpc(clipIndex);
+        PlayLandingSoundRpc(clipIndex);
     }
 
-    [ClientRpc]
-    private void PlayLandingSoundClientRpc(int clipIndex)
+    [Rpc(SendTo.NotServer)]
+    private void PlayLandingSoundRpc(int clipIndex)
     {
         if (!IsOwner && landingClips != null && clipIndex >= 0 && clipIndex < landingClips.Length && landingAudioSource != null)
         {

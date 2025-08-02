@@ -51,7 +51,7 @@ public class PlayerAnimationHandle : NetworkBehaviour
         if (isRunning != previousIsRunning && movement.isGrounded)
         {
             animator.SetBool("isRunning", isRunning);
-            if (isMultiplayer) SubmitIsRunningServerRpc(isRunning);
+            if (isMultiplayer) SubmitIsRunningRpc(isRunning);
             previousIsRunning = isRunning;
         }
     }
@@ -60,18 +60,18 @@ public class PlayerAnimationHandle : NetworkBehaviour
     {
         bool isInAir = !movement.isGrounded;
         animator.SetBool("isInAir", isInAir);
-        if (isMultiplayer) SubmitIsInAirServerRpc(isInAir);
+        if (isMultiplayer) SubmitIsInAirRpc(isInAir);
     }
 
-    [ServerRpc]
-    private void SubmitIsRunningServerRpc(bool isRunning)
+    [Rpc(SendTo.Server)]
+    private void SubmitIsRunningRpc(bool isRunning)
     {
         if (animator == null) return;
         animator.SetBool("isRunning", isRunning);
     }
 
-    [ServerRpc]
-    private void SubmitIsInAirServerRpc(bool isInAir)
+    [Rpc(SendTo.Server)]
+    private void SubmitIsInAirRpc(bool isInAir)
     {
         if (animator == null) return;
         animator.SetBool("isInAir", isInAir);

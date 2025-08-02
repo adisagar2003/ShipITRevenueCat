@@ -26,8 +26,8 @@ public abstract class SpecialPower : ScriptableObject
     /// Called on all clients to trigger visual/audio feedback.
     /// </summary>
     /// <param name="player">The player GameObject for feedback.</param>
-    [ClientRpc]
-    public virtual void OnEffectAppliedClientRpc(GameObject player)
+    [Rpc(SendTo.NotServer)]
+    public virtual void OnEffectAppliedRpc(GameObject player)
     {
         // Implement visual/audio feedback in derived classes.
     }

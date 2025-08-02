@@ -61,7 +61,7 @@ public class RaceLevelManager : NetworkBehaviour
         waitingForPlayersUI.SetActive(false); 
     }
 
-    //[ClientRpc]
+    //[Rpc(SendTo.NotServer)]
     //private void EnableMovementEventClientRPC()
     //{
     //    OnPlayerPossesionEvent?.Invoke();

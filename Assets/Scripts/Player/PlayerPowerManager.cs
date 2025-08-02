@@ -6,7 +6,7 @@ using System.Collections;
 
 // Assumes SpecialPower.cs defines: 
 // - enum ActivationType { Passive, Active }
-// - class SpecialPower : ScriptableObject { ActivationType activationType; void ApplyEffect(GameObject player); void OnEffectAppliedClientRpc(GameObject player); }
+// - class SpecialPower : ScriptableObject { ActivationType activationType; void ApplyEffect(GameObject player); void OnEffectAppliedRpc(GameObject player); }
 
 public class PlayerPowerManager : NetworkBehaviour
 {
@@ -41,7 +41,7 @@ public class PlayerPowerManager : NetworkBehaviour
 #if debug
             Debug.Log($"<color=#00FF00><b>[PlayerPowerManager]</b></color> <color=yellow>Activating current active power for {gameObject.name}.</color>");
 #endif
-            ActivateCurrentPowerServerRpc(OwnerClientId);
+            ActivateCurrentPowerRpc(OwnerClientId);
         }
     }
 
@@ -62,7 +62,7 @@ public class PlayerPowerManager : NetworkBehaviour
             Debug.Log($"<color=#00FF00><b>[PlayerPowerManager]</b></color> <color=yellow>Passive power collision detected. Setting and activating power for {gameObject.name}.</color>");
         #endif
             SetCurrentPower(power);
-            ActivateCurrentPowerServerRpc(OwnerClientId);
+            ActivateCurrentPowerRpc(OwnerClientId);
         }
     }
 
@@ -85,8 +85,8 @@ public class PlayerPowerManager : NetworkBehaviour
         #endif
     }
 
-    [ServerRpc(RequireOwnership = false)]
-    private void ActivateCurrentPowerServerRpc(ulong playerClientId)
+    [Rpc(RequireOwnership = false)]
+    private void ActivateCurrentPowerRpc(ulong playerClientId)
     {
         if (!IsServer) return;
 
@@ -97,15 +97,15 @@ public class PlayerPowerManager : NetworkBehaviour
         Debug.Log($"<color=#00FF00><b>[PlayerPowerManager]</b></color> <color=green>Applying effect for current power on {gameObject.name}.</color>");
     #endif
         currentPower.ApplyEffect(gameObject);
-        currentPower.OnEffectAppliedClientRpc(gameObject);
+        currentPower.OnEffectAppliedRpc(gameObject);
     }
 
     /// <summary>
     /// ServerRpc to deactivate the current power.
     /// Resets the currentPowerIndex so no power is active.
     /// </summary>
-    [ServerRpc(RequireOwnership = false)]
-    public void DeactivateCurrentPowerServerRpc()
+    [Rpc(RequireOwnership = false)]
+    public void DeactivateCurrentPowerRpc()
     {
         if (!IsServer) return;
 
@@ -115,8 +115,8 @@ public class PlayerPowerManager : NetworkBehaviour
         currentPowerIndex.Value = -1;
     }
 
-    [ClientRpc]
-    public void ActivateDashPowerClientRpc(ulong targetClientId)
+    [Rpc(SendTo.NotServer)]
+    public void ActivateDashPowerRpc(ulong targetClientId)
     {
         // Only run on the client that owns this player
         if (NetworkManager.Singleton.LocalClientId != targetClientId)

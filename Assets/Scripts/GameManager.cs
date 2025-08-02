@@ -104,7 +104,7 @@ public class GameManager : NetworkBehaviour
         Debug.Log("[GameManager] <color=orange>Returning players to offline lobby now</color>");
         if (IsServer)
         {
-            RequestClientDisconnectClientRpc();
+            RequestClientDisconnectRpc();
             float timeout = 5f;
             float elapsed = 0f;
             while (NetworkManager.Singleton.ConnectedClientsList.Count > 1 && elapsed < timeout)
@@ -121,8 +121,8 @@ public class GameManager : NetworkBehaviour
         }
     }
 
-    [ClientRpc]
-    private void RequestClientDisconnectClientRpc()
+    [Rpc(SendTo.NotServer)]
+    private void RequestClientDisconnectRpc()
     {
         Debug.Log("<color=orange>Client disconnecting to return to offline lobby</color>");
         SceneManager.LoadScene(lobbySceneName, LoadSceneMode.Single);
