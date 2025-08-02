@@ -143,14 +143,17 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         GameLogger.LogInfo(GameLogger.LogCategory.Network, "RefreshSessionsLoop stopped - either shouldRefreshSessions=false or currentSession exists");
     }
 
-    public async Task FetchAvailableSessions()
+    public async Task FetchAvailableSessions(bool bypassRateLimit = false)
     {
-        // Rate limiting safeguard - prevent calls within 5 seconds
-        var timeSinceLastFetch = DateTime.Now - lastFetchTime;
-        if (timeSinceLastFetch.TotalSeconds < MIN_FETCH_INTERVAL_SECONDS)
+        // Rate limiting safeguard - prevent calls within 5 seconds (unless bypassed)
+        if (!bypassRateLimit)
         {
-            GameLogger.LogWarning(GameLogger.LogCategory.Network, $"FetchAvailableSessions called too soon, skipping. Time since last call: {timeSinceLastFetch.TotalSeconds:F1}s");
-            return;
+            var timeSinceLastFetch = DateTime.Now - lastFetchTime;
+            if (timeSinceLastFetch.TotalSeconds < MIN_FETCH_INTERVAL_SECONDS)
+            {
+                GameLogger.LogWarning(GameLogger.LogCategory.Network, $"FetchAvailableSessions called too soon, skipping. Time since last call: {timeSinceLastFetch.TotalSeconds:F1}s");
+                return;
+            }
         }
 
         lastFetchTime = DateTime.Now;
@@ -271,24 +274,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> ⏹️ Stopping background session polling");
             shouldRefreshSessions = false;
 
-            // Add current session to available sessions for UI display
-            Debug.Log($"<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🧹 Clearing availableSessions (count before: {availableSessions.Count})");
-            availableSessions.Clear();
-            
-            // Try to cast ISession to ISessionInfo for UI display
-            if (currentSession is ISessionInfo sessionInfo)
-            {
-                availableSessions.Add(sessionInfo);
-                Debug.Log($"<color=green><b>[LOBBY WORKFLOW SUCCESS]</b></color> ✅ Added current session to availableSessions as ISessionInfo");
-            }
-            else
-            {
-                Debug.LogError($"<color=red><b>[LOBBY WORKFLOW ERROR]</b></color> ❌ Cannot cast ISession to ISessionInfo for UI display");
-            }
-            
-            Debug.Log($"<color=cyan><b>[LOBBY WORKFLOW]</b></color> 📢 Invoking OnSessionsUpdated event (sessions count: {availableSessions.Count})...");
-            OnSessionsUpdated?.Invoke();
-            Debug.Log("<color=green><b>[LOBBY WORKFLOW SUCCESS]</b></color> ✅ OnSessionsUpdated event invoked");
+            // Fetch updated session list from server to get our new session as ISessionInfo
+            Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🔄 Fetching updated session list to display new session...");
+            await FetchAvailableSessions(bypassRateLimit: true);
         }
         catch (SessionException e)
         {
