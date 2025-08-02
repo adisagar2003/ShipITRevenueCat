@@ -136,8 +136,8 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                 continue;
             }
 
-            // Increased interval to 15 seconds to avoid rate limiting
-            await Task.Delay(15000);
+            // Reduced interval to 5 seconds for responsive lobby discovery
+            await Task.Delay(5000);
         }
 
         GameLogger.LogInfo(GameLogger.LogCategory.Network, "RefreshSessionsLoop stopped - either shouldRefreshSessions=false or currentSession exists");
@@ -197,6 +197,15 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 
 
     #endregion
+    
+    #region Manual Refresh
+    [ContextMenu("Manual Refresh Sessions")]
+    public async void ManualRefreshSessions()
+    {
+        Debug.Log("<color=yellow><b>[MANUAL REFRESH]</b></color> 🔄 Manual session refresh requested");
+        await FetchAvailableSessions(bypassRateLimit: true);
+    }
+    #endregion
 
     #region Lobby Operations
     public async void CreateSession(string lobbyName = "MyLobby")
@@ -238,12 +247,14 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                 Debug.LogWarning("<color=orange><b>[LOBBY WORKFLOW UI]</b></color> ⚠️ creatingLobbyText is null!");
             }
 
-            // Configure session options with proper network setup
+            // Configure session options with proper network setup and visibility
             Debug.Log($"<color=cyan><b>[LOBBY WORKFLOW]</b></color> ⚙️ Creating SessionOptions: Name={lobbyName}, MaxPlayers={maxPlayers}");
             var sessionOptions = new SessionOptions
             {
                 Name = lobbyName,
-                MaxPlayers = maxPlayers
+                MaxPlayers = maxPlayers,
+                IsPrivate = false,  // Ensure session is public and discoverable
+                IsLocked = false    // Ensure session can be joined
             }.WithRelayNetwork();
             
             Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🌐 Calling MultiplayerService.Instance.CreateSessionAsync...");
