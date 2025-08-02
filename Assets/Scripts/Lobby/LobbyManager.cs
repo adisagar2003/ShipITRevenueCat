@@ -414,14 +414,19 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                 await hostSession.SavePropertiesAsync();
                 Debug.Log("Session updated with game started and join code.");
 
-
-                Debug.Log("Session updated with game started and join code.");
-
-                // Step 5: Start host and load the game scene
-                if (!NetworkManager.Singleton.StartHost())
-                    throw new InvalidOperationException("Failed to start host.");
-
-                NetworkManager.Singleton.SceneManager.LoadScene(gameSceneName, LoadSceneMode.Single);
+                // Unity 6 Multiplayer Services automatically starts the host when using .WithRelayNetwork()
+                // Wait a moment for the host to initialize, then load the game scene
+                await Task.Delay(1000); // Give time for host initialization
+                
+                if (NetworkManager.Singleton.IsHost)
+                {
+                    Debug.Log("Host started successfully by Multiplayer Services, loading game scene...");
+                    NetworkManager.Singleton.SceneManager.LoadScene(gameSceneName, LoadSceneMode.Single);
+                }
+                else
+                {
+                    Debug.LogWarning("Expected to be host but NetworkManager.Singleton.IsHost is false");
+                }
             }
             catch (SessionException se)
             {
