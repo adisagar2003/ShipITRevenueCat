@@ -2,13 +2,12 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using Unity.Netcode;
-using TMPro;
 using System;
 
 public class LobbyDebugUI : NetworkBehaviour
 {
     private Canvas canvas;
-    private TextMeshProUGUI debugTextTMP;
+    private Text debugTextTMP;
     private Text debugTextLegacy;
     private bool isVisible = false;
 
@@ -52,22 +51,22 @@ public class LobbyDebugUI : NetworkBehaviour
         rect.anchoredPosition = new Vector2(10, -10);
         rect.sizeDelta = new Vector2(600, 800);
 
-        if (Type.GetType("TMPro.TextMeshProUGUI, Unity.ugui") != null)
-        {
-            debugTextTMP = textGO.AddComponent<TextMeshProUGUI>();
-            debugTextTMP.fontSize = 18;
-            debugTextTMP.color = Color.green;
-            debugTextTMP.enableWordWrapping = false;
-            debugTextTMP.text = "Debug Overlay Initialized.";
-            debugTextTMP.raycastTarget = false; // << ADD THIS
-        }
-        else
+        // Using UI Text for Unity 6 compatibility
+        debugTextTMP = textGO.AddComponent<Text>();
+        debugTextTMP.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        debugTextTMP.fontSize = 18;
+        debugTextTMP.color = Color.green;
+        debugTextTMP.text = "Debug Overlay Initialized.";
+        debugTextTMP.raycastTarget = false;
+        
+        // Fallback to legacy Text if TextMeshPro fails to load
+        if (debugTextTMP == null)
         {
             debugTextLegacy = textGO.AddComponent<Text>();
             debugTextLegacy.fontSize = 18;
             debugTextLegacy.color = Color.green;
             debugTextLegacy.text = "Debug Overlay Initialized.";
-            debugTextLegacy.raycastTarget = false; // << ADD THIS
+            debugTextLegacy.raycastTarget = false;
         }
 
         canvas.enabled = false; // Initially hidden
@@ -93,7 +92,7 @@ public class LobbyDebugUI : NetworkBehaviour
                 foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
                 {
                     debugInfo += $"- ClientId: {client.ClientId}\n";
-                }   
+                }
             }
         }
         else
@@ -120,4 +119,4 @@ public class LobbyDebugUI : NetworkBehaviour
         else if (debugTextLegacy != null)
             debugTextLegacy.text = debugInfo;
     }
-}   
+}

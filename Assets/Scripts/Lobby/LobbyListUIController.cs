@@ -1,6 +1,6 @@
 using System.Collections.Generic;
+using Unity.Services.Lobbies.Models;
 using UnityEngine;
-using TMPro;
 using Unity.Services.Multiplayer;
 
 public class LobbyListUIController : MonoBehaviour
@@ -38,10 +38,10 @@ public class LobbyListUIController : MonoBehaviour
             Destroy(child.gameObject);
         }
 
-        List<ILobby> lobbies = lobbyManager.availableLobbies;
+        List<Lobby> lobbies = lobbyManager.availableLobbies;
         for (int i = 0; i < lobbies.Count; i++)
         {
-            ILobby lobby = lobbies[i];
+            Lobby lobby = lobbies[i];
             GameObject slot = Instantiate(lobbySlotPrefab, content.transform);
             RectTransform rt = slot.GetComponent<RectTransform>();
             rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, -i * slotSpacing);

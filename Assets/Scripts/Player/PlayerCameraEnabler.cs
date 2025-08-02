@@ -1,6 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
-using Cinemachine;
+using Unity.Cinemachine;
 
 [RequireComponent(typeof(PlayerMovement))]
 public class PlayerCameraEnabler : NetworkBehaviour

@@ -1,15 +1,15 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 using Unity.Services.Multiplayer;
+using Unity.Services.Lobbies.Models;
 using System.Linq;
 
 public class LobbySlotData : MonoBehaviour
 {
     [SerializeField] private Button joinLobbyButton;
     [SerializeField] private Button startGameButton;
-    [SerializeField] private TextMeshProUGUI lobbyNameText;
-    [SerializeField] private TextMeshProUGUI playerCountText;
+    [SerializeField] private Text lobbyNameText;
+    [SerializeField] private Text playerCountText;
     private string lobbyId;
     private LobbyManager lobbyManager;
     private bool hasJoined;
@@ -22,7 +22,7 @@ public class LobbySlotData : MonoBehaviour
         startGameButton.onClick.AddListener(StartGame);
     }
 
-    public void Initialize(ILobby lobby)
+    public void Initialize(Lobby lobby)
     {
         lobbyId = lobby.Id;
         lobbyNameText.text = lobby.Name;

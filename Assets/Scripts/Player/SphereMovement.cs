@@ -41,7 +41,7 @@ public class SphereMovement : NetworkBehaviour
             // Calculate force to apply
             Vector3 forceToApply = moveDirection * moveForce;
             // Limit maximum speed
-            Vector3 currentVelocity = rb.velocity;
+            Vector3 currentVelocity = rb.linearVelocity;
             currentVelocity.y = 0; // Ignore Y velocity for speed check
 
             if (currentVelocity.magnitude < maxSpeed)
@@ -64,7 +64,7 @@ public class SphereMovement : NetworkBehaviour
         else
         {
             // No input - apply stopping force
-            Vector3 horizontalVelocity = rb.velocity;
+            Vector3 horizontalVelocity = rb.linearVelocity;
             horizontalVelocity.y = 0; // Keep Y velocity for gravity
 
             if (horizontalVelocity.magnitude > 0.1f)

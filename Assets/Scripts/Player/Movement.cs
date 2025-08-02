@@ -172,8 +172,8 @@ using System;
         bool shouldRotate = moveMagnitudeSqrd > 0.1f;
         
         Vector3 desiredVelocity = moveDirection * moveSpeed;
-        desiredVelocity.y = rb.velocity.y;
-        rb.velocity = Vector3.ClampMagnitude(desiredVelocity, maxSpeed);
+        desiredVelocity.y = rb.linearVelocity.y;
+        rb.linearVelocity = Vector3.ClampMagnitude(desiredVelocity, maxSpeed);
 
         // Use cached magnitude check for rotation
         if (shouldRotate)

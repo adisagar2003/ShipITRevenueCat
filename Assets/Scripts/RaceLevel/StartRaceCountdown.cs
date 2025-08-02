@@ -1,7 +1,6 @@
 using System.Collections;
 using UnityEngine;
 using Unity.Netcode;
-using TMPro;
 
 /// <summary>
 /// Enables Countdown UI, server-controlled, UI counts from 3 to 1, then all players
@@ -15,8 +14,8 @@ public class StartRaceCountdown : NetworkBehaviour
     public delegate void PlayerPossessionEvent();
     public static event PlayerPossessionEvent OnPlayerPossessionEvent;
 
- 
-    [SerializeField] private TextMeshProUGUI countdownText;
+
+    [SerializeField] private TextMesh countdownText;
     [SerializeField] private float countdownDuration = 3f; // 3 seconds
     private void OnEnable()
     {

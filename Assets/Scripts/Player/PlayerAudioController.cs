@@ -125,7 +125,7 @@ public class PlayerAudioController : NetworkBehaviour
     {
         if (AudioManager.Instance != null)
         {
-            float masterVolume = AudioManager.Instance.masterVolume;
+            float masterVolume = AudioManager.Instance.GetMasterVolmue();
             float sfxVolume = AudioManager.Instance.sfxVolume;
 
             if (footstepAudioSource != null)

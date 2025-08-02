@@ -1,5 +1,5 @@
 using UnityEngine;
-using Cinemachine;
+using Unity.Cinemachine;
 
 public class CameraLook : MonoBehaviour
 {
@@ -11,11 +11,11 @@ public class CameraLook : MonoBehaviour
     {
         cinemachineFreeLook = GetComponent<CinemachineFreeLook>();
     }
-    
+
     public void Look(Vector2 delta)
     {
         if (cinemachineFreeLook == null) return;
-        
+
         // Unity 6 / Cinemachine 3.x compatible input handling
         // Apply input directly to axis values with speed modifiers
         cinemachineFreeLook.m_XAxis.m_InputAxisValue = delta.x * cameraFloatSpeedX;

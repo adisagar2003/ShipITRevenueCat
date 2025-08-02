@@ -15,13 +15,13 @@ public class SignInPlayerAnonymously : ThreadSafeSingleton<SignInPlayerAnonymous
     [Header("Authentication Settings")]
     [SerializeField, Tooltip("Automatically sign in on Start")]
     private bool autoSignIn = true;
-    
+
     [SerializeField, Tooltip("Retry count for failed sign-in attempts")]
     private int maxRetries = 3;
-    
+
     [SerializeField, Tooltip("Delay between retry attempts in seconds")]
     private float retryDelay = 2f;
-    
+
     private string playerId = "Not signed in yet.";
     private string playerName = "";
     private volatile bool isSigningIn = false; // volatile for thread safety
@@ -30,13 +30,13 @@ public class SignInPlayerAnonymously : ThreadSafeSingleton<SignInPlayerAnonymous
     public bool IsSignedIn => AuthenticationService.Instance?.IsSignedIn ?? false;
     public string PlayerId => playerId;
     public string PlayerName => playerName;
-    
+
     protected override void Initialize()
     {
         base.Initialize();
         ValidateConfiguration();
     }
-    
+
     protected override void OnSingletonDestroyed()
     {
         // Cancel any ongoing sign-in operations
@@ -44,11 +44,11 @@ public class SignInPlayerAnonymously : ThreadSafeSingleton<SignInPlayerAnonymous
         {
             isSigningIn = false;
         }
-        
+
         GameLogger.LogInfo(GameLogger.LogCategory.Authentication, "SignInPlayerAnonymously disposed");
         base.OnSingletonDestroyed();
     }
-    
+
     private void OnApplicationPause(bool pauseStatus)
     {
         if (pauseStatus)
@@ -56,7 +56,7 @@ public class SignInPlayerAnonymously : ThreadSafeSingleton<SignInPlayerAnonymous
             GameLogger.LogInfo(GameLogger.LogCategory.Authentication, "Application paused during authentication");
         }
     }
-    
+
     private async void Start()
     {
         if (autoSignIn)
@@ -64,7 +64,7 @@ public class SignInPlayerAnonymously : ThreadSafeSingleton<SignInPlayerAnonymous
             await SignInCachedUserAsync();
         }
     }
-    
+
     private void ValidateConfiguration()
     {
         if (maxRetries <= 0)
@@ -72,14 +72,14 @@ public class SignInPlayerAnonymously : ThreadSafeSingleton<SignInPlayerAnonymous
             GameLogger.LogWarning(GameLogger.LogCategory.Authentication, $"Invalid maxRetries value: {maxRetries}, setting to 3");
             maxRetries = 3;
         }
-        
+
         if (retryDelay <= 0)
         {
             GameLogger.LogWarning(GameLogger.LogCategory.Authentication, $"Invalid retryDelay value: {retryDelay}, setting to 2.0");
             retryDelay = 2f;
         }
     }
-    
+
     /// <summary>
     /// Attempts to sign in the user anonymously with retry logic.
     /// </summary>
@@ -92,11 +92,11 @@ public class SignInPlayerAnonymously : ThreadSafeSingleton<SignInPlayerAnonymous
                 GameLogger.LogWarning(GameLogger.LogCategory.Authentication, "Sign-in already in progress");
                 return;
             }
-            
+
             isSigningIn = true;
             currentRetryCount = 0;
         }
-        
+
         while (currentRetryCount < maxRetries)
         {
             try
@@ -109,24 +109,24 @@ public class SignInPlayerAnonymously : ThreadSafeSingleton<SignInPlayerAnonymous
             {
                 currentRetryCount++;
                 Debug.LogWarning($"Sign-in attempt {currentRetryCount} failed: {ex.Message}");
-                
+
                 if (currentRetryCount >= maxRetries)
                 {
                     HandleSignInFailure(ex);
                     break;
                 }
-                
+
                 // Wait before retry
                 await Task.Delay(TimeSpan.FromSeconds(retryDelay));
             }
         }
-        
+
         lock (signInLock)
         {
             isSigningIn = false;
         }
     }
-    
+
     private async Task AttemptSignIn()
     {
         // Initialize Unity Services
@@ -135,12 +135,12 @@ public class SignInPlayerAnonymously : ThreadSafeSingleton<SignInPlayerAnonymous
             Debug.Log("Initializing Unity Services...");
             await UnityServices.InitializeAsync();
         }
-        
+
         if (UnityServices.State != ServicesInitializationState.Initialized)
         {
             throw new InvalidOperationException($"Unity Services initialization failed. State: {UnityServices.State}");
         }
-        
+
         // Check if already signed in
         if (AuthenticationService.Instance.IsSignedIn)
         {
@@ -148,30 +148,30 @@ public class SignInPlayerAnonymously : ThreadSafeSingleton<SignInPlayerAnonymous
             playerId = AuthenticationService.Instance.PlayerId;
             return;
         }
-        
+
         // Sign in anonymously
         Debug.Log("Signing in anonymously...");
         await AuthenticationService.Instance.SignInAnonymouslyAsync();
-        
+
         if (!AuthenticationService.Instance.IsSignedIn)
         {
             throw new InvalidOperationException("Sign-in completed but user is not marked as signed in");
         }
-        
+
         playerId = AuthenticationService.Instance.PlayerId;
-        
+
         if (string.IsNullOrEmpty(playerId))
         {
             throw new InvalidOperationException("Sign-in succeeded but PlayerId is null or empty");
         }
-        
+
         Debug.Log("Sign in anonymously succeeded!");
-        
+
         // Generate and set player name
         try
         {
             playerName = await CallARandomAPIToGenerateRandomUsername();
-            
+
             if (!string.IsNullOrEmpty(playerName))
             {
                 await AuthenticationService.Instance.UpdatePlayerNameAsync(playerName);
@@ -183,11 +183,11 @@ public class SignInPlayerAnonymously : ThreadSafeSingleton<SignInPlayerAnonymous
             Debug.LogWarning($"Failed to update player name: {ex.Message}");
             playerName = $"Player_{playerId.Substring(0, 4)}";
         }
-        
+
         Debug.Log($"PlayerID: {playerId}");
         Debug.Log($"PlayerName: {playerName}");
     }
-    
+
     private void HandleSignInFailure(Exception finalException)
     {
         string errorMessage = finalException switch
@@ -197,7 +197,7 @@ public class SignInPlayerAnonymously : ThreadSafeSingleton<SignInPlayerAnonymous
             InvalidOperationException invEx => $"Invalid operation: {invEx.Message}",
             _ => $"Unexpected error: {finalException.Message}"
         };
-        
+
         Debug.LogError($"Sign-in failed after {maxRetries} attempts: {errorMessage}");
         playerId = errorMessage;
         playerName = "Sign-in failed";
@@ -212,16 +212,16 @@ public class SignInPlayerAnonymously : ThreadSafeSingleton<SignInPlayerAnonymous
         {
             // Simulate API call delay
             await Task.Delay(500);
-            
+
             // Generate a random username
-            string username = $"Player_{Random.Range(1000, 9999)}";
-            
+            string username = $"Player_{UnityEngine.Random.Range(1000, 9999)}";
+
             // Validate generated username
             if (string.IsNullOrWhiteSpace(username))
             {
                 throw new InvalidOperationException("Generated username is null or empty");
             }
-            
+
             return username;
         }
         catch (Exception ex)
@@ -248,7 +248,7 @@ public class SignInPlayerAnonymously : ThreadSafeSingleton<SignInPlayerAnonymous
             return false;
         }
     }
-    
+
     /// <summary>
     /// Public method to manually trigger sign-in.
     /// </summary>

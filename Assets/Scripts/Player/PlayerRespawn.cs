@@ -45,7 +45,7 @@ public class PlayerRespawn : NetworkBehaviour
         if (IsOwner)
         {
             rb.isKinematic = true;
-            rb.velocity = Vector3.zero;
+            rb.linearVelocity = Vector3.zero;
             transform.position = position;
             rb.isKinematic = false;
             Debug.Log("Client moved to respawn position via ClientRPC");
@@ -73,7 +73,7 @@ public class PlayerRespawn : NetworkBehaviour
     private IEnumerator RespawnRoutine(Vector3 targetPosition)
     {
         rb.isKinematic = true;
-        rb.velocity = Vector3.zero;
+        rb.linearVelocity = Vector3.zero;
         yield return null;
         transform.position = targetPosition;
         yield return null;
