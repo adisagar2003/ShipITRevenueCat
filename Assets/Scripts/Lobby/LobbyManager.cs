@@ -198,56 +198,85 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     #region Lobby Operations
     public async void CreateSession(string lobbyName = "MyLobby")
     {
+        Debug.Log($"<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🚀 CreateSession called with name: <color=yellow>{lobbyName}</color>");
+        
         // Input validation
         if (string.IsNullOrWhiteSpace(lobbyName))
         {
-            Debug.LogError("Lobby name cannot be null or empty");
+            Debug.LogError("<color=red><b>[LOBBY WORKFLOW ERROR]</b></color> ❌ Lobby name cannot be null or empty");
             return;
         }
 
         if (currentSession != null)
         {
-            Debug.LogWarning("Already in a session, cannot create another");
+            Debug.LogWarning($"<color=orange><b>[LOBBY WORKFLOW WARNING]</b></color> ⚠️ Already in session: {currentSession.Name}");
             return;
         }
 
         if (!AuthenticationService.Instance.IsSignedIn)
         {
-            Debug.LogError("Not authenticated, cannot create session");
+            Debug.LogError("<color=red><b>[LOBBY WORKFLOW ERROR]</b></color> ❌ Not authenticated, cannot create session");
             return;
         }
+
+        Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> ✅ All validations passed, starting session creation...");
 
         try
         {
             // Show "Creating Lobby..." text
+            Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🎭 Showing 'Creating Lobby...' text");
             if (creatingLobbyText != null)
+            {
                 creatingLobbyText.SetActive(true);
+                Debug.Log("<color=green><b>[LOBBY WORKFLOW UI]</b></color> ✅ Creating lobby text activated");
+            }
+            else
+            {
+                Debug.LogWarning("<color=orange><b>[LOBBY WORKFLOW UI]</b></color> ⚠️ creatingLobbyText is null!");
+            }
 
             // Configure session options with proper network setup
+            Debug.Log($"<color=cyan><b>[LOBBY WORKFLOW]</b></color> ⚙️ Creating SessionOptions: Name={lobbyName}, MaxPlayers={maxPlayers}");
             var sessionOptions = new SessionOptions
             {
                 Name = lobbyName,
                 MaxPlayers = maxPlayers
             }.WithRelayNetwork();
+            
+            Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🌐 Calling MultiplayerService.Instance.CreateSessionAsync...");
             currentSession = await MultiplayerService.Instance.CreateSessionAsync(sessionOptions);
-            Debug.Log($"Created lobby: {currentSession.Name}");
+            Debug.Log($"<color=green><b>[LOBBY WORKFLOW SUCCESS]</b></color> 🎉 Session created! ID: {currentSession.Id}, Name: {currentSession.Name}");
 
             // disable lobby button to prevent multiple creations
+            Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🔒 Disabling create lobby button");
             if (createLobbyButton != null)
             {
                 createLobbyButton.interactable = false;
+                Debug.Log("<color=green><b>[LOBBY WORKFLOW UI]</b></color> ✅ Create lobby button disabled");
+            }
+            else
+            {
+                Debug.LogWarning("<color=orange><b>[LOBBY WORKFLOW UI]</b></color> ⚠️ createLobbyButton is null!");
             }
 
             // Hide "Creating Lobby..." text
+            Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🎭 Hiding 'Creating Lobby...' text");
             if (creatingLobbyText != null)
+            {
                 creatingLobbyText.SetActive(false);
+                Debug.Log("<color=green><b>[LOBBY WORKFLOW UI]</b></color> ✅ Creating lobby text hidden");
+            }
 
             // Stop background session polling since we're now in a session
+            Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> ⏹️ Stopping background session polling");
             shouldRefreshSessions = false;
 
             // Clear available sessions since we're now in a session (not browsing)
+            Debug.Log($"<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🧹 Clearing availableSessions (count before: {availableSessions.Count})");
             availableSessions.Clear();
+            Debug.Log($"<color=cyan><b>[LOBBY WORKFLOW]</b></color> 📢 Invoking OnSessionsUpdated event...");
             OnSessionsUpdated?.Invoke();
+            Debug.Log("<color=green><b>[LOBBY WORKFLOW SUCCESS]</b></color> ✅ OnSessionsUpdated event invoked");
         }
         catch (SessionException e)
         {
