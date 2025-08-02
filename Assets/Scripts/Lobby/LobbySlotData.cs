@@ -41,6 +41,12 @@ public class LobbySlotData : MonoBehaviour
     {
         if (LobbyManager.Instance == null || hasJoined) return;
         
+        if (LobbyManager.Instance.currentSession != null)
+        {
+            Debug.LogWarning("Already in a session, cannot join another");
+            return;
+        }
+        
         try
         {
             var session = await MultiplayerService.Instance.JoinSessionByIdAsync(lobbyId);
@@ -48,6 +54,13 @@ public class LobbySlotData : MonoBehaviour
             hasJoined = true;
             UpdateButtonStates();
             Debug.Log($"Successfully joined lobby: {session.Name}");
+            
+            // Start polling for game start if we're not the host
+            if (!isHost)
+            {
+                _ = LobbyManager.Instance.StartPollingForGameStart();
+                Debug.Log("Started polling for game start as client");
+            }
         }
         catch (SessionException e)
         {

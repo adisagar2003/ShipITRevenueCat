@@ -382,7 +382,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             }
         }
 
-        private async Task StartPollingForGameStart()
+        public async Task StartPollingForGameStart()
         {
             int failureCount = 0;
             const int MAX_FAILURES = 5;
@@ -402,6 +402,10 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                         if (currentSession.Properties.TryGetValue("JoinCode", out var joinCode))
                         {
                             await JoinRelayAsClient(joinCode.Value);
+                        }
+                        else
+                        {
+                            GameLogger.LogError(GameLogger.LogCategory.Network, "Game started but no JoinCode found in session properties");
                         }
                         break;
                     }
