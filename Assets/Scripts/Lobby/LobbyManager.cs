@@ -271,7 +271,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             currentSession = await MultiplayerService.Instance.JoinSessionByIdAsync(lobbyId);
             Debug.Log($"Joined lobby: {currentSession.Name}");
             shouldRefreshSessions = false;
-            StartPollingForGameStart();
+            _ = StartPollingForGameStart();
         }
         catch (SessionException e)
         {
@@ -382,7 +382,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             }
         }
 
-        private async void StartPollingForGameStart()
+        private async Task StartPollingForGameStart()
         {
             int failureCount = 0;
             const int MAX_FAILURES = 5;
