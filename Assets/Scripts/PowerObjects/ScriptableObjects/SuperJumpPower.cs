@@ -1,6 +1,7 @@
 #define debug
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
 
@@ -28,7 +29,8 @@ public class SuperJumpPower : SpecialPower
 #endif
     }
 
-    public override void OnEffectAppliedClientRpc(GameObject player)
+    [Rpc(SendTo.ClientsAndHost)]
+    public void OnEffectAppliedClientRpc(GameObject player)
     {
 #if debug
         Debug.Log($"<color=#00FFAA><b>[SuperJumpPower]</b></color> <color=green>Super jump effect applied on client for player {player.name}.</color>");

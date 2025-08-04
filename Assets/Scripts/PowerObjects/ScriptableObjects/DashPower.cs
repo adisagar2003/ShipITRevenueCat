@@ -2,7 +2,7 @@ using UnityEngine;
 
 [CreateAssetMenu(menuName = "Player/Special Powers/Dash Power")]
 public class DashPower : SpecialPower
-{   
+{
     [SerializeField] private float dashForce = 500f;
 
     public override void ApplyEffect(GameObject player)
@@ -24,7 +24,7 @@ public class DashPower : SpecialPower
     }
 
     // Now also apply force on the client for immediate feedback
-    public override void OnEffectAppliedClientRpc(GameObject player)
+    public void OnEffectAppliedClientRpc(GameObject player)
     {
         #if debug
             Debug.Log($"<color=#00FFFF><b>[DashPower]</b></color> <color=green>Dash effect applied on client for player {player.name}.</color>");

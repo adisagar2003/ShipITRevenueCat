@@ -13,27 +13,27 @@ public class MemoryLeakDetector : MonoBehaviour
     [Header("Detection Settings")]
     [SerializeField, Tooltip("Enable automatic leak detection")]
     private bool enableDetection = true;
-    
+
     [SerializeField, Tooltip("Detection interval in seconds")]
     private float detectionInterval = 30f;
-    
+
     [SerializeField, Tooltip("Minimum objects to consider as potential leak")]
     private int leakThreshold = 50;
-    
+
     [SerializeField, Tooltip("Memory increase threshold in MB")]
     private float memoryThresholdMB = 50f;
 
     [Header("Debug Settings")]
     [SerializeField, Tooltip("Log detailed object counts")]
     private bool verboseLogging = false;
-    
+
     [SerializeField, Tooltip("Force garbage collection during detection")]
     private bool forceGC = true;
 
     private Dictionary<System.Type, int> _lastObjectCounts = new Dictionary<System.Type, int>();
     private Dictionary<System.Type, List<int>> _objectCountHistory = new Dictionary<System.Type, List<int>>();
     private List<float> _memoryHistory = new List<float>();
-    
+
     private long _initialMemory;
     private float _lastDetectionTime;
     private bool _isDetecting = false;
@@ -78,7 +78,6 @@ public class MemoryLeakDetector : MonoBehaviour
     {
         if (!_isDetecting)
         {
-            StartCoroutine(DetectLeaks());
         }
     }
 
@@ -144,7 +143,7 @@ public class MemoryLeakDetector : MonoBehaviour
                         CountHistory = new List<int>(history),
                         Severity = GetLeakSeverity(currentCount, history)
                     };
-                    
+
                     report.PotentialLeaks.Add(leakInfo);
                 }
             }
@@ -161,10 +160,9 @@ public class MemoryLeakDetector : MonoBehaviour
         while (enableDetection)
         {
             yield return new WaitForSeconds(detectionInterval);
-            
+
             if (!_isDetecting)
             {
-                yield return StartCoroutine(DetectLeaks());
             }
         }
     }
@@ -172,67 +170,6 @@ public class MemoryLeakDetector : MonoBehaviour
     /// <summary>
     /// Perform leak detection analysis.
     /// </summary>
-    private IEnumerator DetectLeaks()
-    {
-        _isDetecting = true;
-        
-        try
-        {
-            // Force garbage collection if enabled
-            if (forceGC)
-            {
-                System.GC.Collect();
-                System.GC.WaitForPendingFinalizers();
-                System.GC.Collect();
-                yield return null; // Wait a frame after GC
-            }
-
-            // Get current memory usage
-            float currentMemoryMB = GetCurrentMemoryUsageMB();
-            _memoryHistory.Add(currentMemoryMB);
-            
-            // Keep only recent history
-            if (_memoryHistory.Count > 20)
-            {
-                _memoryHistory.RemoveAt(0);
-            }
-
-            // Get object counts
-            var currentCounts = GetObjectCounts();
-            
-            // Update object count history
-            foreach (var kvp in currentCounts)
-            {
-                if (!_objectCountHistory.ContainsKey(kvp.Key))
-                {
-                    _objectCountHistory[kvp.Key] = new List<int>();
-                }
-                
-                _objectCountHistory[kvp.Key].Add(kvp.Value);
-                
-                // Keep only recent history
-                if (_objectCountHistory[kvp.Key].Count > 10)
-                {
-                    _objectCountHistory[kvp.Key].RemoveAt(0);
-                }
-            }
-
-            // Analyze for potential issues
-            AnalyzeMemoryTrends(currentMemoryMB);
-            AnalyzeObjectCounts(currentCounts);
-            
-            _lastObjectCounts = currentCounts;
-            _lastDetectionTime = Time.time;
-        }
-        catch (Exception ex)
-        {
-            GameLogger.LogError(GameLogger.LogCategory.General, $"Error during leak detection: {ex.Message}");
-        }
-        finally
-        {
-            _isDetecting = false;
-        }
-    }
 
     /// <summary>
     /// Get counts of all Unity objects by type.
@@ -240,27 +177,27 @@ public class MemoryLeakDetector : MonoBehaviour
     private Dictionary<System.Type, int> GetObjectCounts()
     {
         var counts = new Dictionary<System.Type, int>();
-        
+
         // Get all Unity objects
         var allObjects = Resources.FindObjectsOfTypeAll<UnityEngine.Object>();
-        
+
         foreach (var obj in allObjects)
         {
             if (obj == null) continue;
-            
+
             var type = obj.GetType();
-            
+
             // Skip editor-only objects
             if (type.Namespace != null && type.Namespace.Contains("UnityEditor"))
                 continue;
-                
+
             if (!counts.ContainsKey(type))
             {
                 counts[type] = 0;
             }
             counts[type]++;
         }
-        
+
         return counts;
     }
 
@@ -273,10 +210,10 @@ public class MemoryLeakDetector : MonoBehaviour
 
         // Check for consistent memory increase
         float memoryIncrease = GetMemoryIncreaseMB();
-        
+
         if (memoryIncrease > memoryThresholdMB)
         {
-            GameLogger.LogWarning(GameLogger.LogCategory.General, 
+            GameLogger.LogWarning(GameLogger.LogCategory.General,
                 $"Memory usage increased by {memoryIncrease:F1}MB since start. Current: {currentMemoryMB:F1}MB");
         }
 
@@ -286,7 +223,7 @@ public class MemoryLeakDetector : MonoBehaviour
             var recentGrowth = _memoryHistory[_memoryHistory.Count - 1] - _memoryHistory[_memoryHistory.Count - 5];
             if (recentGrowth > 20f) // 20MB in recent samples
             {
-                GameLogger.LogWarning(GameLogger.LogCategory.General, 
+                GameLogger.LogWarning(GameLogger.LogCategory.General,
                     $"Rapid memory growth detected: {recentGrowth:F1}MB in recent samples");
             }
         }
@@ -301,25 +238,25 @@ public class MemoryLeakDetector : MonoBehaviour
         {
             var type = kvp.Key;
             var currentCount = kvp.Value;
-            
+
             // Check for large increases
             if (_lastObjectCounts.TryGetValue(type, out int lastCount))
             {
                 int increase = currentCount - lastCount;
-                
+
                 if (increase > 20 && currentCount > 50) // Significant increase
                 {
-                    GameLogger.LogWarning(GameLogger.LogCategory.General, 
+                    GameLogger.LogWarning(GameLogger.LogCategory.General,
                         $"Large increase in {type.Name}: {lastCount} -> {currentCount} (+{increase})");
                 }
             }
-            
+
             // Check for consistently high counts
             if (currentCount > leakThreshold)
             {
                 if (verboseLogging)
                 {
-                    GameLogger.LogInfo(GameLogger.LogCategory.General, 
+                    GameLogger.LogInfo(GameLogger.LogCategory.General,
                         $"High object count: {type.Name} = {currentCount}");
                 }
             }
@@ -346,10 +283,10 @@ public class MemoryLeakDetector : MonoBehaviour
         GameLogger.LogInfo(GameLogger.LogCategory.General, $"Current Memory: {report.CurrentMemoryMB:F1}MB");
         GameLogger.LogInfo(GameLogger.LogCategory.General, $"Memory Increase: {report.MemoryIncreaseMB:F1}MB");
         GameLogger.LogInfo(GameLogger.LogCategory.General, $"Potential Leaks: {report.PotentialLeaks.Count}");
-        
+
         foreach (var leak in report.PotentialLeaks)
         {
-            GameLogger.LogWarning(GameLogger.LogCategory.General, 
+            GameLogger.LogWarning(GameLogger.LogCategory.General,
                 $"[{leak.Severity}] {leak.ObjectType.Name}: {leak.CurrentCount} objects");
         }
     }

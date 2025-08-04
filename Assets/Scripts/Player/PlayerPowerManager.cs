@@ -4,7 +4,7 @@ using Unity.Netcode;
 using System;
 using System.Collections;
 
-// Assumes SpecialPower.cs defines: 
+// Assumes SpecialPower.cs defines:
 // - enum ActivationType { Passive, Active }
 // - class SpecialPower : ScriptableObject { ActivationType activationType; void ApplyEffect(GameObject player); void OnEffectAppliedRpc(GameObject player); }
 
@@ -85,7 +85,6 @@ public class PlayerPowerManager : NetworkBehaviour
         #endif
     }
 
-    [Rpc(RequireOwnership = false)]
     private void ActivateCurrentPowerRpc(ulong playerClientId)
     {
         if (!IsServer) return;
@@ -104,18 +103,8 @@ public class PlayerPowerManager : NetworkBehaviour
     /// ServerRpc to deactivate the current power.
     /// Resets the currentPowerIndex so no power is active.
     /// </summary>
-    [Rpc(RequireOwnership = false)]
-    public void DeactivateCurrentPowerRpc()
-    {
-        if (!IsServer) return;
 
-    #if debug
-        Debug.Log($"<color=#00FF00><b>[PlayerPowerManager]</b></color> <color=magenta>Deactivating current power for {gameObject.name}.</color>");
-    #endif
-        currentPowerIndex.Value = -1;
-    }
 
-    [Rpc(SendTo.NotServer)]
     public void ActivateDashPowerRpc(ulong targetClientId)
     {
         // Only run on the client that owns this player
@@ -154,5 +143,12 @@ public class PlayerPowerManager : NetworkBehaviour
 #if debug
         Debug.Log($"<color=#00FFAA><b>[PlayerPowerManager]</b></color> <color=yellow>Super jump finished for {gameObject.name}.</color>");
 #endif
+    }
+
+
+[Rpc(SendTo.ClientsAndHost)]
+    public void ActivateDashPowerClientRpc(ulong networkObjectOwnerClientId)
+    {
+        throw new NotImplementedException();
     }
 }

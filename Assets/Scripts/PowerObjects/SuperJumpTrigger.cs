@@ -44,8 +44,7 @@ public class SuperJumpTrigger : NetworkBehaviour
 #if debug
             Debug.Log("<color=#00FFAA><b>[SuperJumpTrigger]</b></color> <color=yellow>Player exited trigger. Deactivating SuperJumpPower.</color>");
 #endif
-            playerManager.DeactivateCurrentPowerServerRpc();
-        }
+            }
 #if debug
         else
         {

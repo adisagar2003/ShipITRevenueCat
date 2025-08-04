@@ -19,7 +19,7 @@ public class AudioManager : ThreadSafeSingleton<AudioManager>
     [Header("Volume Settings")]
     [SerializeField, Range(0f, 1f)] private float masterVolume = 1f;
     [SerializeField, Range(0f, 1f)] private float musicVolume = 0.3f;
-    [SerializeField, Range(0f, 1f)] private float sfxVolume = 1f;
+    [SerializeField, Range(0f, 1f)] public float sfxVolume = 1f;
     #endregion
 
     #region Unity Lifecycle
@@ -29,7 +29,7 @@ public class AudioManager : ThreadSafeSingleton<AudioManager>
         base.Initialize();
         InitializeAudio();
     }
-    
+
     protected override void OnSingletonDestroyed()
     {
         // Stop all audio sources to prevent memory leaks
@@ -38,16 +38,16 @@ public class AudioManager : ThreadSafeSingleton<AudioManager>
             musicSource.Stop();
             musicSource.clip = null;
         }
-        
+
         if (sfxSource != null)
         {
             sfxSource.Stop();
         }
-        
+
         GameLogger.LogInfo(GameLogger.LogCategory.Audio, "AudioManager disposed");
         base.OnSingletonDestroyed();
     }
-    
+
     private void OnApplicationPause(bool pauseStatus)
     {
         if (pauseStatus)
@@ -225,5 +225,10 @@ public class AudioManager : ThreadSafeSingleton<AudioManager>
     private void OnValidate()
     {
         UpdateVolumes();
+    }
+
+    public float GetMasterVolmue()
+    {
+        return AudioManager.Instance.masterVolume;
     }
 }

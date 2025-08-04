@@ -37,14 +37,13 @@ public class DashTrigger : NetworkBehaviour
     private void OnTriggerExit(Collider other)
     {
         if (!IsServer) return; // Only the server should handle power deactivation
-        // Deactivate the dash power when the player exits the trigger  
+        // Deactivate the dash power when the player exits the trigger
         var playerManager = other.GetComponent<PlayerPowerManager>();
         if (playerManager != null)
         {
 #if debug
             Debug.Log("<color=#FF00FF><b>[DashTrigger]</b></color> <color=yellow>Player exited trigger. Deactivating DashPower.</color>");
 #endif
-            playerManager.DeactivateCurrentPowerServerRpc();
         }
 #if debug
         else
