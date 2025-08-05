@@ -19,7 +19,7 @@ using UnityEngine.InputSystem;
 public class InputManager : MonoBehaviour
 {
     [Header("Input Sources")]
-    [SerializeField] private Joystick fixedJoystick; // Mobile joystick reference (supports FixedJoystick and other Joystick types)
+    [SerializeField] private MonoBehaviour mobileJoystick; // Mobile joystick component (FixedJoystick, VariableJoystick, etc.)
     [SerializeField] private bool prioritizeMobileInput = true; // Mobile takes priority when available
 
     [SerializeField] private bool usingKeyboard;
@@ -56,9 +56,9 @@ public class InputManager : MonoBehaviour
     private void Update()
     {
         // Handle mobile joystick input if available and prioritized
-        if (fixedJoystick != null && prioritizeMobileInput)
+        if (mobileJoystick != null && prioritizeMobileInput)
         {
-            Vector2 joystickInput = new Vector2(fixedJoystick.horizontal, fixedJoystick.vertical);
+            Vector2 joystickInput = GetJoystickInput();
             if (joystickInput.sqrMagnitude > 0.01f)
             {
                 inputValue = joystickInput;
@@ -85,9 +85,9 @@ public class InputManager : MonoBehaviour
     public Vector2 GetInputValue()
     {
         // Prioritize mobile joystick if available
-        if (fixedJoystick != null && prioritizeMobileInput)
+        if (mobileJoystick != null && prioritizeMobileInput)
         {
-            Vector2 joystickInput = new Vector2(fixedJoystick.horizontal, fixedJoystick.vertical);
+            Vector2 joystickInput = GetJoystickInput();
             if (joystickInput.sqrMagnitude > 0.01f)
             {
                 return joystickInput;
@@ -103,6 +103,41 @@ public class InputManager : MonoBehaviour
         bool pressed = jumpPressed;
         jumpPressed = false; // Reset after reading
         return pressed;
+    }
+    
+    /// <summary>
+    /// Safely gets joystick input using reflection to avoid compilation issues
+    /// </summary>
+    private Vector2 GetJoystickInput()
+    {
+        if (mobileJoystick == null) return Vector2.zero;
+        
+        try
+        {
+            // Try to get the Direction property first (most efficient)
+            var directionProperty = mobileJoystick.GetType().GetProperty("Direction");
+            if (directionProperty != null)
+            {
+                return (Vector2)directionProperty.GetValue(mobileJoystick, null);
+            }
+            
+            // Fallback to individual horizontal/vertical properties
+            var horizontalProperty = mobileJoystick.GetType().GetProperty("horizontal");
+            var verticalProperty = mobileJoystick.GetType().GetProperty("vertical");
+            
+            if (horizontalProperty != null && verticalProperty != null)
+            {
+                float h = (float)horizontalProperty.GetValue(mobileJoystick, null);
+                float v = (float)verticalProperty.GetValue(mobileJoystick, null);
+                return new Vector2(h, v);
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogWarning($"InputManager: Failed to get joystick input via reflection: {ex.Message}");
+        }
+        
+        return Vector2.zero;
     }
 
     private void OnDestroy()

@@ -1,7 +1,6 @@
 public class JumpCommand : ICommand
 {
     private PlayerMovement playerMovement;
-    private ThirdPersonController thirdPersonController;
     private NetworkThirdPersonController networkThirdPersonController;
     private PlayerAnimationHandle playerAnimationHandle;
     private InputManager inputManager;
@@ -14,12 +13,6 @@ public class JumpCommand : ICommand
         this.inputManager = inputManager;
     }
 
-    // Constructor for ThirdPersonController
-    public JumpCommand(ThirdPersonController thirdPersonController, InputManager inputManager)
-    {
-        this.thirdPersonController = thirdPersonController;
-        this.inputManager = inputManager;
-    }
 
     // Constructor for NetworkThirdPersonController
     public JumpCommand(NetworkThirdPersonController networkThirdPersonController, InputManager inputManager)
@@ -36,10 +29,6 @@ public class JumpCommand : ICommand
             {
                 playerMovement.Jump();
                 playerAnimationHandle?.TriggerJump();
-            }
-            else if (thirdPersonController != null)
-            {
-                thirdPersonController.Jump();
             }
             else if (networkThirdPersonController != null)
             {

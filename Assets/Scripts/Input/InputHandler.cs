@@ -41,16 +41,11 @@ public class InputHandler : NetworkBehaviour
         }
         // Initialize movement components
         var networkThirdPersonController = GetComponent<NetworkThirdPersonController>();
-        var thirdPersonController = GetComponent<ThirdPersonController>();
-        
+
         // Initialize MoveCommand based on available components (prioritize network-friendly)
         if (networkThirdPersonController != null && inputManager != null)
         {
             moveCommand = new MoveCommand(networkThirdPersonController, inputManager);
-        }
-        else if (thirdPersonController != null && inputManager != null)
-        {
-            moveCommand = new MoveCommand(thirdPersonController, inputManager);
         }
         else if (playerMovement != null && inputManager != null)
         {
@@ -64,16 +59,12 @@ public class InputHandler : NetworkBehaviour
         {
             Debug.LogWarning("MoveCommand not initialized - no compatible movement component found.");
         }
-        
+
         // Initialize JumpCommand based on available components
         var playerAnimationHandle = GetComponent<PlayerAnimationHandle>();
         if (networkThirdPersonController != null && inputManager != null)
         {
             jumpCommand = new JumpCommand(networkThirdPersonController, inputManager);
-        }
-        else if (thirdPersonController != null && inputManager != null)
-        {
-            jumpCommand = new JumpCommand(thirdPersonController, inputManager);
         }
         else if (playerMovement != null && playerAnimationHandle != null && inputManager != null)
         {

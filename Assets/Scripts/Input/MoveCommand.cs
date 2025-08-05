@@ -6,7 +6,6 @@ public class MoveCommand : ICommand
 {
     private PlayerMovement movement;
     private PlayerMovementSinglePlayer playerMovementSinglePlayer; // deprecated
-    private ThirdPersonController thirdPersonController;
     private NetworkThirdPersonController networkThirdPersonController;
     private InputManager inputManager;
 
@@ -21,13 +20,7 @@ public class MoveCommand : ICommand
         this.playerMovementSinglePlayer = movement;
         this.inputManager = inputManager;
     }
-    
-    public MoveCommand(ThirdPersonController thirdPersonController, InputManager inputManager)
-    {
-        this.thirdPersonController = thirdPersonController;
-        this.inputManager = inputManager;
-    }
-    
+
     public MoveCommand(NetworkThirdPersonController networkThirdPersonController, InputManager inputManager)
     {
         this.networkThirdPersonController = networkThirdPersonController;
@@ -37,14 +30,10 @@ public class MoveCommand : ICommand
     public void Execute()
     {
         Vector2 input = inputManager.GetInputValue();
-        
+
         if (networkThirdPersonController != null)
         {
             networkThirdPersonController.Move(input);
-        }
-        else if (thirdPersonController != null)
-        {
-            thirdPersonController.Move(input);
         }
         else if (movement != null)
         {
