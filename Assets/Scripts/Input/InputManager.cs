@@ -21,7 +21,7 @@ public class InputManager : MonoBehaviour
     [Header("Input Sources")]
     [SerializeField] private FixedJoystick fixedJoystick; // Mobile joystick reference
     [SerializeField] private bool prioritizeMobileInput = true; // Mobile takes priority when available
-    
+
     [SerializeField] private bool usingKeyboard;
     private InputActions inputActions;
     private Vector2 inputValue;
@@ -47,7 +47,7 @@ public class InputManager : MonoBehaviour
         usingKeyboard = true;
         inputValue = context.ReadValue<Vector2>();
     }
-    
+
     private void JumpPerformed(InputAction.CallbackContext context)
     {
         jumpPressed = true;
@@ -58,7 +58,7 @@ public class InputManager : MonoBehaviour
         // Handle mobile joystick input if available and prioritized
         if (fixedJoystick != null && prioritizeMobileInput)
         {
-            Vector2 joystickInput = fixedJoystick.Direction;
+            Vector2 joystickInput = fixedJoystick.Get;
             if (joystickInput.sqrMagnitude > 0.01f)
             {
                 inputValue = joystickInput;
@@ -93,18 +93,18 @@ public class InputManager : MonoBehaviour
                 return joystickInput;
             }
         }
-        
+
         // Fall back to Input System (keyboard/gamepad)
         return inputValue;
     }
-    
+
     public bool GetJumpPressed()
     {
         bool pressed = jumpPressed;
         jumpPressed = false; // Reset after reading
         return pressed;
     }
-    
+
     private void OnDestroy()
     {
         if (inputActions != null)
