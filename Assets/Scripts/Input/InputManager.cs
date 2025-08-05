@@ -58,7 +58,7 @@ public class InputManager : MonoBehaviour
         // Handle mobile joystick input if available and prioritized
         if (fixedJoystick != null && prioritizeMobileInput)
         {
-            Vector2 joystickInput = fixedJoystick.Get;
+            Vector2 joystickInput = fixedJoystick.Direction;
             if (joystickInput.sqrMagnitude > 0.01f)
             {
                 inputValue = joystickInput;
