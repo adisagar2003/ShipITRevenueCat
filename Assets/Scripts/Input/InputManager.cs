@@ -5,9 +5,18 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Hybrid input detection supporting both new Input System (keyboard/gamepad) and mobile joystick.
+/// Manages all player input from multiple sources including keyboard, gamepad, and mobile touch controls.
+/// Handles movement input (WASD keys, mobile joystick) and jump input (spacebar) through Unity's new Input System.
+/// Prioritizes mobile joystick when available for seamless cross-platform gameplay.
 /// </summary>
-public class JoystickDetection : MonoBehaviour
+/// <remarks>
+/// This class serves as a unified input interface for the command pattern system, supporting:
+/// - New Input System: Keyboard (WASD) and gamepad input
+/// - Mobile Controls: Fixed joystick for movement
+/// - Jump Input: Spacebar detection with single-frame consumption
+/// - Priority System: Mobile input takes precedence when joystick is actively used
+/// </remarks>
+public class InputManager : MonoBehaviour
 {
     [Header("Input Sources")]
     [SerializeField] private FixedJoystick fixedJoystick; // Mobile joystick reference

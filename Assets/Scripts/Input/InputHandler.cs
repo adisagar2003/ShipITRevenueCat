@@ -18,13 +18,13 @@ public class InputHandler : NetworkBehaviour
     [SerializeField] private CameraLook cameraLook;
     [SerializeField] private MouseLookWithTouch mouseLookWithTouch;
 
-    private JoystickDetection joystickDetection;
+    private InputManager inputManager;
     private PlayerMovement playerMovement;
     private PlayerMovementSinglePlayer playerMovementSinglePlayer;
 
     void Start()
     {
-        joystickDetection = GetComponent<JoystickDetection>();
+        inputManager = GetComponent<InputManager>();
         playerMovement = GetComponent<PlayerMovement>();
         playerMovementSinglePlayer = GetComponent<PlayerMovementSinglePlayer>();
         #if MULTIPLAYER
@@ -44,21 +44,21 @@ public class InputHandler : NetworkBehaviour
         var thirdPersonController = GetComponent<ThirdPersonController>();
         
         // Initialize MoveCommand based on available components (prioritize network-friendly)
-        if (networkThirdPersonController != null && joystickDetection != null)
+        if (networkThirdPersonController != null && inputManager != null)
         {
-            moveCommand = new MoveCommand(networkThirdPersonController, joystickDetection);
+            moveCommand = new MoveCommand(networkThirdPersonController, inputManager);
         }
-        else if (thirdPersonController != null && joystickDetection != null)
+        else if (thirdPersonController != null && inputManager != null)
         {
-            moveCommand = new MoveCommand(thirdPersonController, joystickDetection);
+            moveCommand = new MoveCommand(thirdPersonController, inputManager);
         }
-        else if (playerMovement != null && joystickDetection != null)
+        else if (playerMovement != null && inputManager != null)
         {
-            moveCommand = new MoveCommand(playerMovement, joystickDetection);
+            moveCommand = new MoveCommand(playerMovement, inputManager);
         }
-        else if (playerMovementSinglePlayer != null && joystickDetection != null)
+        else if (playerMovementSinglePlayer != null && inputManager != null)
         {
-            moveCommand = new MoveCommand(playerMovementSinglePlayer, joystickDetection);
+            moveCommand = new MoveCommand(playerMovementSinglePlayer, inputManager);
         }
         else
         {
@@ -67,17 +67,17 @@ public class InputHandler : NetworkBehaviour
         
         // Initialize JumpCommand based on available components
         var playerAnimationHandle = GetComponent<PlayerAnimationHandle>();
-        if (networkThirdPersonController != null && joystickDetection != null)
+        if (networkThirdPersonController != null && inputManager != null)
         {
-            jumpCommand = new JumpCommand(networkThirdPersonController, joystickDetection);
+            jumpCommand = new JumpCommand(networkThirdPersonController, inputManager);
         }
-        else if (thirdPersonController != null && joystickDetection != null)
+        else if (thirdPersonController != null && inputManager != null)
         {
-            jumpCommand = new JumpCommand(thirdPersonController, joystickDetection);
+            jumpCommand = new JumpCommand(thirdPersonController, inputManager);
         }
-        else if (playerMovement != null && playerAnimationHandle != null && joystickDetection != null)
+        else if (playerMovement != null && playerAnimationHandle != null && inputManager != null)
         {
-            jumpCommand = new JumpCommand(playerMovement, playerAnimationHandle, joystickDetection);
+            jumpCommand = new JumpCommand(playerMovement, playerAnimationHandle, inputManager);
         }
         else
         {

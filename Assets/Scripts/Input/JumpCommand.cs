@@ -4,33 +4,33 @@ public class JumpCommand : ICommand
     private ThirdPersonController thirdPersonController;
     private NetworkThirdPersonController networkThirdPersonController;
     private PlayerAnimationHandle playerAnimationHandle;
-    private JoystickDetection joystickDetection;
+    private InputManager inputManager;
 
     // Constructor for PlayerMovement
-    public JumpCommand(PlayerMovement playerMovement, PlayerAnimationHandle playerAnimationHandle, JoystickDetection joystickDetection)
+    public JumpCommand(PlayerMovement playerMovement, PlayerAnimationHandle playerAnimationHandle, InputManager inputManager)
     {
         this.playerMovement = playerMovement;
         this.playerAnimationHandle = playerAnimationHandle;
-        this.joystickDetection = joystickDetection;
+        this.inputManager = inputManager;
     }
 
     // Constructor for ThirdPersonController
-    public JumpCommand(ThirdPersonController thirdPersonController, JoystickDetection joystickDetection)
+    public JumpCommand(ThirdPersonController thirdPersonController, InputManager inputManager)
     {
         this.thirdPersonController = thirdPersonController;
-        this.joystickDetection = joystickDetection;
+        this.inputManager = inputManager;
     }
 
     // Constructor for NetworkThirdPersonController
-    public JumpCommand(NetworkThirdPersonController networkThirdPersonController, JoystickDetection joystickDetection)
+    public JumpCommand(NetworkThirdPersonController networkThirdPersonController, InputManager inputManager)
     {
         this.networkThirdPersonController = networkThirdPersonController;
-        this.joystickDetection = joystickDetection;
+        this.inputManager = inputManager;
     }
 
     public void Execute()
     {
-        if (joystickDetection.GetJumpPressed())
+        if (inputManager.GetJumpPressed())
         {
             if (playerMovement != null)
             {

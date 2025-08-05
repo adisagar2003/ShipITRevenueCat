@@ -8,35 +8,35 @@ public class MoveCommand : ICommand
     private PlayerMovementSinglePlayer playerMovementSinglePlayer; // deprecated
     private ThirdPersonController thirdPersonController;
     private NetworkThirdPersonController networkThirdPersonController;
-    private JoystickDetection joystickDetection;
+    private InputManager inputManager;
 
-    public MoveCommand(PlayerMovement movement, JoystickDetection joystickDetection)
+    public MoveCommand(PlayerMovement movement, InputManager inputManager)
     {
         this.movement = movement;
-        this.joystickDetection = joystickDetection;
+        this.inputManager = inputManager;
     }
 
-    public MoveCommand(PlayerMovementSinglePlayer movement, JoystickDetection joystickDetection)
+    public MoveCommand(PlayerMovementSinglePlayer movement, InputManager inputManager)
     {
         this.playerMovementSinglePlayer = movement;
-        this.joystickDetection = joystickDetection;
+        this.inputManager = inputManager;
     }
     
-    public MoveCommand(ThirdPersonController thirdPersonController, JoystickDetection joystickDetection)
+    public MoveCommand(ThirdPersonController thirdPersonController, InputManager inputManager)
     {
         this.thirdPersonController = thirdPersonController;
-        this.joystickDetection = joystickDetection;
+        this.inputManager = inputManager;
     }
     
-    public MoveCommand(NetworkThirdPersonController networkThirdPersonController, JoystickDetection joystickDetection)
+    public MoveCommand(NetworkThirdPersonController networkThirdPersonController, InputManager inputManager)
     {
         this.networkThirdPersonController = networkThirdPersonController;
-        this.joystickDetection = joystickDetection;
+        this.inputManager = inputManager;
     }
 
     public void Execute()
     {
-        Vector2 input = joystickDetection.GetInputValue();
+        Vector2 input = inputManager.GetInputValue();
         
         if (networkThirdPersonController != null)
         {
