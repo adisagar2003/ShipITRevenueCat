@@ -9,8 +9,9 @@ using System.Collections;
 /// </summary>
 public class JumpButtonDetection : NetworkBehaviour
 {
-    private PlayerMovement playerMovement;
+    private NetworkThirdPersonController playerMovement;
     private PlayerAnimationHandle playerAnimationHandle;
+    private InputManager inputManager;
     private ICommand jumpCommand;
     private Button jumpButton;
 
@@ -29,9 +30,10 @@ public class JumpButtonDetection : NetworkBehaviour
             StartCoroutine(KeepCheckingForJumpButton());
         }
 
+        inputManager = GetComponent<InputManager>();
         playerAnimationHandle = GetComponent<PlayerAnimationHandle>();
-        playerMovement = GetComponent<PlayerMovement>();
-        jumpCommand = new JumpCommand(playerMovement, playerAnimationHandle);
+        playerMovement = GetComponent<NetworkThirdPersonController>();
+        jumpCommand = new JumpCommand(playerMovement, inputManager);
     }
 
     public IEnumerator KeepCheckingForJumpButton()
