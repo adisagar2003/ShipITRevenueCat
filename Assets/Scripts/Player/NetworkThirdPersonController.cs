@@ -5,6 +5,11 @@ using Unity.Netcode;
 /// Network-friendly Fall Guys-style third person controller with rigidbody physics
 /// Combines features from ThirdPersonController with multiplayer compatibility
 /// </summary>
+[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(InputManager))]
+[RequireComponent(typeof(InputHandler))]
+[RequireComponent(typeof(CameraLook))]
+[RequireComponent(typeof(MouseLookWithTouch))]
 public class NetworkThirdPersonController : NetworkBehaviour
 {
     [Header("Movement Settings")]
@@ -38,6 +43,12 @@ public class NetworkThirdPersonController : NetworkBehaviour
     [Header("Camera Reference")]
     [SerializeField] private Transform cameraTransform;
     
+    [Header("Debug Settings")]
+    [SerializeField] private bool enableDebugLogs = true;
+    [SerializeField] private bool enableMovementLogs = true;
+    [SerializeField] private bool enableInputLogs = true;
+    [SerializeField] private bool enableNetworkLogs = true;
+    
     // Components
     private Rigidbody rb;
     private Transform playerCameraTransform;
@@ -57,21 +68,29 @@ public class NetworkThirdPersonController : NetworkBehaviour
     
     private void Start()
     {
+        if (enableDebugLogs) Debug.Log($"<color=cyan>[NetworkThirdPersonController]</color> <color=white>Starting initialization on {gameObject.name}</color>");
+        
         rb = GetComponent<Rigidbody>();
         if (rb == null)
         {
-            GameLogger.LogCritical(GameLogger.LogCategory.Gameplay, $"Rigidbody component is required on {gameObject.name}", this);
+            Debug.LogError($"<color=red>[NetworkThirdPersonController]</color> <color=white>CRITICAL: Rigidbody component is required on {gameObject.name}</color>");
             enabled = false;
             return;
         }
+        
+        if (enableDebugLogs) Debug.Log($"<color=cyan>[NetworkThirdPersonController]</color> <color=white>Rigidbody found: {rb.name}</color>");
         
         SetOwnedCameraOnly();
         
         // Validate ground check setup
         if (groundCheckRaycastOriginPoint == null)
         {
-            GameLogger.LogError(GameLogger.LogCategory.Gameplay, $"Ground check raycast origin point not assigned on {gameObject.name}", this);
+            Debug.LogWarning($"<color=yellow>[NetworkThirdPersonController]</color> <color=white>Ground check raycast origin point not assigned on {gameObject.name}</color>");
         }
+        
+        if (enableNetworkLogs) Debug.Log($"<color=magenta>[NetworkThirdPersonController]</color> <color=white>IsOwner: {IsOwner}, IsServer: {IsServer}, IsClient: {IsClient}</color>");
+        
+        if (enableDebugLogs) Debug.Log($"<color=green>[NetworkThirdPersonController]</color> <color=white>Initialization complete on {gameObject.name}</color>");
     }
     
     private void SetOwnedCameraOnly()
@@ -114,15 +133,37 @@ public class NetworkThirdPersonController : NetworkBehaviour
     
     public void Move(Vector2 input)
     {
-        if (!IsOwner) return;
+        if (!IsOwner) 
+        {
+            if (enableInputLogs) Debug.Log($"<color=orange>[NetworkThirdPersonController]</color> <color=white>Move() called but not owner - ignoring input: {input}</color>");
+            return;
+        }
+        
         inputValue = input;
+        
+        if (enableInputLogs && input.sqrMagnitude > 0.01f) 
+        {
+            Debug.Log($"<color=lime>[NetworkThirdPersonController]</color> <color=white>Move() input received: {input} (magnitude: {input.magnitude:F3})</color>");
+        }
     }
     
     private void HandleMovement()
     {
         // Use cached camera transform or find main camera as fallback
         Transform cameraRef = cameraTransform != null ? cameraTransform : Camera.main?.transform;
-        if (cameraRef == null) return;
+        if (cameraRef == null) 
+        {
+            if (enableMovementLogs) Debug.LogWarning($"<color=red>[NetworkThirdPersonController]</color> <color=white>No camera reference found - cannot calculate movement</color>");
+            return;
+        }
+        
+        // Only log if there's actual input
+        bool hasInput = inputValue.sqrMagnitude > 0.01f;
+        
+        if (enableMovementLogs && hasInput)
+        {
+            Debug.Log($"<color=lightblue>[NetworkThirdPersonController]</color> <color=white>HandleMovement() - Input: {inputValue}, Camera: {cameraRef.name}</color>");
+        }
         
         // Get camera-relative directions
         Vector3 camForward = cameraRef.forward;
@@ -135,18 +176,35 @@ public class NetworkThirdPersonController : NetworkBehaviour
         // Calculate movement direction
         Vector3 moveDirection = camForward * inputValue.y + camRight * inputValue.x;
         
+        if (enableMovementLogs && hasInput)
+        {
+            Debug.Log($"<color=lightblue>[NetworkThirdPersonController]</color> <color=white>Movement calc - Forward: {camForward}, Right: {camRight}, Direction: {moveDirection}</color>");
+        }
+        
         // Apply movement with Fall Guys-style physics
         Vector3 desiredVelocity = moveDirection * moveSpeed;
         desiredVelocity.y = rb.linearVelocity.y; // Preserve vertical velocity
         
+        Vector3 beforeVelocity = rb.linearVelocity;
+        
         // Clamp to max speed to prevent teleporting
         rb.linearVelocity = Vector3.ClampMagnitude(desiredVelocity, maxSpeed);
+        
+        if (enableMovementLogs && hasInput)
+        {
+            Debug.Log($"<color=lightblue>[NetworkThirdPersonController]</color> <color=white>Velocity applied - Before: {beforeVelocity}, Desired: {desiredVelocity}, Final: {rb.linearVelocity}</color>");
+        }
         
         // Rotate player to face movement direction
         if (moveDirection.sqrMagnitude > 0.1f)
         {
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
             rb.rotation = Quaternion.Slerp(rb.rotation, targetRotation, 0.15f);
+            
+            if (enableMovementLogs)
+            {
+                Debug.Log($"<color=lightblue>[NetworkThirdPersonController]</color> <color=white>Rotation applied - Target: {targetRotation.eulerAngles}, Current: {rb.rotation.eulerAngles}</color>");
+            }
         }
     }
     
