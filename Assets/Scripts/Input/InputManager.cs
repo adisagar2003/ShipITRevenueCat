@@ -19,7 +19,7 @@ using UnityEngine.InputSystem;
 public class InputManager : MonoBehaviour
 {
     [Header("Input Sources")]
-    [SerializeField] private FixedJoystick fixedJoystick; // Mobile joystick reference
+    [SerializeField] private Joystick fixedJoystick; // Mobile joystick reference (supports FixedJoystick and other Joystick types)
     [SerializeField] private bool prioritizeMobileInput = true; // Mobile takes priority when available
 
     [SerializeField] private bool usingKeyboard;
@@ -58,7 +58,7 @@ public class InputManager : MonoBehaviour
         // Handle mobile joystick input if available and prioritized
         if (fixedJoystick != null && prioritizeMobileInput)
         {
-            Vector2 joystickInput = fixedJoystick.Direction;
+            Vector2 joystickInput = new Vector2(fixedJoystick.horizontal, fixedJoystick.vertical);
             if (joystickInput.sqrMagnitude > 0.01f)
             {
                 inputValue = joystickInput;
@@ -87,7 +87,7 @@ public class InputManager : MonoBehaviour
         // Prioritize mobile joystick if available
         if (fixedJoystick != null && prioritizeMobileInput)
         {
-            Vector2 joystickInput = fixedJoystick.Direction;
+            Vector2 joystickInput = new Vector2(fixedJoystick.horizontal, fixedJoystick.vertical);
             if (joystickInput.sqrMagnitude > 0.01f)
             {
                 return joystickInput;
