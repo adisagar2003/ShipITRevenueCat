@@ -8,8 +8,8 @@ public class PlayerMovementSinglePlayer : MonoBehaviour
 {
     private Rigidbody rb;
     private Transform cameraTransform;
-    [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float maxSpeed = 8f;
+    [SerializeField] private float moveSpeed = 1f;
+    [SerializeField] private float maxSpeed = 2f;
 
     private void Start()
     {

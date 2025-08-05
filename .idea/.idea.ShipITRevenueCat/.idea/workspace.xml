@@ -6,18 +6,13 @@
   <component name="ChangeListManager">
     <list default="true" id="d595e233-1635-4dd4-9cec-9ec4bb775cba" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ShipITRevenueCat/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ShipITRevenueCat/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Audio/AudioManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Audio/AudioManager.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Player/PlayerPowerManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Player/PlayerPowerManager.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/PowerObjects/DashTrigger.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/PowerObjects/DashTrigger.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/PowerObjects/ScriptableObjects/DashPower.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/PowerObjects/ScriptableObjects/DashPower.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/PowerObjects/ScriptableObjects/SuperJumpPower.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/PowerObjects/ScriptableObjects/SuperJumpPower.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/PowerObjects/SuperJumpTrigger.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/PowerObjects/SuperJumpTrigger.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Utils/MemoryLeakDetector.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Utils/MemoryLeakDetector.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Prefabs/Multiplayer/PlayerMultiplayer.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Prefabs/Multiplayer/PlayerMultiplayer.prefab" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scenes/LobbyandHost.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/LobbyandHost.unity" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Lobby/LobbyManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Lobby/LobbyManager.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Player/MovementSinglePlayer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Player/MovementSinglePlayer.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Packages/manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/Packages/manifest.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Packages/packages-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/Packages/packages-lock.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ProjectSettings/GvhProjectSettings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/GvhProjectSettings.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ProjectSettings/Packages/com.unity.probuilder/Settings.json" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/Packages/com.unity.probuilder/Settings.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ProjectSettings/ProjectVersion.txt" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/ProjectVersion.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -133,7 +128,8 @@
       <workItem from="1754138336147" duration="600000" />
       <workItem from="1754142042240" duration="508000" />
       <workItem from="1754142570397" duration="3958000" />
-      <workItem from="1754345513420" duration="299000" />
+      <workItem from="1754345513420" duration="3270000" />
+      <workItem from="1754350714349" duration="923000" />
     </task>
     <servers />
   </component>

@@ -48,6 +48,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     protected override void Initialize()
     {
         base.Initialize();
+        creatingLobbyText.SetActive((false));
         GameLogger.LogInfo(GameLogger.LogCategory.Network, "LobbyManager initialized");
     }
 
@@ -197,7 +198,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 
 
     #endregion
-    
+
     #region Manual Refresh
     [ContextMenu("Manual Refresh Sessions")]
     public async void ManualRefreshSessions()
@@ -211,7 +212,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     public async void CreateSession(string lobbyName = "MyLobby")
     {
         Debug.Log($"<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🚀 CreateSession called with name: <color=yellow>{lobbyName}</color>");
-        
+
         // Input validation
         if (string.IsNullOrWhiteSpace(lobbyName))
         {
@@ -256,12 +257,11 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                 IsPrivate = false,  // Ensure session is public and discoverable
                 IsLocked = false    // Ensure session can be joined
             }.WithRelayNetwork();
-            
+
             Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🌐 Calling MultiplayerService.Instance.CreateSessionAsync...");
             currentSession = await MultiplayerService.Instance.CreateSessionAsync(sessionOptions);
             Debug.Log($"<color=green><b>[LOBBY WORKFLOW SUCCESS]</b></color> 🎉 Session created! ID: {currentSession.Id}, Name: {currentSession.Name}");
 
-            // disable lobby button to prevent multiple creations
             Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🔒 Disabling create lobby button");
             if (createLobbyButton != null)
             {
@@ -281,9 +281,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                 Debug.Log("<color=green><b>[LOBBY WORKFLOW UI]</b></color> ✅ Creating lobby text hidden");
             }
 
-            // Stop background session polling since we're now in a session
-            Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> ⏹️ Stopping background session polling");
-            shouldRefreshSessions = false;
+            // // Stop background session polling since we're now in a session
+            // Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> ⏹️ Stopping background session polling");
+            // shouldRefreshSessions = false;
 
             // Fetch updated session list from server to get our new session as ISessionInfo
             Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🔄 Fetching updated session list to display new session...");
@@ -428,7 +428,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                 // Unity 6 Multiplayer Services automatically starts the host when using .WithRelayNetwork()
                 // Wait a moment for the host to initialize, then load the game scene
                 await Task.Delay(1000); // Give time for host initialization
-                
+
                 if (NetworkManager.Singleton.IsHost)
                 {
                     Debug.Log("Host started successfully by Multiplayer Services, loading game scene...");
