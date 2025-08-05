@@ -6,12 +6,15 @@
   <component name="ChangeListManager">
     <list default="true" id="d595e233-1635-4dd4-9cec-9ec4bb775cba" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ShipITRevenueCat/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ShipITRevenueCat/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Prefabs/Multiplayer/PlayerMultiplayer.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Prefabs/Multiplayer/PlayerMultiplayer.prefab" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scenes/LobbyandHost.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/LobbyandHost.unity" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Lobby/LobbyManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Lobby/LobbyManager.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Player/MovementSinglePlayer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Player/MovementSinglePlayer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Packages/manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/Packages/manifest.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Packages/packages-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/Packages/packages-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/DefaultNetworkPrefabs.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/DefaultNetworkPrefabs.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/EasyStart Third Person Controller/Demo.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/EasyStart Third Person Controller/Demo.unity" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/EasyStart Third Person Controller/Prefabs/ThirdPersonController.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/EasyStart Third Person Controller/Prefabs/ThirdPersonController.prefab" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/EasyStart Third Person Controller/Scripts/ThirdPersonController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/EasyStart Third Person Controller/Scripts/ThirdPersonController.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scenes/MultiplayerTestLevel.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/MultiplayerTestLevel.unity" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Input/InputHandler.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Input/InputHandler.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Input/JoystickDetection.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Input/JoystickDetection.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Input/JumpCommand.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Input/JumpCommand.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/TextMesh Pro/Resources/Fonts &amp; Materials/LiberationSans SDF - Fallback.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/TextMesh Pro/Resources/Fonts &amp; Materials/LiberationSans SDF - Fallback.asset" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ProjectSettings/GvhProjectSettings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/GvhProjectSettings.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -129,7 +132,8 @@
       <workItem from="1754142042240" duration="508000" />
       <workItem from="1754142570397" duration="3958000" />
       <workItem from="1754345513420" duration="3270000" />
-      <workItem from="1754350714349" duration="923000" />
+      <workItem from="1754350714349" duration="3503000" />
+      <workItem from="1754427182490" duration="1575000" />
     </task>
     <servers />
   </component>

@@ -1,5 +1,6 @@
 // #define MULTIPLAYER
 
+using System;
 using UnityEngine;
 using Unity.Netcode;
 
@@ -7,10 +8,12 @@ using Unity.Netcode;
 /// Handles player input for movement and look,
 /// with #define MULTIPLAYER toggle for singleplayer/multiplayer testing.
 /// </summary>
+
 public class InputHandler : NetworkBehaviour
 {
     private LookCommand lookCommand;
     private MoveCommand moveCommand;
+    private JumpCommand jumpCommand;
 
     [SerializeField] private CameraLook cameraLook;
     [SerializeField] private MouseLookWithTouch mouseLookWithTouch;
@@ -36,7 +39,20 @@ public class InputHandler : NetworkBehaviour
         {
             Debug.LogWarning("LookCommand not initialized due to missing CameraLook or MouseLookWithTouch.");
         }
-        if (playerMovement != null && joystickDetection != null)
+        // Initialize movement components
+        var networkThirdPersonController = GetComponent<NetworkThirdPersonController>();
+        var thirdPersonController = GetComponent<ThirdPersonController>();
+        
+        // Initialize MoveCommand based on available components (prioritize network-friendly)
+        if (networkThirdPersonController != null && joystickDetection != null)
+        {
+            moveCommand = new MoveCommand(networkThirdPersonController, joystickDetection);
+        }
+        else if (thirdPersonController != null && joystickDetection != null)
+        {
+            moveCommand = new MoveCommand(thirdPersonController, joystickDetection);
+        }
+        else if (playerMovement != null && joystickDetection != null)
         {
             moveCommand = new MoveCommand(playerMovement, joystickDetection);
         }
@@ -46,7 +62,26 @@ public class InputHandler : NetworkBehaviour
         }
         else
         {
-            Debug.LogWarning("MoveCommand not initialized due to missing movement or joystick components.");
+            Debug.LogWarning("MoveCommand not initialized - no compatible movement component found.");
+        }
+        
+        // Initialize JumpCommand based on available components
+        var playerAnimationHandle = GetComponent<PlayerAnimationHandle>();
+        if (networkThirdPersonController != null && joystickDetection != null)
+        {
+            jumpCommand = new JumpCommand(networkThirdPersonController, joystickDetection);
+        }
+        else if (thirdPersonController != null && joystickDetection != null)
+        {
+            jumpCommand = new JumpCommand(thirdPersonController, joystickDetection);
+        }
+        else if (playerMovement != null && playerAnimationHandle != null && joystickDetection != null)
+        {
+            jumpCommand = new JumpCommand(playerMovement, playerAnimationHandle, joystickDetection);
+        }
+        else
+        {
+            Debug.LogWarning("JumpCommand not initialized - no compatible movement component found.");
         }
     }
 
@@ -64,5 +99,6 @@ public class InputHandler : NetworkBehaviour
                 if (!IsOwner) return;
         #endif
         moveCommand?.Execute();
+        jumpCommand?.Execute();
     }
 }

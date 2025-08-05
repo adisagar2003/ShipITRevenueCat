@@ -1,7 +1,6 @@
 ﻿
-using Unity.Services.Matchmaker.Models;
-using UnityEditor.VersionControl;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 /*
     This file has a commented version with details about how each line works.
@@ -30,10 +29,8 @@ public class ThirdPersonController : MonoBehaviour
     // Player states
     bool isJumping = false;
 
-    // Inputs
-    float inputHorizontal;
-    float inputVertical;
-    bool inputJump;
+    // Movement input cache
+    private Vector2 currentInput = Vector2.zero;
 
     Rigidbody rb;
     private PlayerMovement playerMovement;
@@ -45,28 +42,16 @@ public class ThirdPersonController : MonoBehaviour
         playerMovement = GetComponent<PlayerMovement>();
     }
 
-    private void Update()
-    {
-        // Get input values
-        inputHorizontal = Input.GetAxis("Horizontal");
-        inputVertical = Input.GetAxis("Vertical");
-        inputJump = Input.GetButtonDown("Jump");
-        
-        // Trigger jump if input detected and grounded
-        if (inputJump && !isJumping)
-        {
-            isJumping = true;
-            jumpElapsedTime = 0;
-        }
-    }
+    // Input should be handled through command pattern, not directly in Update
+    // Remove this method as input handling is done via InputHandler and commands
 
     // With the inputs and animations defined, FixedUpdate is responsible for applying movements and actions to the player
     private void FixedUpdate()
     {
 
-        // Direction movement
-        float directionX = inputHorizontal * velocity * Time.deltaTime;
-        float directionZ = inputVertical * velocity * Time.deltaTime;
+        // Direction movement using cached input
+        float directionX = currentInput.x * velocity * Time.deltaTime;
+        float directionZ = currentInput.y * velocity * Time.deltaTime;
         float directionY = 0;
 
         // Jump handler
@@ -122,7 +107,22 @@ public class ThirdPersonController : MonoBehaviour
 
         // Apply the calculated movement to the rigidbody
         rb.linearVelocity = moviment;
-
+    }
+    
+    // Public methods for command pattern integration
+    public void Move(Vector2 input)
+    {
+        currentInput = input;
+    }
+    
+    public void Jump()
+    {
+        // Only jump if not already jumping (simple ground check)
+        if (!isJumping)
+        {
+            isJumping = true;
+            jumpElapsedTime = 0;
+        }
     }
 
 

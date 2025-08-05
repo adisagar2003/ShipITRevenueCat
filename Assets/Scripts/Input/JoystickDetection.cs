@@ -5,13 +5,18 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Development-specific class to detect keyboard input.
+/// Hybrid input detection supporting both new Input System (keyboard/gamepad) and mobile joystick.
 /// </summary>
 public class JoystickDetection : MonoBehaviour
 {
+    [Header("Input Sources")]
+    [SerializeField] private FixedJoystick fixedJoystick; // Mobile joystick reference
+    [SerializeField] private bool prioritizeMobileInput = true; // Mobile takes priority when available
+    
     [SerializeField] private bool usingKeyboard;
     private InputActions inputActions;
     private Vector2 inputValue;
+    private bool jumpPressed;
 
     private void Start()
     {
@@ -19,6 +24,7 @@ public class JoystickDetection : MonoBehaviour
         inputActions.Enable();
         inputActions.Player.Move.performed += MovePerformed;
         inputActions.Player.Move.canceled += MoveCanceled;
+        inputActions.Player.Jump.performed += JumpPerformed;
     }
 
     private void MoveCanceled(InputAction.CallbackContext obj)
@@ -32,10 +38,25 @@ public class JoystickDetection : MonoBehaviour
         usingKeyboard = true;
         inputValue = context.ReadValue<Vector2>();
     }
+    
+    private void JumpPerformed(InputAction.CallbackContext context)
+    {
+        jumpPressed = true;
+    }
 
-    // Update method removed - no longer needed without joystick
-
-    // CheckForJoystick method removed - no longer using joystick input
+    private void Update()
+    {
+        // Handle mobile joystick input if available and prioritized
+        if (fixedJoystick != null && prioritizeMobileInput)
+        {
+            Vector2 joystickInput = fixedJoystick.Direction;
+            if (joystickInput.sqrMagnitude > 0.01f)
+            {
+                inputValue = joystickInput;
+                usingKeyboard = false; // Using mobile joystick
+            }
+        }
+    }
 
 #if GUIDebug
     private void OnGUI()
@@ -54,6 +75,35 @@ public class JoystickDetection : MonoBehaviour
 
     public Vector2 GetInputValue()
     {
+        // Prioritize mobile joystick if available
+        if (fixedJoystick != null && prioritizeMobileInput)
+        {
+            Vector2 joystickInput = fixedJoystick.Direction;
+            if (joystickInput.sqrMagnitude > 0.01f)
+            {
+                return joystickInput;
+            }
+        }
+        
+        // Fall back to Input System (keyboard/gamepad)
         return inputValue;
+    }
+    
+    public bool GetJumpPressed()
+    {
+        bool pressed = jumpPressed;
+        jumpPressed = false; // Reset after reading
+        return pressed;
+    }
+    
+    private void OnDestroy()
+    {
+        if (inputActions != null)
+        {
+            inputActions.Player.Move.performed -= MovePerformed;
+            inputActions.Player.Move.canceled -= MoveCanceled;
+            inputActions.Player.Jump.performed -= JumpPerformed;
+            inputActions.Dispose();
+        }
     }
 }
