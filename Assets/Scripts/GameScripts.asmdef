@@ -11,7 +11,8 @@
         "Unity.Services.Lobbies",
         "Unity.Services.Relay",
         "Unity.InputSystem",
-        "Unity.ugui"
+        "Unity.ugui",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
