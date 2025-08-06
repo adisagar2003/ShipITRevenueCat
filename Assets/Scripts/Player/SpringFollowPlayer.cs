@@ -24,22 +24,67 @@ public class SpringFollowPlayer : MonoBehaviour
             // Try to find NetworkThirdPersonController on parent or this GameObject
             NetworkThirdPersonController controller = GetComponentInParent<NetworkThirdPersonController>();
             if (controller == null)
-                controller = FindFirstObjectByType<NetworkThirdPersonController>();
+                controller = FindLocalOwnedController();
 
-            if (controller != null)
+            if (controller != null && (controller.IsOwner || GetComponentInParent<NetworkThirdPersonController>() != null))
             {
                 playerTarget = controller.transform;
-                Debug.Log($"SpringFollowPlayer: Auto-found player target: {playerTarget.name}");
+#if DEBUG
+                Debug.Log($"SpringFollowPlayer: Auto-found player target: {playerTarget.name} (IsOwner: {controller.IsOwner})");
+#endif
             }
             else
             {
-                Debug.LogWarning("SpringFollowPlayer: No NetworkThirdPersonController found for auto-target");
+#if DEBUG
+                Debug.LogWarning("SpringFollowPlayer: No locally owned NetworkThirdPersonController found for auto-target");
+#endif
             }
         }
     }
 
+    /// <summary>
+    /// Finds the locally owned NetworkThirdPersonController - multiplayer safe
+    /// </summary>
+    private NetworkThirdPersonController FindLocalOwnedController()
+    {
+        // Find all controllers and select the locally owned one
+        NetworkThirdPersonController[] allControllers = FindObjectsByType<NetworkThirdPersonController>(FindObjectsSortMode.None);
+        foreach (var controller in allControllers)
+        {
+            if (controller.IsOwner)
+            {
+                return controller;
+            }
+        }
+        
+#if DEBUG
+        Debug.LogWarning($"SpringFollowPlayer: No locally owned controller found among {allControllers.Length} controllers");
+        foreach (var ctrl in allControllers)
+        {
+            Debug.Log($"  - Controller: {ctrl.name}, IsOwner: {ctrl.IsOwner}, NetworkObjectId: {ctrl.NetworkObjectId}");
+        }
+#endif
+        return null;
+    }
+
     private void LateUpdate()
     {
+        // Retry finding target if we don't have one (handles late network spawning)
+        if (playerTarget == null && autoFindPlayer)
+        {
+            NetworkThirdPersonController controller = GetComponentInParent<NetworkThirdPersonController>();
+            if (controller == null)
+                controller = FindLocalOwnedController();
+                
+            if (controller != null && (controller.IsOwner || GetComponentInParent<NetworkThirdPersonController>() != null))
+            {
+                playerTarget = controller.transform;
+#if DEBUG
+                Debug.Log($"SpringFollowPlayer: Late-found player target: {playerTarget.name} (IsOwner: {controller.IsOwner})");
+#endif
+            }
+        }
+        
         if (playerTarget == null) return;
 
         Vector3 newPosition = transform.position;

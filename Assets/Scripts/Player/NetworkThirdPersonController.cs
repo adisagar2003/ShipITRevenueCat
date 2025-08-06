@@ -37,7 +37,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
 
     [Header("Ground Detection")]
     [SerializeField] private Transform groundCheckRaycastOriginPoint;
-    [SerializeField] private float rayDistance = 1.3f;
+    [SerializeField] private float rayDistance = 0.46f;
     [SerializeField] private LayerMask groundMask;
 
 
