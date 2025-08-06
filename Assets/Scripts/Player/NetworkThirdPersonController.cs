@@ -1,6 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
-using Cinemachine;
+using Unity.Cinemachine;
 
 /// <summary>
 /// Network-friendly Fall Guys-style third person controller with rigidbody physics
@@ -49,6 +49,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
     [SerializeField] private bool enableMovementLogs = true;
     [SerializeField] private bool enableInputLogs = true;
     [SerializeField] private bool enableNetworkLogs = true;
+    [SerializeField] private bool enableJumpLogs = true;
 
     // Components
     private Rigidbody rb;
@@ -206,10 +207,21 @@ public class NetworkThirdPersonController : NetworkBehaviour
         float jumpProgress = jumpElapsedTime / jumpTime;
         float currentJumpForce = Mathf.SmoothStep(jumpForce, jumpForce * 0.3f, jumpProgress);
 
+        if (enableJumpLogs)
+        {
+            Debug.Log($"<color=orange>[NetworkThirdPersonController]</color> <color=white>HandleJump() - Progress: {jumpProgress:F3}, Current Force: {currentJumpForce:F2}, Elapsed: {jumpElapsedTime:F3}/{jumpTime:F2}</color>");
+        }
+
         // Apply upward force
         Vector3 jumpVelocity = rb.linearVelocity;
+        Vector3 beforeVelocity = jumpVelocity;
         jumpVelocity.y = currentJumpForce * Time.fixedDeltaTime;
         rb.linearVelocity = jumpVelocity;
+
+        if (enableJumpLogs)
+        {
+            Debug.Log($"<color=orange>[NetworkThirdPersonController]</color> <color=white>Jump velocity applied - Before: {beforeVelocity}, After: {rb.linearVelocity}</color>");
+        }
 
         // Update jump timer
         jumpElapsedTime += Time.fixedDeltaTime;
@@ -219,29 +231,76 @@ public class NetworkThirdPersonController : NetworkBehaviour
         {
             isJumping = false;
             jumpElapsedTime = 0;
+            
+            if (enableJumpLogs)
+            {
+                Debug.Log($"<color=orange>[NetworkThirdPersonController]</color> <color=white>Jump completed - Final velocity: {rb.linearVelocity}</color>");
+            }
         }
 
         // Apply custom gravity for Fall Guys feel
         rb.AddForce(Vector3.down * gravity, ForceMode.Acceleration);
+        
+        if (enableJumpLogs)
+        {
+            Debug.Log($"<color=orange>[NetworkThirdPersonController]</color> <color=white>Applied gravity force: {Vector3.down * gravity}</color>");
+        }
     }
 
     public void Jump()
     {
-        // Only allow jump if grounded and not already jumping
-        if (!IsOwner || !isGrounded || isJumping) return;
+        if (enableJumpLogs)
+        {
+            Debug.Log($"<color=yellow>[NetworkThirdPersonController]</color> <color=white>Jump() called - IsOwner: {IsOwner}, IsGrounded: {isGrounded}, IsJumping: {isJumping}</color>");
+        }
+        
+        // Check ownership
+        if (!IsOwner)
+        {
+            if (enableJumpLogs) Debug.Log($"<color=red>[NetworkThirdPersonController]</color> <color=white>Jump() rejected - Not owner</color>");
+            return;
+        }
+        
+        // Check if grounded
+        if (!isGrounded)
+        {
+            if (enableJumpLogs) Debug.Log($"<color=red>[NetworkThirdPersonController]</color> <color=white>Jump() rejected - Not grounded</color>");
+            return;
+        }
+        
+        // Check if already jumping
+        if (isJumping)
+        {
+            if (enableJumpLogs) Debug.Log($"<color=red>[NetworkThirdPersonController]</color> <color=white>Jump() rejected - Already jumping</color>");
+            return;
+        }
 
+        Vector3 beforeVelocity = rb.linearVelocity;
+        
         isJumping = true;
         jumpElapsedTime = 0;
 
         // Initial jump impulse
-        rb.AddForce(Vector3.up * (jumpForce * 0.5f), ForceMode.Impulse);
+        Vector3 impulse = Vector3.up * (jumpForce * 0.5f);
+        rb.AddForce(impulse, ForceMode.Impulse);
+        
+        if (enableJumpLogs)
+        {
+            Debug.Log($"<color=green>[NetworkThirdPersonController]</color> <color=white>Jump STARTED! Impulse: {impulse}, Before velocity: {beforeVelocity}, After velocity: {rb.linearVelocity}</color>");
+        }
     }
 
     private void GroundCheck()
     {
+        bool wasGrounded = isGrounded;
+        
         if (groundCheckRaycastOriginPoint == null)
         {
             isGrounded = false;
+            if (enableJumpLogs && wasGrounded)
+            {
+                Debug.LogWarning($"<color=yellow>[NetworkThirdPersonController]</color> <color=white>GroundCheck - No raycast origin point assigned!</color>");
+            }
             return;
         }
 
@@ -251,6 +310,12 @@ public class NetworkThirdPersonController : NetworkBehaviour
             rayDistance,
             groundMask
         );
+        
+        // Log ground state changes
+        if (enableJumpLogs && wasGrounded != isGrounded)
+        {
+            Debug.Log($"<color=purple>[NetworkThirdPersonController]</color> <color=white>Ground state changed: {wasGrounded} -> {isGrounded} at position {groundCheckRaycastOriginPoint.position}</color>");
+        }
 
 #if UNITY_EDITOR
         Debug.DrawRay(
@@ -279,7 +344,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
         }
 
         // Try to find Cinemachine virtual camera as child first (most reliable for multiplayer)
-        var virtualCamera = GetComponentInChildren<Cinemachine.CinemachineVirtualCamera>();
+        var virtualCamera = GetComponentInChildren<CinemachineVirtualCamera>();
         if (virtualCamera != null)
         {
             cameraTransform = virtualCamera.transform;
