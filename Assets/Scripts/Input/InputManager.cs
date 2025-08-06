@@ -34,6 +34,37 @@ public class InputManager : MonoBehaviour
         inputActions.Player.Move.performed += MovePerformed;
         inputActions.Player.Move.canceled += MoveCanceled;
         inputActions.Player.Jump.performed += JumpPerformed;
+
+        // Find FixedJoystick using the identifier component
+        if (mobileJoystick == null)
+        {
+            FindFixedJoystick();
+        }
+    }
+
+    /// <summary>
+    /// Finds the FixedJoystick component using the FixedJoystickIdentifier workaround
+    /// </summary>
+    private void FindFixedJoystick()
+    {
+        FixedJoystickIdentifier identifier = FindFirstObjectByType<FixedJoystickIdentifier>();
+        if (identifier != null)
+        {
+            // Get the joystick component from the same GameObject
+            mobileJoystick = identifier.GetComponent<MonoBehaviour>();
+            if (mobileJoystick != null)
+            {
+                Debug.Log($"InputManager: Found FixedJoystick via identifier on {identifier.gameObject.name}");
+            }
+            else
+            {
+                Debug.LogWarning("InputManager: FixedJoystickIdentifier found but no joystick component on the same GameObject");
+            }
+        }
+        else
+        {
+            Debug.Log("InputManager: No FixedJoystickIdentifier found - mobile joystick input unavailable");
+        }
     }
 
     private void MoveCanceled(InputAction.CallbackContext obj)
@@ -104,14 +135,14 @@ public class InputManager : MonoBehaviour
         jumpPressed = false; // Reset after reading
         return pressed;
     }
-    
+
     /// <summary>
     /// Safely gets joystick input using reflection to avoid compilation issues
     /// </summary>
     private Vector2 GetJoystickInput()
     {
         if (mobileJoystick == null) return Vector2.zero;
-        
+
         try
         {
             // Try to get the Direction property first (most efficient)
@@ -120,11 +151,11 @@ public class InputManager : MonoBehaviour
             {
                 return (Vector2)directionProperty.GetValue(mobileJoystick, null);
             }
-            
+
             // Fallback to individual horizontal/vertical properties
             var horizontalProperty = mobileJoystick.GetType().GetProperty("horizontal");
             var verticalProperty = mobileJoystick.GetType().GetProperty("vertical");
-            
+
             if (horizontalProperty != null && verticalProperty != null)
             {
                 float h = (float)horizontalProperty.GetValue(mobileJoystick, null);
@@ -136,7 +167,7 @@ public class InputManager : MonoBehaviour
         {
             Debug.LogWarning($"InputManager: Failed to get joystick input via reflection: {ex.Message}");
         }
-        
+
         return Vector2.zero;
     }
 

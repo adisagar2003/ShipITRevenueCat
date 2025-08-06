@@ -1,26 +1,60 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-
+using Unity.Netcode;
 
 /// <summary>
-/// This gameObject follows the x and z values of player's position
+/// Spring object that follows the player's position but maintains its own rotation.
+/// Used as a stable camera target for Cinemachine to prevent jarring camera spins
+/// when the player rotates quickly (e.g., changing movement direction).
+/// Only copies X and Z position, preserving Y offset for proper camera positioning.
 /// </summary>
 public class SpringFollowPlayer : MonoBehaviour
 {
-    // Start is called before the first frame updat
-    [SerializeField] private GameObject playerMesh;
-    void Start()
+    [Header("Target Settings")]
+    [SerializeField] private Transform playerTarget;
+    [SerializeField] private bool autoFindPlayer = true;
+
+    [Header("Position Settings")]
+    [SerializeField] private Vector3 positionOffset = Vector3.zero;
+    [SerializeField] private bool followY = false; // Usually false for camera stability
+
+    private void Start()
     {
+        if (autoFindPlayer && playerTarget == null)
+        {
+            // Try to find NetworkThirdPersonController on parent or this GameObject
+            NetworkThirdPersonController controller = GetComponentInParent<NetworkThirdPersonController>();
+            if (controller == null)
+                controller = FindFirstObjectByType<NetworkThirdPersonController>();
+
+            if (controller != null)
+            {
+                playerTarget = controller.transform;
+                Debug.Log($"SpringFollowPlayer: Auto-found player target: {playerTarget.name}");
+            }
+            else
+            {
+                Debug.LogWarning("SpringFollowPlayer: No NetworkThirdPersonController found for auto-target");
+            }
+        }
     }
 
-    // Update is called once per frame
-    void LateUpdate()
+    private void LateUpdate()
     {
-        transform.position = new Vector3(
-            playerMesh.transform.position.x,
-            transform.position.y,
-            playerMesh.transform.position.z
-         );
+        if (playerTarget == null) return;
+
+        Vector3 newPosition = transform.position;
+
+        // Follow X and Z position with offset
+        newPosition.x = playerTarget.position.x + positionOffset.x;
+        newPosition.z = playerTarget.position.z + positionOffset.z;
+
+        // Optionally follow Y position
+        if (followY)
+        {
+            newPosition.y = playerTarget.position.y + positionOffset.y;
+        }
+
+        transform.position = newPosition;
+        // Note: Rotation is intentionally NOT copied to prevent camera spinning
     }
 }

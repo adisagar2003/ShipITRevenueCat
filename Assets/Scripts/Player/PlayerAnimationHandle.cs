@@ -7,7 +7,7 @@ public class PlayerAnimationHandle : NetworkBehaviour
 {
     private Animator animator;
     private Rigidbody rb;
-    private PlayerMovement movement;
+    private NetworkThirdPersonController networkController;
     private bool previousIsRunning = false;
 
     [SerializeField] private bool isMultiplayer = true;
@@ -30,7 +30,7 @@ public class PlayerAnimationHandle : NetworkBehaviour
     {
         rb = GetComponent<Rigidbody>();
         animator = GetComponentInChildren<Animator>();
-        movement = GetComponent<PlayerMovement>();
+        networkController = GetComponent<NetworkThirdPersonController>();
     }
 
     private void Update()
@@ -48,7 +48,7 @@ public class PlayerAnimationHandle : NetworkBehaviour
 
         bool isRunning = horizontalVelocity.magnitude > minSpeedThreshold;
 
-        if (isRunning != previousIsRunning && movement.isGrounded)
+        if (isRunning != previousIsRunning && networkController.IsGrounded)
         {
             animator.SetBool("isRunning", isRunning);
             if (isMultiplayer) SubmitIsRunningRpc(isRunning);
@@ -58,7 +58,7 @@ public class PlayerAnimationHandle : NetworkBehaviour
 
     private void GroundCheck()
     {
-        bool isInAir = !movement.isGrounded;
+        bool isInAir = !networkController.IsGrounded;
         animator.SetBool("isInAir", isInAir);
         if (isMultiplayer) SubmitIsInAirRpc(isInAir);
     }
