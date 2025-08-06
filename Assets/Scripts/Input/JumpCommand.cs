@@ -27,17 +27,23 @@ public class JumpCommand : ICommand
         
         if (jumpPressed)
         {
+#if DEBUG
             UnityEngine.Debug.Log($"<color=cyan>[JumpCommand]</color> <color=white>Jump input detected - executing jump</color>");
+#endif
             
             if (playerMovement != null)
             {
+#if DEBUG
                 UnityEngine.Debug.Log($"<color=cyan>[JumpCommand]</color> <color=white>Using PlayerMovement.Jump()</color>");
+#endif
                 playerMovement.Jump();
                 playerAnimationHandle?.TriggerJump();
             }
             else if (networkThirdPersonController != null)
             {
+#if DEBUG
                 UnityEngine.Debug.Log($"<color=cyan>[JumpCommand]</color> <color=white>Using NetworkThirdPersonController.Jump()</color>");
+#endif
                 networkThirdPersonController.Jump();
             }
             else
