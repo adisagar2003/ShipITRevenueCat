@@ -1,3 +1,4 @@
+#define DEBUG
 using UnityEngine;
 using Unity.Netcode;
 using Unity.Cinemachine;
@@ -236,16 +237,14 @@ public class NetworkThirdPersonController : NetworkBehaviour
         }
 #endif
 
-        // Apply upward force
-        Vector3 jumpVelocity = rb.linearVelocity;
-        Vector3 beforeVelocity = jumpVelocity;
-        jumpVelocity.y = currentJumpForce * Time.fixedDeltaTime;
-        rb.linearVelocity = jumpVelocity;
+        // Apply upward force using AddForce for smooth acceleration
+        Vector3 beforeVelocity = rb.linearVelocity;
+        rb.AddForce(Vector3.up * currentJumpForce, ForceMode.Acceleration);
 
 #if DEBUG
         if (enableJumpLogs)
         {
-            Debug.Log($"<color=orange>[NetworkThirdPersonController]</color> <color=white>Jump velocity applied - Before: {beforeVelocity}, After: {rb.linearVelocity}</color>");
+            Debug.Log($"<color=orange>[NetworkThirdPersonController]</color> <color=white>Jump force applied - Before velocity: {beforeVelocity}, Force: {currentJumpForce}, After velocity: {rb.linearVelocity}</color>");
         }
 #endif
 
@@ -318,9 +317,9 @@ public class NetworkThirdPersonController : NetworkBehaviour
         isJumping = true;
         jumpElapsedTime = 0;
 
-        // Initial jump impulse
-        Vector3 impulse = Vector3.up * (jumpForce * 0.5f);
-        rb.AddForce(impulse, ForceMode.Impulse);
+        // Strong initial jump impulse for immediate response
+        Vector3 impulse = Vector3.up * jumpForce;
+        rb.AddForce(impulse, ForceMode.VelocityChange);
 
 #if DEBUG
         if (enableJumpLogs)
