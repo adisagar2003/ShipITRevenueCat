@@ -1,19 +1,24 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Unity.Services.Multiplayer;
+
 using Unity.Services.Lobbies.Models;
 using System.Linq;
+using TMPro;
 
 public class LobbySlotData : MonoBehaviour
 {
     [SerializeField] private Button joinLobbyButton;
     [SerializeField] private Button startGameButton;
-    [SerializeField] private Text lobbyNameText;
-    [SerializeField] private Text playerCountText;
+    [SerializeField] private TextMeshProUGUI lobbyNameText;
+    [SerializeField] private TextMeshProUGUI playerCountText;
     private string lobbyId;
     private LobbyManager lobbyManager;
     private bool hasJoined;
     private bool isHost;
+    private bool isJoining; // Prevent double-clicks while joining
+    private bool isStarting; // Prevent double-clicks while starting
 
     private void Awake()
     {
@@ -25,10 +30,9 @@ public class LobbySlotData : MonoBehaviour
     public void Initialize(ISessionInfo lobby)
     {
         Debug.Log($"<color=purple><b>[LOBBY SLOT]</b></color> 🎯 Initialize called for session: <color=yellow>{lobby.Name}</color> (ID: {lobby.Id})");
-        
         lobbyId = lobby.Id;
         Debug.Log($"<color=purple><b>[LOBBY SLOT]</b></color> 🆔 Set lobbyId: {lobbyId}");
-        
+
         if (lobbyNameText != null)
         {
             lobbyNameText.text = lobby.Name;
@@ -38,7 +42,7 @@ public class LobbySlotData : MonoBehaviour
         {
             Debug.LogError("<color=red><b>[LOBBY SLOT ERROR]</b></color> ❌ lobbyNameText is null!");
         }
-        
+
         int currentPlayers = lobby.MaxPlayers - lobby.AvailableSlots;
         string playerCountString = $"{currentPlayers}/{lobby.MaxPlayers}";
         if (playerCountText != null)
@@ -50,18 +54,18 @@ public class LobbySlotData : MonoBehaviour
         {
             Debug.LogError("<color=red><b>[LOBBY SLOT ERROR]</b></color> ❌ playerCountText is null!");
         }
-        
+
         isHost = lobby.HostId == GameInitializer.PlayerId;
         Debug.Log($"<color=purple><b>[LOBBY SLOT]</b></color> 👑 isHost: {isHost} (HostId: {lobby.HostId}, PlayerId: {GameInitializer.PlayerId})");
-        
+
         // Check if we're already in this session (either as host or joined client)
         bool hasLobbyManager = LobbyManager.Instance != null;
         bool hasCurrentSession = hasLobbyManager && LobbyManager.Instance.currentSession != null;
         string currentSessionId = hasCurrentSession ? LobbyManager.Instance.currentSession.Id : "NULL";
         bool isCurrentSession = hasCurrentSession && LobbyManager.Instance.currentSession.Id == lobby.Id;
-        
+
         Debug.Log($"<color=purple><b>[LOBBY SLOT DEBUG]</b></color> 🔍 Session check: LobbyManager={hasLobbyManager}, CurrentSession={hasCurrentSession}, CurrentId='{currentSessionId}', LobbyId='{lobby.Id}', Match={isCurrentSession}");
-        
+
         if (isCurrentSession)
         {
             hasJoined = true;
@@ -72,15 +76,19 @@ public class LobbySlotData : MonoBehaviour
             hasJoined = false;
             Debug.Log("<color=purple><b>[LOBBY SLOT]</b></color> ⚫ Not in this session, marked as not joined");
         }
-        
+
         Debug.Log("<color=purple><b>[LOBBY SLOT]</b></color> 🔄 Calling UpdateButtonStates...");
         UpdateButtonStates();
+        
+        // Set initial button texts
+        SetJoinButtonState(!isHost && !hasJoined, "Join Lobby");
+        SetStartButtonState(isHost && hasJoined, "Start Game");
     }
 
     private void UpdateButtonStates()
     {
         Debug.Log($"<color=purple><b>[LOBBY SLOT]</b></color> 🔘 UpdateButtonStates: hasJoined={hasJoined}, isHost={isHost}");
-        
+
         // Join button logic: Show for clients who haven't joined this session
         if (joinLobbyButton != null)
         {
@@ -92,7 +100,7 @@ public class LobbySlotData : MonoBehaviour
         {
             Debug.LogError("<color=red><b>[LOBBY SLOT ERROR]</b></color> ❌ joinLobbyButton is null!");
         }
-        
+
         // Start button logic: Only show for hosts who are in this session
         if (startGameButton != null)
         {
@@ -106,24 +114,67 @@ public class LobbySlotData : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Sets the join button state and text
+    /// </summary>
+    private void SetJoinButtonState(bool interactable, string buttonText)
+    {
+        if (joinLobbyButton == null) return;
+        
+        joinLobbyButton.interactable = interactable;
+        
+        // Update TextMeshProUGUI component
+        var textComponent = joinLobbyButton.GetComponentInChildren<TextMeshProUGUI>();
+        if (textComponent != null)
+        {
+            textComponent.text = buttonText;
+        }
+        
+        Debug.Log($"<color=green><b>[LOBBY SLOT UI]</b></color> ✅ Join button: interactable={interactable}, text='{buttonText}'");
+    }
+
+    /// <summary>
+    /// Sets the start button state and text
+    /// </summary>
+    private void SetStartButtonState(bool interactable, string buttonText)
+    {
+        if (startGameButton == null) return;
+        
+        startGameButton.interactable = interactable;
+        
+        // Update TextMeshProUGUI component
+        var textComponent = startGameButton.GetComponentInChildren<TextMeshProUGUI>();
+        if (textComponent != null)
+        {
+            textComponent.text = buttonText;
+        }
+        
+        Debug.Log($"<color=green><b>[LOBBY SLOT UI]</b></color> ✅ Start button: interactable={interactable}, text='{buttonText}'");
+    }
+
     private async void JoinLobby()
     {
-        if (LobbyManager.Instance == null || hasJoined) return;
-        
+        // Prevent double-clicks and multiple join attempts
+        if (LobbyManager.Instance == null || hasJoined || isJoining) return;
+
         if (LobbyManager.Instance.currentSession != null)
         {
             Debug.LogWarning("Already in a session, cannot join another");
             return;
         }
-        
+
+        // Set joining state and disable button immediately
+        isJoining = true;
+        SetJoinButtonState(false, "Joining...");
+
         try
         {
             var session = await MultiplayerService.Instance.JoinSessionByIdAsync(lobbyId);
             LobbyManager.Instance.currentSession = session;
             hasJoined = true;
-            UpdateButtonStates();
+            SetJoinButtonState(false, "Joined"); // Keep disabled with "Joined" text
             Debug.Log($"Successfully joined lobby: {session.Name}");
-            
+
             // Start polling for game start if we're not the host
             if (!isHost)
             {
@@ -135,17 +186,43 @@ public class LobbySlotData : MonoBehaviour
         {
             Debug.LogError($"Failed to join lobby: {e.Message}");
             hasJoined = false;
+            isJoining = false;
+            SetJoinButtonState(true, "Join Lobby"); // Re-enable on failure
         }
         catch (System.Exception e)
         {
             Debug.LogError($"Unexpected error joining lobby: {e.Message}");
             hasJoined = false;
+            isJoining = false;
+            SetJoinButtonState(true, "Join Lobby"); // Re-enable on failure
+        }
+        finally
+        {
+            isJoining = false;
         }
     }
 
     private void StartGame()
     {
-        if (!isHost || LobbyManager.Instance == null) return;
-        LobbyManager.Instance.HostStartGame();
+        // Prevent double-clicks and multiple start attempts
+        if (!isHost || LobbyManager.Instance == null || isStarting) return;
+
+        // Set starting state and disable button immediately
+        isStarting = true;
+        SetStartButtonState(false, "Starting...");
+
+        try
+        {
+            LobbyManager.Instance.HostStartGame();
+            Debug.Log("Game start initiated by host");
+            // Keep button disabled after starting
+            SetStartButtonState(false, "Started");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Failed to start game: {e.Message}");
+            isStarting = false;
+            SetStartButtonState(true, "Start Game"); // Re-enable on failure
+        }
     }
 }
