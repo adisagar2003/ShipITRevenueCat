@@ -23,6 +23,8 @@ public class JumpButtonDetection : NetworkBehaviour
         if (jbObject != null)
         {
             jumpButton = jbObject.GetComponent<Button>();
+            if (jumpButton == null) Debug.Log("<color=red>Jump button not found.</color>");
+            if (jumpButton != null) Debug.Log("<color=green>Jump button found.</color>");
             jumpButton.onClick.AddListener(OnJumpButtonPressed);
         }
         else
@@ -72,6 +74,7 @@ public class JumpButtonDetection : NetworkBehaviour
 
     public void OnJumpButtonPressed()
     {
+        inputManager.SetJumpPressed();
         jumpCommand.Execute();
     }
 }

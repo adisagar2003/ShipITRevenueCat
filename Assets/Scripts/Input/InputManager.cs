@@ -212,6 +212,12 @@ public class InputManager : NetworkBehaviour
         return pressed;
     }
 
+    public void SetJumpPressed()
+    {
+        if (!IsOwner) return;
+        jumpPressed = true;
+    }
+
     /// <summary>
     /// Safely gets joystick input using reflection to avoid compilation issues
     /// </summary>
