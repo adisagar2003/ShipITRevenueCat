@@ -60,26 +60,44 @@ public class InputManager : NetworkBehaviour
 #if DEBUG
         Debug.Log($"<color=cyan>[InputManager]</color> <color=white>FindFixedJoystick() - Searching for FixedJoystickIdentifier...</color>");
 #endif
-        
+
         FixedJoystickIdentifier identifier = FindFirstObjectByType<FixedJoystickIdentifier>();
         if (identifier != null)
         {
 #if DEBUG
             Debug.Log($"<color=cyan>[InputManager]</color> <color=green>Found FixedJoystickIdentifier on: {identifier.gameObject.name}</color>");
 #endif
+
+            // Look specifically for FixedJoystick component using reflection to avoid compilation issues
+            var allComponents = identifier.GetComponents<MonoBehaviour>();
             
-            // Get the joystick component from the same GameObject
-            mobileJoystick = identifier.GetComponent<MonoBehaviour>();
-            if (mobileJoystick != null)
-            {
 #if DEBUG
-                Debug.Log($"<color=cyan>[InputManager]</color> <color=green>✅ Successfully found FixedJoystick component: {mobileJoystick.GetType().Name} on {identifier.gameObject.name}</color>");
-#endif
+            Debug.Log($"<color=cyan>[InputManager]</color> <color=white>Found {allComponents.Length} MonoBehaviour components on {identifier.gameObject.name}</color>");
+            foreach (var comp in allComponents)
+            {
+                Debug.Log($"<color=cyan>[InputManager]</color> <color=white>  - Component: {comp.GetType().Name}</color>");
             }
-            else
+#endif
+            
+            // Find the FixedJoystick component by name
+            foreach (var component in allComponents)
+            {
+                if (component.GetType().Name.Contains("FixedJoystick") || 
+                    component.GetType().Name.Contains("Joystick"))
+                {
+                    mobileJoystick = component;
+#if DEBUG
+                    Debug.Log($"<color=cyan>[InputManager]</color> <color=green>✅ Successfully found joystick component: {mobileJoystick.GetType().Name} on {identifier.gameObject.name}</color>");
+#endif
+                    break;
+                }
+            }
+            
+            if (mobileJoystick == null)
             {
 #if DEBUG
-                Debug.LogWarning($"<color=orange>[InputManager]</color> <color=white>⚠️ FixedJoystickIdentifier found but no MonoBehaviour joystick component on {identifier.gameObject.name}</color>");
+                Debug.LogWarning($"<color=orange>[InputManager]</color> <color=white>⚠️ FixedJoystickIdentifier found but no joystick component on {identifier.gameObject.name}</color>");
+                Debug.Log($"<color=yellow>[InputManager]</color> <color=white>Available components: {string.Join(", ", System.Linq.Enumerable.Select(allComponents, c => c.GetType().Name))}</color>");
 #endif
             }
         }
@@ -121,7 +139,7 @@ public class InputManager : NetworkBehaviour
             {
                 inputValue = joystickInput;
                 usingKeyboard = false; // Using mobile joystick
-                
+
 #if DEBUG
                 Debug.Log($"<color=lime>[InputManager]</color> <color=white>📱 Mobile joystick input detected: {joystickInput} (magnitude: {joystickInput.magnitude:F3})</color>");
 #endif
@@ -231,7 +249,7 @@ public class InputManager : NetworkBehaviour
                 float h = (float)horizontalProperty.GetValue(mobileJoystick, null);
                 float v = (float)verticalProperty.GetValue(mobileJoystick, null);
                 var result = new Vector2(h, v);
-                
+
 #if DEBUG
                 if (result.sqrMagnitude > 0.01f)
                 {
@@ -244,7 +262,7 @@ public class InputManager : NetworkBehaviour
             {
 #if DEBUG
                 Debug.LogWarning($"<color=red>[InputManager]</color> <color=white>❌ Neither Direction nor horizontal/vertical properties found on {mobileJoystick.GetType().Name}</color>");
-                
+
                 // Log all available properties for debugging
                 var allProperties = mobileJoystick.GetType().GetProperties();
                 Debug.Log($"<color=yellow>[InputManager]</color> <color=white>📋 Available properties on {mobileJoystick.GetType().Name}: {string.Join(", ", System.Linq.Enumerable.Select(allProperties, p => p.Name))}</color>");
