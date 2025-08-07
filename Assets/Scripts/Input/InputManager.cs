@@ -31,10 +31,10 @@ public class InputManager : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
-        
+
         // Only initialize input for the owner of this network object
         if (!IsOwner) return;
-        
+
         inputActions = new InputActions();
         inputActions.Enable();
         inputActions.Player.Move.performed += MovePerformed;
@@ -46,7 +46,7 @@ public class InputManager : NetworkBehaviour
         {
             FindFixedJoystick();
         }
-        
+
 #if DEBUG
         Debug.Log($"[InputManager] Network spawned for {(IsOwner ? "OWNER" : "NON-OWNER")} on {gameObject.name}");
 #endif
@@ -57,23 +57,37 @@ public class InputManager : NetworkBehaviour
     /// </summary>
     private void FindFixedJoystick()
     {
+#if DEBUG
+        Debug.Log($"<color=cyan>[InputManager]</color> <color=white>FindFixedJoystick() - Searching for FixedJoystickIdentifier...</color>");
+#endif
+        
         FixedJoystickIdentifier identifier = FindFirstObjectByType<FixedJoystickIdentifier>();
         if (identifier != null)
         {
+#if DEBUG
+            Debug.Log($"<color=cyan>[InputManager]</color> <color=green>Found FixedJoystickIdentifier on: {identifier.gameObject.name}</color>");
+#endif
+            
             // Get the joystick component from the same GameObject
             mobileJoystick = identifier.GetComponent<MonoBehaviour>();
             if (mobileJoystick != null)
             {
-                Debug.Log($"InputManager: Found FixedJoystick via identifier on {identifier.gameObject.name}");
+#if DEBUG
+                Debug.Log($"<color=cyan>[InputManager]</color> <color=green>✅ Successfully found FixedJoystick component: {mobileJoystick.GetType().Name} on {identifier.gameObject.name}</color>");
+#endif
             }
             else
             {
-                Debug.LogWarning("InputManager: FixedJoystickIdentifier found but no joystick component on the same GameObject");
+#if DEBUG
+                Debug.LogWarning($"<color=orange>[InputManager]</color> <color=white>⚠️ FixedJoystickIdentifier found but no MonoBehaviour joystick component on {identifier.gameObject.name}</color>");
+#endif
             }
         }
         else
         {
-            Debug.Log("InputManager: No FixedJoystickIdentifier found - mobile joystick input unavailable");
+#if DEBUG
+            Debug.LogWarning($"<color=orange>[InputManager]</color> <color=white>⚠️ No FixedJoystickIdentifier found - mobile joystick input unavailable</color>");
+#endif
         }
     }
 
@@ -98,7 +112,7 @@ public class InputManager : NetworkBehaviour
     {
         // Only process input for the owner
         if (!IsOwner) return;
-        
+
         // Handle mobile joystick input if available and prioritized
         if (mobileJoystick != null && prioritizeMobileInput)
         {
@@ -107,6 +121,10 @@ public class InputManager : NetworkBehaviour
             {
                 inputValue = joystickInput;
                 usingKeyboard = false; // Using mobile joystick
+                
+#if DEBUG
+                Debug.Log($"<color=lime>[InputManager]</color> <color=white>📱 Mobile joystick input detected: {joystickInput} (magnitude: {joystickInput.magnitude:F3})</color>");
+#endif
             }
         }
     }
@@ -130,18 +148,27 @@ public class InputManager : NetworkBehaviour
     {
         // Only return input for the owner
         if (!IsOwner) return Vector2.zero;
-        
+
         // Prioritize mobile joystick if available
         if (mobileJoystick != null && prioritizeMobileInput)
         {
             Vector2 joystickInput = GetJoystickInput();
             if (joystickInput.sqrMagnitude > 0.01f)
             {
+#if DEBUG
+                Debug.Log($"<color=lime>[InputManager]</color> <color=white>📱 Returning mobile joystick input: {joystickInput}</color>");
+#endif
                 return joystickInput;
             }
         }
 
         // Fall back to Input System (keyboard/gamepad)
+        if (inputValue.sqrMagnitude > 0.01f)
+        {
+#if DEBUG
+            Debug.Log($"<color=lightblue>[InputManager]</color> <color=white>⌨️ Returning keyboard/gamepad input: {inputValue}</color>");
+#endif
+        }
         return inputValue;
     }
 
@@ -149,7 +176,7 @@ public class InputManager : NetworkBehaviour
     {
         // Only return jump input for the owner
         if (!IsOwner) return false;
-        
+
         bool pressed = jumpPressed;
         jumpPressed = false; // Reset after reading
         return pressed;
@@ -160,7 +187,18 @@ public class InputManager : NetworkBehaviour
     /// </summary>
     private Vector2 GetJoystickInput()
     {
-        if (mobileJoystick == null) return Vector2.zero;
+        if (mobileJoystick == null)
+        {
+#if DEBUG
+            Debug.LogWarning($"<color=red>[InputManager]</color> <color=white>❌ GetJoystickInput() called but mobileJoystick is null</color>");
+#endif
+            return Vector2.zero;
+        }
+
+#if DEBUG
+        // Log joystick component details for debugging (only when there's potential input)
+        Debug.Log($"<color=cyan>[InputManager]</color> <color=white>🔍 Getting input from joystick: {mobileJoystick.GetType().Name}</color>");
+#endif
 
         try
         {
@@ -168,7 +206,20 @@ public class InputManager : NetworkBehaviour
             var directionProperty = mobileJoystick.GetType().GetProperty("Direction");
             if (directionProperty != null)
             {
-                return (Vector2)directionProperty.GetValue(mobileJoystick, null);
+                var direction = (Vector2)directionProperty.GetValue(mobileJoystick, null);
+#if DEBUG
+                if (direction.sqrMagnitude > 0.01f)
+                {
+                    Debug.Log($"<color=lime>[InputManager]</color> <color=white>✅ Direction property found: {direction} (magnitude: {direction.magnitude:F3})</color>");
+                }
+#endif
+                return direction;
+            }
+            else
+            {
+#if DEBUG
+                Debug.Log($"<color=orange>[InputManager]</color> <color=white>⚠️ Direction property not found, trying horizontal/vertical...</color>");
+#endif
             }
 
             // Fallback to individual horizontal/vertical properties
@@ -179,14 +230,38 @@ public class InputManager : NetworkBehaviour
             {
                 float h = (float)horizontalProperty.GetValue(mobileJoystick, null);
                 float v = (float)verticalProperty.GetValue(mobileJoystick, null);
-                return new Vector2(h, v);
+                var result = new Vector2(h, v);
+                
+#if DEBUG
+                if (result.sqrMagnitude > 0.01f)
+                {
+                    Debug.Log($"<color=lime>[InputManager]</color> <color=white>✅ H/V properties found: h={h:F3}, v={v:F3}, result={result}</color>");
+                }
+#endif
+                return result;
+            }
+            else
+            {
+#if DEBUG
+                Debug.LogWarning($"<color=red>[InputManager]</color> <color=white>❌ Neither Direction nor horizontal/vertical properties found on {mobileJoystick.GetType().Name}</color>");
+                
+                // Log all available properties for debugging
+                var allProperties = mobileJoystick.GetType().GetProperties();
+                Debug.Log($"<color=yellow>[InputManager]</color> <color=white>📋 Available properties on {mobileJoystick.GetType().Name}: {string.Join(", ", System.Linq.Enumerable.Select(allProperties, p => p.Name))}</color>");
+#endif
             }
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
-            Debug.LogWarning($"InputManager: Failed to get joystick input via reflection: {ex.Message}");
+#if DEBUG
+            Debug.LogError($"<color=red>[InputManager]</color> <color=white>💥 Failed to get joystick input via reflection: {ex.Message}</color>");
+            Debug.LogError($"<color=red>[InputManager]</color> <color=white>Stack trace: {ex.StackTrace}</color>");
+#endif
         }
 
+#if DEBUG
+        Debug.LogWarning($"<color=orange>[InputManager]</color> <color=white>⚠️ Returning Vector2.zero - no joystick input detected</color>");
+#endif
         return Vector2.zero;
     }
 
@@ -201,7 +276,7 @@ public class InputManager : NetworkBehaviour
             inputActions.Dispose();
             inputActions = null;
         }
-        
+
         base.OnNetworkDespawn();
     }
 }
