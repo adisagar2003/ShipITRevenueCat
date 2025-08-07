@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Unity.Netcode;
 
 /// <summary>
 /// Manages all player input from multiple sources including keyboard, gamepad, and mobile touch controls.
@@ -16,7 +17,7 @@ using UnityEngine.InputSystem;
 /// - Jump Input: Spacebar detection with single-frame consumption
 /// - Priority System: Mobile input takes precedence when joystick is actively used
 /// </remarks>
-public class InputManager : MonoBehaviour
+public class InputManager : NetworkBehaviour
 {
     [Header("Input Sources")]
     [SerializeField] private MonoBehaviour mobileJoystick; // Mobile joystick component (FixedJoystick, VariableJoystick, etc.)
@@ -27,8 +28,13 @@ public class InputManager : MonoBehaviour
     private Vector2 inputValue;
     private bool jumpPressed;
 
-    private void Start()
+    public override void OnNetworkSpawn()
     {
+        base.OnNetworkSpawn();
+        
+        // Only initialize input for the owner of this network object
+        if (!IsOwner) return;
+        
         inputActions = new InputActions();
         inputActions.Enable();
         inputActions.Player.Move.performed += MovePerformed;
@@ -40,10 +46,14 @@ public class InputManager : MonoBehaviour
         {
             FindFixedJoystick();
         }
+        
+#if DEBUG
+        Debug.Log($"[InputManager] Network spawned for {(IsOwner ? "OWNER" : "NON-OWNER")} on {gameObject.name}");
+#endif
     }
 
     /// <summary>
-    /// Finds the FixedJoystick component using the FixedJoystickIdentifier workaround
+    /// Finds the FixedJoystick component using the FixedJoystica, kIdentifier workaround
     /// </summary>
     private void FindFixedJoystick()
     {
@@ -86,6 +96,9 @@ public class InputManager : MonoBehaviour
 
     private void Update()
     {
+        // Only process input for the owner
+        if (!IsOwner) return;
+        
         // Handle mobile joystick input if available and prioritized
         if (mobileJoystick != null && prioritizeMobileInput)
         {
@@ -115,6 +128,9 @@ public class InputManager : MonoBehaviour
 
     public Vector2 GetInputValue()
     {
+        // Only return input for the owner
+        if (!IsOwner) return Vector2.zero;
+        
         // Prioritize mobile joystick if available
         if (mobileJoystick != null && prioritizeMobileInput)
         {
@@ -131,6 +147,9 @@ public class InputManager : MonoBehaviour
 
     public bool GetJumpPressed()
     {
+        // Only return jump input for the owner
+        if (!IsOwner) return false;
+        
         bool pressed = jumpPressed;
         jumpPressed = false; // Reset after reading
         return pressed;
@@ -171,14 +190,18 @@ public class InputManager : MonoBehaviour
         return Vector2.zero;
     }
 
-    private void OnDestroy()
+    public override void OnNetworkDespawn()
     {
+        // Only cleanup input actions if this was the owner
         if (inputActions != null)
         {
             inputActions.Player.Move.performed -= MovePerformed;
             inputActions.Player.Move.canceled -= MoveCanceled;
             inputActions.Player.Jump.performed -= JumpPerformed;
             inputActions.Dispose();
+            inputActions = null;
         }
+        
+        base.OnNetworkDespawn();
     }
 }
