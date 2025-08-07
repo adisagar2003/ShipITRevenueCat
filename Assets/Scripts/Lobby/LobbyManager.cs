@@ -106,7 +106,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     private async void Start()
     {
         await WaitForGameInitializer();
+#if DEBUG
         Debug.Log("LobbyManager ready.");
+#endif
         StartCoroutine(WaitForNetworkManagerReady());
         _ = RefreshSessionsLoop();
     }
@@ -174,13 +176,17 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             }
             else
             {
+#if DEBUG
                 Debug.LogWarning("Query response or results is null");
+#endif
                 availableSessions?.Clear();
             }
         }
         catch (SessionException e)
         {
+#if DEBUG
             Debug.LogError($"Failed to fetch sessions: {e.Message}");
+#endif
 
             // Clear sessions on error to avoid showing stale data
             availableSessions?.Clear();
@@ -188,7 +194,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         }
         catch (Exception e)
         {
+#if DEBUG
             Debug.LogError($"Unexpected error fetching sessions: {e.Message}");
+#endif
 
             // Clear sessions on error to avoid showing stale data
             availableSessions?.Clear();
@@ -203,7 +211,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     [ContextMenu("Manual Refresh Sessions")]
     public async void ManualRefreshSessions()
     {
+#if DEBUG
         Debug.Log("<color=yellow><b>[MANUAL REFRESH]</b></color> 🔄 Manual session refresh requested");
+#endif
         await FetchAvailableSessions(bypassRateLimit: true);
     }
     #endregion
@@ -211,45 +221,63 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     #region Lobby Operations
     public async void CreateSession(string lobbyName = "MyLobby")
     {
+#if DEBUG
         Debug.Log($"<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🚀 CreateSession called with name: <color=yellow>{lobbyName}</color>");
+#endif
 
         // Input validation
         if (string.IsNullOrWhiteSpace(lobbyName))
         {
+#if DEBUG
             Debug.LogError("<color=red><b>[LOBBY WORKFLOW ERROR]</b></color> ❌ Lobby name cannot be null or empty");
+#endif
             return;
         }
 
         if (currentSession != null)
         {
+#if DEBUG
             Debug.LogWarning($"<color=orange><b>[LOBBY WORKFLOW WARNING]</b></color> ⚠️ Already in session: {currentSession.Name}");
+#endif
             return;
         }
 
         if (!AuthenticationService.Instance.IsSignedIn)
         {
+#if DEBUG
             Debug.LogError("<color=red><b>[LOBBY WORKFLOW ERROR]</b></color> ❌ Not authenticated, cannot create session");
+#endif
             return;
         }
 
+#if DEBUG
         Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> ✅ All validations passed, starting session creation...");
+#endif
 
         try
         {
             // Show "Creating Lobby..." text
+#if DEBUG
             Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🎭 Showing 'Creating Lobby...' text");
+#endif
             if (creatingLobbyText != null)
             {
                 creatingLobbyText.SetActive(true);
+#if DEBUG
                 Debug.Log("<color=green><b>[LOBBY WORKFLOW UI]</b></color> ✅ Creating lobby text activated");
+#endif
             }
             else
             {
+#if DEBUG
                 Debug.LogWarning("<color=orange><b>[LOBBY WORKFLOW UI]</b></color> ⚠️ creatingLobbyText is null!");
+#endif
             }
 
             // Configure session options with proper network setup and visibility
+#if DEBUG
             Debug.Log($"<color=cyan><b>[LOBBY WORKFLOW]</b></color> ⚙️ Creating SessionOptions: Name={lobbyName}, MaxPlayers={maxPlayers}");
+#endif
             var sessionOptions = new SessionOptions
             {
                 Name = lobbyName,
@@ -258,27 +286,41 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                 IsLocked = false    // Ensure session can be joined
             }.WithRelayNetwork();
 
+#if DEBUG
             Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🌐 Calling MultiplayerService.Instance.CreateSessionAsync...");
+#endif
             currentSession = await MultiplayerService.Instance.CreateSessionAsync(sessionOptions);
+#if DEBUG
             Debug.Log($"<color=green><b>[LOBBY WORKFLOW SUCCESS]</b></color> 🎉 Session created! ID: {currentSession.Id}, Name: {currentSession.Name}");
+#endif
 
+#if DEBUG
             Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🔒 Disabling create lobby button");
+#endif
             if (createLobbyButton != null)
             {
                 createLobbyButton.interactable = false;
+#if DEBUG
                 Debug.Log("<color=green><b>[LOBBY WORKFLOW UI]</b></color> ✅ Create lobby button disabled");
+#endif
             }
             else
             {
+#if DEBUG
                 Debug.LogWarning("<color=orange><b>[LOBBY WORKFLOW UI]</b></color> ⚠️ createLobbyButton is null!");
+#endif
             }
 
             // Hide "Creating Lobby..." text
+#if DEBUG
             Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🎭 Hiding 'Creating Lobby...' text");
+#endif
             if (creatingLobbyText != null)
             {
                 creatingLobbyText.SetActive(false);
+#if DEBUG
                 Debug.Log("<color=green><b>[LOBBY WORKFLOW UI]</b></color> ✅ Creating lobby text hidden");
+#endif
             }
 
             // // Stop background session polling since we're now in a session
@@ -286,12 +328,16 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             // shouldRefreshSessions = false;
 
             // Fetch updated session list from server to get our new session as ISessionInfo
+#if DEBUG
             Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🔄 Fetching updated session list to display new session...");
+#endif
             await FetchAvailableSessions(bypassRateLimit: true);
         }
         catch (SessionException e)
         {
+#if DEBUG
             Debug.LogError($"Failed to create lobby: {e.Message}");
+#endif
 
             // Reset UI state on failure
             if (creatingLobbyText != null)
@@ -301,7 +347,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         }
         catch (Exception e)
         {
+#if DEBUG
             Debug.LogError($"Unexpected error creating lobby: {e.Message}");
+#endif
 
             // Reset UI state on failure
             if (creatingLobbyText != null)
@@ -316,26 +364,34 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         // Input validation
         if (string.IsNullOrWhiteSpace(lobbyId))
         {
+#if DEBUG
             Debug.LogError("Lobby ID cannot be null or empty");
+#endif
             return;
         }
 
         if (currentSession != null)
         {
+#if DEBUG
             Debug.LogWarning("Already in a session, leave current session first");
+#endif
             return;
         }
 
         if (!AuthenticationService.Instance.IsSignedIn)
         {
+#if DEBUG
             Debug.LogError("Not authenticated, cannot join session");
+#endif
             return;
         }
 
         try
         {
             currentSession = await MultiplayerService.Instance.JoinSessionByIdAsync(lobbyId);
+#if DEBUG
             Debug.Log($"Joined lobby: {currentSession.Name}");
+#endif
 
             // Stop background session polling since we're now in a session
             shouldRefreshSessions = false;
@@ -345,7 +401,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         }
         catch (SessionException e)
         {
+#if DEBUG
             Debug.LogError($"Failed to join lobby: {e.Message}");
+#endif
 
             // Reset state if join failed
             currentSession = null;
@@ -353,7 +411,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         }
         catch (Exception e)
         {
+#if DEBUG
             Debug.LogError($"Unexpected error joining lobby: {e.Message}");
+#endif
 
             // Reset state if join failed
             currentSession = null;
@@ -367,19 +427,25 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         {
             if (currentSession == null)
             {
+#if DEBUG
                 Debug.LogWarning("No session available to start the game.");
+#endif
                 return;
             }
 
             if (NetworkManager.Singleton == null)
             {
+#if DEBUG
                 Debug.LogError("NetworkManager.Singleton is null, cannot start host.");
+#endif
                 return;
             }
 
             if (string.IsNullOrEmpty(gameSceneName))
             {
+#if DEBUG
                 Debug.LogError("Game scene name is not set.");
+#endif
                 return;
             }
 
@@ -388,7 +454,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                 startingGameText?.SetActive(true);
 
                 // Step 1: Create a Relay Allocation
+#if DEBUG
                 Debug.Log("Creating relay allocation...");
+#endif
 #pragma warning disable CS0436 // Type conflicts with imported type
                 var allocation = await Unity.Services.Relay.Relay.Instance.CreateAllocationAsync(maxPlayers - 1);
 #pragma warning restore CS0436
@@ -402,7 +470,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                 if (string.IsNullOrEmpty(joinCode))
                     throw new InvalidOperationException("Failed to retrieve join code.");
 
+#if DEBUG
                 Debug.Log($"Join code: {joinCode}");
+#endif
 
                 // Step 3: Configure Unity Transport for Relay
                 UnityTransport transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
@@ -423,7 +493,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                 hostSession.SetProperty("JoinCode", new SessionProperty(joinCode, VisibilityPropertyOptions.Public));
 
                 await hostSession.SavePropertiesAsync();
+#if DEBUG
                 Debug.Log("Session updated with game started and join code.");
+#endif
 
                 // Unity 6 Multiplayer Services automatically starts the host when using .WithRelayNetwork()
                 // Wait a moment for the host to initialize, then load the game scene
@@ -431,25 +503,35 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 
                 if (NetworkManager.Singleton.IsHost)
                 {
+#if DEBUG
                     Debug.Log("Host started successfully by Multiplayer Services, loading game scene...");
+#endif
                     NetworkManager.Singleton.SceneManager.LoadScene(gameSceneName, LoadSceneMode.Single);
                 }
                 else
                 {
+#if DEBUG
                     Debug.LogWarning("Expected to be host but NetworkManager.Singleton.IsHost is false");
+#endif
                 }
             }
             catch (SessionException se)
             {
+#if DEBUG
                 Debug.LogError($"Session error: {se.Message}");
+#endif
             }
             catch (System.Exception re) when (re.GetType().Name == "RelayServiceException")
             {
+#if DEBUG
                 Debug.LogError($"Relay error: {re.Message}");
+#endif
             }
             catch (Exception ex)
             {
+#if DEBUG
                 Debug.LogError($"Unexpected error starting host: {ex.Message}");
+#endif
             }
             finally
             {
@@ -516,7 +598,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         {
             try
             {
+#if DEBUG
                 Debug.Log($"Joining relay with code: {joinCode}");
+#endif
 
                 // Join the relay with the given join code
                 var joinAllocation = await Unity.Services.Relay.Relay.Instance.JoinAllocationAsync(joinCode);
@@ -534,11 +618,15 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 
                 // Start the client
                 NetworkManager.Singleton.StartClient();
+#if DEBUG
                 Debug.Log("Started client with relay");
+#endif
             }
             catch (SessionException e)
             {
+#if DEBUG
                 Debug.LogError($"Failed to join relay: {e.Message}");
+#endif
             }
         }
 
@@ -546,10 +634,14 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         {
             while (NetworkManager.Singleton == null)
             {
+#if DEBUG
                 Debug.Log("[LobbyManager] Waiting for NetworkManager.Singleton to initialize...");
+#endif
                 yield return null; // check every frame
             }
+#if DEBUG
             Debug.Log("[LobbyManager] NetworkManager.Singleton is ready.");
+#endif
         }
 
         #endregion
@@ -574,7 +666,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         if (startingGameText != null)
             startingGameText.SetActive(false);
 
+#if DEBUG
         Debug.Log($"Returning to previous scene: {previousSceneName}");
+#endif
         SceneManager.LoadScene(previousSceneName, LoadSceneMode.Single);
     }
 
@@ -585,11 +679,15 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             try
             {
                 await currentSession.LeaveAsync();
+#if DEBUG
                 Debug.Log("Left lobby successfully");
+#endif
             }
             catch (System.Exception e)
             {
+#if DEBUG
                 Debug.LogError($"Failed to leave lobby: {e}");
+#endif
             }
             finally
             {

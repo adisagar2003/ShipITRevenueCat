@@ -1,4 +1,3 @@
-#define DEBUG
 using UnityEngine;
 using Unity.Netcode;
 using Unity.Cinemachine;
@@ -77,7 +76,9 @@ public class NetworkThirdPersonController : NetworkBehaviour
         rb = GetComponent<Rigidbody>();
         if (rb == null)
         {
+#if DEBUG
             Debug.LogError($"<color=red>[NetworkThirdPersonController]</color> <color=white>CRITICAL: Rigidbody component is required on {gameObject.name}</color>");
+#endif
             enabled = false;
             return;
         }
@@ -97,7 +98,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
         if (groundCheckRaycastOriginPoint == null)
         {
 #if DEBUG
-            Debug.LogWarning($"<color=yellow>[NetworkThirdPersonController]</color> <color=white>Ground check raycast origin point not assigned on {gameObject.name}</color>");
+            if (enableDebugLogs) Debug.LogWarning($"<color=yellow>[NetworkThirdPersonController]</color> <color=white>Ground check raycast origin point not assigned on {gameObject.name}</color>");
 #endif
         }
 
@@ -111,22 +112,17 @@ public class NetworkThirdPersonController : NetworkBehaviour
 
     private void Update()
     {
-        // Only the owner processes ground checks
         if (!IsOwner) return;
-
         GroundCheck();
         // Jump input is handled through command pattern via InputHandler
     }
 
     private void FixedUpdate()
     {
-        // Only owner calculates and applies movement
         if (!IsOwner) return;
-
         HandleMovement();
         HandleJump();
 
-        // Update network variables for other clients
         networkIsJumping.Value = isJumping;
         networkVelocity.Value = rb.linearVelocity;
     }
@@ -153,15 +149,15 @@ public class NetworkThirdPersonController : NetworkBehaviour
 
     private void HandleMovement()
     {
-        // Only log if there's actual input
+        // Only log if there's actual input check.
         bool hasInput = inputValue.sqrMagnitude > 0.01f;
 
-#if DEBUG
+    #if DEBUG
         if (enableMovementLogs && hasInput)
         {
             Debug.Log($"<color=lightblue>[NetworkThirdPersonController]</color> <color=white>HandleMovement() - Input: {inputValue}</color>");
         }
-#endif
+    #endif
 
         // Get camera reference for camera-relative movement
         Transform cameraRef = GetCameraReference();
@@ -430,7 +426,6 @@ public class NetworkThirdPersonController : NetworkBehaviour
     /// </summary>
     private Transform GetCameraReference()
     {
-        // Only the owner needs camera reference for movement calculations
         if (!IsOwner) return null;
 
         if (cameraTransform != null) return cameraTransform;
