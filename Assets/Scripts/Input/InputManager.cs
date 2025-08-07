@@ -144,6 +144,18 @@ public class InputManager : NetworkBehaviour
                 Debug.Log($"<color=lime>[InputManager]</color> <color=white>📱 Mobile joystick input detected: {joystickInput} (magnitude: {joystickInput.magnitude:F3})</color>");
 #endif
             }
+            else
+            {
+                // IMPORTANT: Reset inputValue to zero when joystick is released
+                // This fixes the issue where player keeps moving in last direction
+                if (!usingKeyboard) // Only reset if we're not using keyboard input
+                {
+                    inputValue = Vector2.zero;
+#if DEBUG
+                    Debug.Log($"<color=orange>[InputManager]</color> <color=white>🛑 Joystick released, resetting inputValue to zero</color>");
+#endif
+                }
+            }
         }
     }
 
@@ -230,6 +242,10 @@ public class InputManager : NetworkBehaviour
                 {
                     Debug.Log($"<color=lime>[InputManager]</color> <color=white>✅ Direction property found: {direction} (magnitude: {direction.magnitude:F3})</color>");
                 }
+                else if (direction.sqrMagnitude > 0.001f)
+                {
+                    Debug.Log($"<color=yellow>[InputManager]</color> <color=white>⚪ Small direction value: {direction} (magnitude: {direction.magnitude:F6}) - below threshold</color>");
+                }
 #endif
                 return direction;
             }
@@ -254,6 +270,10 @@ public class InputManager : NetworkBehaviour
                 if (result.sqrMagnitude > 0.01f)
                 {
                     Debug.Log($"<color=lime>[InputManager]</color> <color=white>✅ H/V properties found: h={h:F3}, v={v:F3}, result={result}</color>");
+                }
+                else if (result.sqrMagnitude > 0.001f)
+                {
+                    Debug.Log($"<color=yellow>[InputManager]</color> <color=white>⚪ Small H/V values: h={h:F6}, v={v:F6}, magnitude={result.magnitude:F6} - below threshold</color>");
                 }
 #endif
                 return result;
