@@ -1,9 +1,14 @@
 using UnityEngine;
 using Unity.Netcode;
 using System.Collections;
+
 public class PlayerRespawn : NetworkBehaviour
 {
     private Rigidbody rb;
+
+    // Cached respawn points to avoid expensive repeated searches
+    private static Transform[] cachedRespawnPoints;
+    private static bool respawnPointsCached = false;
 
     private void Awake()
     {
@@ -13,7 +18,7 @@ public class PlayerRespawn : NetworkBehaviour
     public void RequestRespawn()
     {
         if (!IsSpawned) return;
-        
+
         if (IsServer)
         {
             RespawnPlayerAtNearestPoint();
@@ -56,20 +61,72 @@ public class PlayerRespawn : NetworkBehaviour
 
     private Transform FindNearestRespawnPoint(Vector3 fromPosition)
     {
-        GameObject[] respawnPoints = GameObject.FindGameObjectsWithTag("RespawnPoint");
+        // Use cached respawn points to avoid expensive repeated searches
+        Transform[] respawnPoints = GetCachedRespawnPoints();
+
+        if (respawnPoints == null || respawnPoints.Length == 0)
+        {
+            Debug.LogWarning("[PlayerRespawn] No respawn points found in scene!");
+            return null;
+        }
+
         Transform nearest = null;
         float minDistance = Mathf.Infinity;
 
         foreach (var point in respawnPoints)
         {
-            float distance = Vector3.Distance(fromPosition, point.transform.position);
+            // Skip null references (destroyed objects)
+            if (point == null) continue;
+
+            float distance = Vector3.Distance(fromPosition, point.position);
             if (distance < minDistance)
             {
                 minDistance = distance;
-                nearest = point.transform;
+                nearest = point;
             }
         }
         return nearest;
+    }
+
+    /// <summary>
+    /// Gets cached respawn points, initializing cache if needed
+    /// </summary>
+    private static Transform[] GetCachedRespawnPoints()
+    {
+        if (!respawnPointsCached || cachedRespawnPoints == null)
+        {
+            RefreshRespawnPointCache();
+        }
+        return cachedRespawnPoints;
+    }
+
+    /// <summary>
+    /// Refreshes the respawn point cache - call this when respawn points change
+    /// </summary>
+    public static void RefreshRespawnPointCache()
+    {
+        GameObject[] respawnPointObjects = GameObject.FindGameObjectsWithTag("RespawnPoint");
+        cachedRespawnPoints = new Transform[respawnPointObjects.Length];
+
+        for (int i = 0; i < respawnPointObjects.Length; i++)
+        {
+            cachedRespawnPoints[i] = respawnPointObjects[i].transform;
+        }
+
+        respawnPointsCached = true;
+
+#if debug
+        Debug.Log($"[PlayerRespawn] Cached {cachedRespawnPoints.Length} respawn points");
+#endif
+    }
+
+    /// <summary>
+    /// Call this when respawn points are added/removed from the scene
+    /// </summary>
+    public static void InvalidateRespawnPointCache()
+    {
+        respawnPointsCached = false;
+        cachedRespawnPoints = null;
     }
 
     private IEnumerator RespawnRoutine(Vector3 targetPosition)

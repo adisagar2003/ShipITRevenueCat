@@ -69,21 +69,21 @@ public class NetworkThirdPersonController : NetworkBehaviour
 
     private void Start()
     {
-#if DEBUG
+#if debug
         if (enableDebugLogs) Debug.Log($"<color=cyan>[NetworkThirdPersonController]</color> <color=white>Starting initialization on {gameObject.name}</color>");
 #endif
 
         rb = GetComponent<Rigidbody>();
         if (rb == null)
         {
-#if DEBUG
+#if debug
             Debug.LogError($"<color=red>[NetworkThirdPersonController]</color> <color=white>CRITICAL: Rigidbody component is required on {gameObject.name}</color>");
 #endif
             enabled = false;
             return;
         }
 
-#if DEBUG
+#if debug
         if (enableDebugLogs) Debug.Log($"<color=cyan>[NetworkThirdPersonController]</color> <color=white>Rigidbody found: {rb.name}</color>");
 #endif
 
@@ -97,12 +97,12 @@ public class NetworkThirdPersonController : NetworkBehaviour
         // Validate ground check setup
         if (groundCheckRaycastOriginPoint == null)
         {
-#if DEBUG
+#if debug
             if (enableDebugLogs) Debug.LogWarning($"<color=yellow>[NetworkThirdPersonController]</color> <color=white>Ground check raycast origin point not assigned on {gameObject.name}</color>");
 #endif
         }
 
-#if DEBUG
+#if debug
         if (enableNetworkLogs) Debug.Log($"<color=magenta>[NetworkThirdPersonController]</color> <color=white>IsOwner: {IsOwner}, IsServer: {IsServer}, IsClient: {IsClient}</color>");
 
         if (enableDebugLogs) Debug.Log($"<color=green>[NetworkThirdPersonController]</color> <color=white>Initialization complete on {gameObject.name}</color>");
@@ -131,7 +131,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
     {
         if (!IsOwner)
         {
-#if DEBUG
+#if debug
             if (enableInputLogs) Debug.Log($"<color=orange>[NetworkThirdPersonController]</color> <color=white>co() called but not owner - ignoring input: {input}</color>");
 #endif
             return;
@@ -139,7 +139,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
 
         inputValue = input;
 
-#if DEBUG
+#if debug
         if (enableInputLogs && input.sqrMagnitude > 0.01f)
         {
             Debug.Log($"<color=lime>[NetworkThirdPersonController]</color> <color=white>Move() input received: {input} (magnitude: {input.magnitude:F3})</color>");
@@ -152,7 +152,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
         // Only log if there's actual input check.
         bool hasInput = inputValue.sqrMagnitude > 0.01f;
 
-    #if DEBUG
+    #if debug
         if (enableMovementLogs && hasInput)
         {
             Debug.Log($"<color=lightblue>[NetworkThirdPersonController]</color> <color=white>HandleMovement() - Input: {inputValue}</color>");
@@ -163,7 +163,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
         Transform cameraRef = GetCameraReference();
         if (cameraRef == null)
         {
-#if DEBUG
+#if debug
             if (enableMovementLogs) Debug.LogWarning($"<color=red>[NetworkThirdPersonController]</color> <color=white>No camera reference found - cannot calculate camera-relative movement</color>");
 #endif
             return;
@@ -180,7 +180,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
         // Calculate camera-relative movement direction
         Vector3 moveDirection = cameraForward * inputValue.y + cameraRight * inputValue.x;
 
-#if DEBUG
+#if debug
         if (enableMovementLogs && hasInput)
         {
             Debug.Log($"<color=lightblue>[NetworkThirdPersonController]</color> <color=white>Camera-relative movement - Forward: {cameraForward}, Right: {cameraRight}, Direction: {moveDirection}</color>");
@@ -196,7 +196,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
         // Clamp to max speed to prevent teleporting
         rb.linearVelocity = Vector3.ClampMagnitude(desiredVelocity, maxSpeed);
 
-#if DEBUG
+#if debug
         if (enableMovementLogs && hasInput)
         {
             Debug.Log($"<color=lightblue>[NetworkThirdPersonController]</color> <color=white>Velocity applied - Before: {beforeVelocity}, Desired: {desiredVelocity}, Final: {rb.linearVelocity}</color>");
@@ -209,7 +209,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
             rb.rotation = Quaternion.Slerp(rb.rotation, targetRotation, 0.15f);
 
-#if DEBUG
+#if debug
             if (enableMovementLogs)
             {
                 Debug.Log($"<color=lightblue>[NetworkThirdPersonController]</color> <color=white>Rotation applied - Target: {targetRotation.eulerAngles}, Current: {rb.rotation.eulerAngles}</color>");
@@ -226,7 +226,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
         float jumpProgress = jumpElapsedTime / jumpTime;
         float currentJumpForce = Mathf.SmoothStep(jumpForce, jumpForce * 0.3f, jumpProgress);
 
-#if DEBUG
+#if debug
         if (enableJumpLogs)
         {
             Debug.Log($"<color=orange>[NetworkThirdPersonController]</color> <color=white>HandleJump() - Progress: {jumpProgress:F3}, Current Force: {currentJumpForce:F2}, Elapsed: {jumpElapsedTime:F3}/{jumpTime:F2}</color>");
@@ -237,7 +237,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
         Vector3 beforeVelocity = rb.linearVelocity;
         rb.AddForce(Vector3.up * currentJumpForce, ForceMode.Acceleration);
 
-#if DEBUG
+#if debug
         if (enableJumpLogs)
         {
             Debug.Log($"<color=orange>[NetworkThirdPersonController]</color> <color=white>Jump force applied - Before velocity: {beforeVelocity}, Force: {currentJumpForce}, After velocity: {rb.linearVelocity}</color>");
@@ -253,7 +253,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
             isJumping = false;
             jumpElapsedTime = 0;
 
-#if DEBUG
+#if debug
             if (enableJumpLogs)
             {
                 Debug.Log($"<color=orange>[NetworkThirdPersonController]</color> <color=white>Jump completed - Final velocity: {rb.linearVelocity}</color>");
@@ -264,7 +264,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
         // Apply custom gravity for Fall Guys feel
         rb.AddForce(Vector3.down * gravity, ForceMode.Acceleration);
 
-#if DEBUG
+#if debug
         if (enableJumpLogs)
         {
             Debug.Log($"<color=orange>[NetworkThirdPersonController]</color> <color=white>Applied gravity force: {Vector3.down * gravity}</color>");
@@ -274,7 +274,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
 
     public void Jump()
     {
-#if DEBUG
+#if debug
         if (enableJumpLogs)
         {
             Debug.Log($"<color=yellow>[NetworkThirdPersonController]</color> <color=white>Jump() called - IsOwner: {IsOwner}, IsGrounded: {isGrounded}, IsJumping: {isJumping}</color>");
@@ -284,7 +284,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
         // Check ownership
         if (!IsOwner)
         {
-#if DEBUG
+#if debug
             if (enableJumpLogs) Debug.Log($"<color=red>[NetworkThirdPersonController]</color> <color=white>Jump() rejected - Not owner</color>");
 #endif
             return;
@@ -293,7 +293,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
         // Check if grounded
         if (!isGrounded)
         {
-#if DEBUG
+#if debug
             if (enableJumpLogs) Debug.Log($"<color=red>[NetworkThirdPersonController]</color> <color=white>Jump() rejected - Not grounded</color>");
 #endif
             return;
@@ -302,7 +302,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
         // Check if already jumping
         if (isJumping)
         {
-#if DEBUG
+#if debug
             if (enableJumpLogs) Debug.Log($"<color=red>[NetworkThirdPersonController]</color> <color=white>Jump() rejected - Already jumping</color>");
 #endif
             return;
@@ -317,7 +317,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
         Vector3 impulse = Vector3.up * jumpForce;
         rb.AddForce(impulse, ForceMode.VelocityChange);
 
-#if DEBUG
+#if debug
         if (enableJumpLogs)
         {
             Debug.Log($"<color=green>[NetworkThirdPersonController]</color> <color=white>Jump STARTED! Impulse: {impulse}, Before velocity: {beforeVelocity}, After velocity: {rb.linearVelocity}</color>");
@@ -332,7 +332,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
         if (groundCheckRaycastOriginPoint == null)
         {
             isGrounded = false;
-#if DEBUG
+#if debug
             if (enableJumpLogs && wasGrounded)
             {
                 Debug.LogWarning($"<color=yellow>[NetworkThirdPersonController]</color> <color=white>GroundCheck - No raycast origin point assigned!</color>");
@@ -348,7 +348,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
             groundMask
         );
 
-#if DEBUG
+#if debug
         // Log ground state changes
         if (enableJumpLogs && wasGrounded != isGrounded)
         {
@@ -378,7 +378,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
         // Only the owner should have an active camera reference
         if (!IsOwner)
         {
-#if DEBUG
+#if debug
             if (enableDebugLogs) Debug.Log($"<color=cyan>[NetworkThirdPersonController]</color> <color=white>Not owner - skipping camera reference setup</color>");
 #endif
             return;
@@ -389,7 +389,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
         if (virtualCamera != null)
         {
             cameraTransform = virtualCamera.transform;
-#if DEBUG
+#if debug
             if (enableDebugLogs) Debug.Log($"<color=cyan>[NetworkThirdPersonController]</color> <color=white>Found child Cinemachine virtual camera: {cameraTransform.name}</color>");
 #endif
             return;
@@ -400,7 +400,7 @@ public class NetworkThirdPersonController : NetworkBehaviour
         if (childCamera != null)
         {
             cameraTransform = childCamera.transform;
-#if DEBUG
+#if debug
             if (enableDebugLogs) Debug.Log($"<color=cyan>[NetworkThirdPersonController]</color> <color=white>Found child camera: {cameraTransform.name}</color>");
 #endif
             return;
@@ -410,13 +410,13 @@ public class NetworkThirdPersonController : NetworkBehaviour
         if (Camera.main != null)
         {
             cameraTransform = Camera.main.transform;
-#if DEBUG
+#if debug
             if (enableDebugLogs) Debug.Log($"<color=cyan>[NetworkThirdPersonController]</color> <color=white>Using main camera as fallback: {cameraTransform.name}</color>");
 #endif
             return;
         }
 
-#if DEBUG
+#if debug
         if (enableDebugLogs) Debug.LogWarning($"<color=yellow>[NetworkThirdPersonController]</color> <color=white>No camera found for owner player</color>");
 #endif
     }

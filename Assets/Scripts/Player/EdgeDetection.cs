@@ -39,7 +39,7 @@ public class EdgeDetection : MonoBehaviour
 
         wasLastMovementBlocked = isBlocked;
 
-#if DEBUG_EDGE_DETECTION
+#if debug_EDGE_DETECTION
         if (isBlocked)
             Debug.Log($"<color=orange>[SPHERE CAST - COLLISION]</color> Hit {hit.collider.name} at distance {hit.distance:F2}");
         else

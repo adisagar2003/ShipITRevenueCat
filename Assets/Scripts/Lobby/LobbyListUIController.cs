@@ -12,20 +12,20 @@ public class LobbyListUIController : MonoBehaviour
 
     void OnEnable()
     {
-#if DEBUG
+#if debug
         Debug.Log("<color=magenta><b>[LOBBY UI]</b></color> 🔄 LobbyListUIController OnEnable called");
 #endif
         lobbyManager = FindObjectOfType<LobbyManager>();
         if (lobbyManager != null)
         {
             lobbyManager.OnSessionsUpdated += PopulateLobbyList;
-#if DEBUG
+#if debug
             Debug.Log("<color=green><b>[LOBBY UI]</b></color> ✅ Subscribed to OnSessionsUpdated event");
 #endif
         }
         else
         {
-#if DEBUG
+#if debug
             Debug.LogError("<color=red><b>[LOBBY UI ERROR]</b></color> ❌ LobbyManager not found!");
 #endif
         }
@@ -47,12 +47,12 @@ public class LobbyListUIController : MonoBehaviour
 
     public void PopulateLobbyList()
     {
-#if DEBUG
+#if debug
         Debug.Log("<color=magenta><b>[LOBBY UI]</b></color> 🎨 PopulateLobbyList called!");
 #endif
 
         // Clear existing slots
-#if DEBUG
+#if debug
         Debug.Log($"<color=magenta><b>[LOBBY UI]</b></color> 🧹 Clearing existing slots (count: {content.transform.childCount})");
 #endif
         foreach (Transform child in content.transform)
@@ -62,20 +62,20 @@ public class LobbyListUIController : MonoBehaviour
 
         if (lobbyManager == null)
         {
-#if DEBUG
+#if debug
             Debug.LogError("<color=red><b>[LOBBY UI ERROR]</b></color> ❌ lobbyManager is null in PopulateLobbyList!");
 #endif
             return;
         }
 
         List<ISessionInfo> lobbies = lobbyManager.availableSessions;
-#if DEBUG
+#if debug
         Debug.Log($"<color=magenta><b>[LOBBY UI]</b></color> 📋 Available sessions count: <color=yellow>{lobbies.Count}</color>");
 #endif
 
         if (lobbies.Count == 0)
         {
-#if DEBUG
+#if debug
             Debug.Log("<color=magenta><b>[LOBBY UI]</b></color> 📭 No available sessions to display");
 #endif
             return;
@@ -84,13 +84,13 @@ public class LobbyListUIController : MonoBehaviour
         for (int i = 0; i < lobbies.Count; i++)
         {
             ISessionInfo lobby = lobbies[i];
-#if DEBUG
+#if debug
             Debug.Log($"<color=magenta><b>[LOBBY UI]</b></color> 🏗️ Creating slot {i} for session: <color=yellow>{lobby.Name}</color> (ID: {lobby.Id})");
 #endif
 
             if (lobbySlotPrefab == null)
             {
-#if DEBUG
+#if debug
                 Debug.LogError("<color=red><b>[LOBBY UI ERROR]</b></color> ❌ lobbySlotPrefab is null!");
 #endif
                 return;
@@ -98,14 +98,14 @@ public class LobbyListUIController : MonoBehaviour
 
             if (content == null)
             {
-#if DEBUG
+#if debug
                 Debug.LogError("<color=red><b>[LOBBY UI ERROR]</b></color> ❌ content GameObject is null!");
 #endif
                 return;
             }
 
             GameObject slot = Instantiate(lobbySlotPrefab, content.transform);
-#if DEBUG
+#if debug
             Debug.Log($"<color=green><b>[LOBBY UI]</b></color> ✅ Instantiated lobby slot GameObject: {slot.name}");
 #endif
 
@@ -113,7 +113,7 @@ public class LobbyListUIController : MonoBehaviour
             if (rt != null)
             {
                 rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, -i * slotSpacing);
-#if DEBUG
+#if debug
                 Debug.Log($"<color=green><b>[LOBBY UI]</b></color> ✅ Positioned slot at Y: {-i * slotSpacing}");
 #endif
             }
@@ -121,23 +121,23 @@ public class LobbyListUIController : MonoBehaviour
             LobbySlotData slotData = slot.GetComponent<LobbySlotData>();
             if (slotData != null)
             {
-#if DEBUG
+#if debug
                 Debug.Log($"<color=magenta><b>[LOBBY UI]</b></color> 🎯 Initializing LobbySlotData for session: {lobby.Name}");
 #endif
                 slotData.Initialize(lobby);
-#if DEBUG
+#if debug
                 Debug.Log($"<color=green><b>[LOBBY UI]</b></color> ✅ LobbySlotData initialized successfully");
 #endif
             }
             else
             {
-#if DEBUG
+#if debug
                 Debug.LogError("<color=red><b>[LOBBY UI ERROR]</b></color> ❌ LobbySlotData component not found on prefab!");
 #endif
             }
         }
 
-#if DEBUG
+#if debug
         Debug.Log($"<color=green><b>[LOBBY UI SUCCESS]</b></color> 🎉 PopulateLobbyList completed! Created {lobbies.Count} lobby slots");
 #endif
     }

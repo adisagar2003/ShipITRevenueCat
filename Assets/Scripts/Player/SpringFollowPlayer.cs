@@ -29,13 +29,13 @@ public class SpringFollowPlayer : MonoBehaviour
             if (controller != null && (controller.IsOwner || GetComponentInParent<NetworkThirdPersonController>() != null))
             {
                 playerTarget = controller.transform;
-#if DEBUG
+#if debug
                 Debug.Log($"SpringFollowPlayer: Auto-found player target: {playerTarget.name} (IsOwner: {controller.IsOwner})");
 #endif
             }
             else
             {
-#if DEBUG
+#if debug
                 Debug.LogWarning("SpringFollowPlayer: No locally owned NetworkThirdPersonController found for auto-target");
 #endif
             }
@@ -57,7 +57,7 @@ public class SpringFollowPlayer : MonoBehaviour
             }
         }
         
-#if DEBUG
+#if debug
         Debug.LogWarning($"SpringFollowPlayer: No locally owned controller found among {allControllers.Length} controllers");
         foreach (var ctrl in allControllers)
         {
@@ -79,7 +79,7 @@ public class SpringFollowPlayer : MonoBehaviour
             if (controller != null && (controller.IsOwner || GetComponentInParent<NetworkThirdPersonController>() != null))
             {
                 playerTarget = controller.transform;
-#if DEBUG
+#if debug
                 Debug.Log($"SpringFollowPlayer: Late-found player target: {playerTarget.name} (IsOwner: {controller.IsOwner})");
 #endif
             }

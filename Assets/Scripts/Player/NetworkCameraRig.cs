@@ -33,7 +33,7 @@ public class NetworkCameraRig : NetworkBehaviour
         ConfigureFollowTarget();
         HandleMainCameraConflict();
 
-#if DEBUG
+#if debug
         Debug.Log($"<color=cyan>[NetworkCameraRig]</color> <color=white>OnNetworkSpawn - IsOwner: {IsOwner}, Player: {gameObject.name}</color>");
 #endif
     }
@@ -64,7 +64,7 @@ public class NetworkCameraRig : NetworkBehaviour
             return;
         }
 
-#if DEBUG
+#if debug
         Debug.Log($"<color=cyan>[NetworkCameraRig]</color> <color=white>Components initialized - Camera: {playerCamera.name}, VCam: {virtualCamera.name}</color>");
 #endif
     }
@@ -91,7 +91,7 @@ public class NetworkCameraRig : NetworkBehaviour
                 if (existingMainCamera != null && existingMainCamera != playerCamera)
                 {
                     existingMainCamera.tag = "Untagged";
-#if DEBUG
+#if debug
                     Debug.Log($"<color=yellow>[NetworkCameraRig]</color> <color=white>Removed MainCamera tag from: {existingMainCamera.name}</color>");
 #endif
                 }
@@ -99,7 +99,7 @@ public class NetworkCameraRig : NetworkBehaviour
                 playerCamera.tag = "MainCamera";
             }
 
-#if DEBUG
+#if debug
             Debug.Log($"<color=green>[NetworkCameraRig]</color> <color=white>Owner camera enabled - Priority: {virtualCamera.Priority}</color>");
 #endif
         }
@@ -117,7 +117,7 @@ public class NetworkCameraRig : NetworkBehaviour
 
             virtualCamera.Priority = nonOwnerCameraPriority;
 
-#if DEBUG
+#if debug
             Debug.Log($"<color=red>[NetworkCameraRig]</color> <color=white>Non-owner camera disabled/deprioritized - Priority: {virtualCamera.Priority}</color>");
 #endif
         }
@@ -146,13 +146,13 @@ public class NetworkCameraRig : NetworkBehaviour
             virtualCamera.Follow = followTarget;
             virtualCamera.LookAt = followTarget;
 
-#if DEBUG
+#if debug
             Debug.Log($"<color=lightblue>[NetworkCameraRig]</color> <color=white>Follow target set to: {followTarget.name}</color>");
 #endif
         }
         else
         {
-#if DEBUG
+#if debug
             Debug.LogWarning($"<color=orange>[NetworkCameraRig]</color> <color=white>No follow target found for camera rig on {gameObject.name}</color>");
 #endif
         }
@@ -172,7 +172,7 @@ public class NetworkCameraRig : NetworkBehaviour
                 cam.enabled = false;
                 cam.tag = "Untagged";
 
-#if DEBUG
+#if debug
                 Debug.Log($"<color=yellow>[NetworkCameraRig]</color> <color=white>Disabled scene camera: {cam.name} to prevent conflicts</color>");
 #endif
             }
@@ -192,7 +192,7 @@ public class NetworkCameraRig : NetworkBehaviour
             virtualCamera.Follow = target;
             virtualCamera.LookAt = target;
 
-#if DEBUG
+#if debug
             Debug.Log($"<color=lightblue>[NetworkCameraRig]</color> <color=white>Follow target manually set to: {target.name}</color>");
 #endif
         }

@@ -19,7 +19,7 @@ public class PlayerMovementSinglePlayer : MonoBehaviour
 
     public void Move(Vector2 input)
     {
-        #if DEBUGGING
+        #if debugGING
             if (cameraTransform == null)
             {
                 Debug.LogError("CameraTransform is null on " + gameObject.name);
