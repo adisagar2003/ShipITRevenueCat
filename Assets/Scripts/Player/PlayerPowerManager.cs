@@ -145,23 +145,24 @@ public class PlayerPowerManager : NetworkBehaviour
 #endif
     }
 
-    // Simple method to start a smooth dash (4 configurable parameters)
-    public void StartSmoothDash(float dashSpeed, float accelerationTime, float dashDuration, float decelerationTime)
+    // Simple method to start a smooth dash (4 configurable parameters + optional particles)
+    public void StartSmoothDash(float dashSpeed, float accelerationTime, float dashDuration, float decelerationTime, ParticleSystem particles = null)
     {
 #if debug
         Debug.Log($"<color=#00FFAA><b>[PlayerPowerManager]</b></color> <color=yellow>Starting smooth dash for {gameObject.name}.</color>");
 #endif
-        StartCoroutine(DashSequence(dashSpeed, accelerationTime, dashDuration, decelerationTime));
+        StartCoroutine(DashSequence(dashSpeed, accelerationTime, dashDuration, decelerationTime, particles));
     }
 
     // Main dash sequence - broken into simple, easy-to-understand steps
-    private IEnumerator DashSequence(float targetSpeed, float accelTime, float dashTime, float decelTime)
+    private IEnumerator DashSequence(float targetSpeed, float accelTime, float dashTime, float decelTime, ParticleSystem particles = null)
     {
         var networkController = GetComponent<NetworkThirdPersonController>();
         if (networkController == null) yield break;
 
         // Step 1: Start the dash
         StartDash(networkController, targetSpeed);
+        StartDashParticles(particles);
         
         // Step 2: Speed up smoothly
         yield return StartCoroutine(AccelerateDash(targetSpeed, accelTime));
@@ -174,6 +175,7 @@ public class PlayerPowerManager : NetworkBehaviour
         
         // Step 5: End the dash
         EndDash(networkController);
+        StopDashParticles(particles);
     }
 
     // Step 1: Simple method to start dash
@@ -250,6 +252,30 @@ public class PlayerPowerManager : NetworkBehaviour
         Vector3 dashVelocity = transform.forward * speed;
         dashVelocity.y = rb.linearVelocity.y; // Keep the same up/down movement (gravity)
         rb.linearVelocity = dashVelocity;
+    }
+
+    // Simple method to start particle effect
+    private void StartDashParticles(ParticleSystem particles)
+    {
+        if (particles != null)
+        {
+            particles.Play();
+            Debug.Log($"<color=green>[PlayerPowerManager]</color> Started dash particles!");
+        }
+        else
+        {
+            Debug.Log($"<color=yellow>[PlayerPowerManager]</color> No particles assigned for dash.");
+        }
+    }
+
+    // Simple method to stop particle effect
+    private void StopDashParticles(ParticleSystem particles)
+    {
+        if (particles != null)
+        {
+            particles.Stop();
+            Debug.Log($"<color=green>[PlayerPowerManager]</color> Stopped dash particles!");
+        }
     }
 
 
