@@ -1,3 +1,5 @@
+#define debug
+
 using UnityEngine;
 using Unity.Netcode;
 
@@ -12,10 +14,11 @@ public class DashTrigger : NetworkBehaviour
 
         private void OnTriggerEnter(Collider other)
         {
+            Debug.Log($"<color=#FF00FF><b>[DashTrigger]</b></color> {other.gameObject.name} <color=yellow>Player. Activating DashPower.</color>");
             if (!IsServer) return; // server-authoritative
 
             var playerManager = other.GetComponent<PlayerPowerManager>();
-            var networkObject = other.GetComponent<NetworkObject>();
+            var networkObject = other.GetComponentInParent<NetworkObject>();
             if (playerManager != null && dashPower != null && networkObject != null)
             {
     #if debug
@@ -37,18 +40,26 @@ public class DashTrigger : NetworkBehaviour
     private void OnTriggerExit(Collider other)
     {
         if (!IsServer) return; // Only the server should handle power deactivation
-        // Deactivate the dash power when the player exits the trigger
-        var playerManager = other.GetComponent<PlayerPowerManager>();
-        if (playerManager != null)
+        
+        // Get the network controller to check if dash is active
+        var networkController = other.GetComponent<NetworkThirdPersonController>();
+        if (networkController != null && networkController.IsDashing())
         {
+            // Force end dash if player exits trigger during dash
+            networkController.SetDashState(false);
+            
 #if debug
-            Debug.Log("<color=#FF00FF><b>[DashTrigger]</b></color> <color=yellow>Player exited trigger. Deactivating DashPower.</color>");
+            Debug.Log("<color=#FF00FF><b>[DashTrigger]</b></color> <color=yellow>Player exited trigger during dash - force stopping dash.</color>");
 #endif
         }
 #if debug
+        else if (networkController == null)
+        {
+            Debug.Log("<color=#FF00FF><b>[DashTrigger]</b></color> <color=red>NetworkController missing on trigger exit.</color>");
+        }
         else
         {
-            Debug.Log("<color=#FF00FF><b>[DashTrigger]</b></color> <color=red>PlayerManager missing on trigger exit.</color>");
+            Debug.Log("<color=#FF00FF><b>[DashTrigger]</b></color> <color=yellow>Player exited trigger (was not dashing).</color>");
         }
 #endif
     }
