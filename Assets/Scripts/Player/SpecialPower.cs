@@ -15,6 +15,9 @@ public abstract class SpecialPower : ScriptableObject
 {
     [Header("Power Settings")]
     public ActivationType activationType;
+    
+    [Header("Audio")]
+    [SerializeField] protected AudioClip activationSound;
 
     /// <summary>
     /// Called on the server to apply the power's effect to the player.
@@ -30,5 +33,14 @@ public abstract class SpecialPower : ScriptableObject
     public virtual void OnEffectAppliedRpc(GameObject player)
     {
         // Implement visual/audio feedback in derived classes.
+    }
+    
+    /// <summary>
+    /// Gets the activation sound for this power.
+    /// </summary>
+    /// <returns>The AudioClip to play when this power is activated.</returns>
+    public AudioClip GetActivationSound()
+    {
+        return activationSound;
     }
 }

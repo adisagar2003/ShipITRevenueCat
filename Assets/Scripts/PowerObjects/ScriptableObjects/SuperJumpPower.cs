@@ -9,6 +9,9 @@ public class SuperJumpPower : SpecialPower
     
     [Header("Visual Effects")]
     [SerializeField] private ParticleSystem jumpParticles;   // Optional particle effect
+    
+    [Header("Audio Effects")]
+    [SerializeField] private AudioClip jumpActivationSound;  // Sound to play on activation (overrides base sound)
 
     public override void ApplyEffect(GameObject player)
     {
@@ -36,5 +39,13 @@ public class SuperJumpPower : SpecialPower
         Debug.Log($"<color=#00FFAA><b>[SuperJumpPower]</b></color> <color=green>Super jump effect applied on client for player {player.name}.</color>");
 #endif
         // No client-side physics - server authoritative only!
+    }
+    
+    /// <summary>
+    /// Gets the specific super jump activation sound, or falls back to base activation sound.
+    /// </summary>
+    public new AudioClip GetActivationSound()
+    {
+        return jumpActivationSound != null ? jumpActivationSound : activationSound;
     }
 }

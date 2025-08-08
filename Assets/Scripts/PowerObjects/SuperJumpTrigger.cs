@@ -25,8 +25,16 @@ public class SuperJumpTrigger : NetworkBehaviour
 #if debug
             Debug.Log("<color=#00FFAA><b>[SuperJumpTrigger]</b></color> <color=yellow>Player entered trigger. Activating SuperJumpPower.</color>");
 #endif
+            // Play activation sound at the trigger location
+            AudioClip activationSound = superJumpPower.GetActivationSound();
+            if (activationSound != null)
+            {
+                AudioSource.PlayClipAtPoint(activationSound, other.transform.position);
+                Debug.Log($"<color=#00FFAA><b>[SuperJumpTrigger]</b></color> <color=cyan>Playing super jump activation sound at {other.transform.position}.</color>");
+            }
+
             playerManager.OnServerPowerObjectCollision(superJumpPower);
-            
+
             // Notify only the client that owns this player (similar to dash trigger)
             // Note: Super jump is server-authoritative, so no client RPC needed for physics
         }
@@ -41,14 +49,14 @@ public class SuperJumpTrigger : NetworkBehaviour
     private void OnTriggerExit(Collider other)
     {
         if (!IsServer) return; // Only the server should handle power deactivation
-        
+
         // Get the network controller to check if super jump is active
         var networkController = other.GetComponent<NetworkThirdPersonController>();
         if (networkController != null && networkController.IsSuperJumping())
         {
             // Force end super jump if player exits trigger during super jump
-            networkController.SetSuperJumpState(false);
-            
+            // networkController.SetSuperJumpState(false);
+
 #if debug
             Debug.Log("<color=#00FFAA><b>[SuperJumpTrigger]</b></color> <color=yellow>Player exited trigger during super jump - force stopping super jump.</color>");
 #endif

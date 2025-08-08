@@ -24,6 +24,14 @@ public class DashTrigger : NetworkBehaviour
     #if debug
                 Debug.Log("<color=#FF00FF><b>[DashTrigger]</b></color> <color=yellow>Player entered trigger. Activating DashPower.</color>");
     #endif
+                // Play activation sound at the trigger location
+                AudioClip activationSound = dashPower.GetActivationSound();
+                if (activationSound != null)
+                {
+                    AudioSource.PlayClipAtPoint(activationSound, other.transform.position);
+                    Debug.Log($"<color=#FF00FF><b>[DashTrigger]</b></color> <color=cyan>Playing dash activation sound at {other.transform.position}.</color>");
+                }
+
                 playerManager.OnServerPowerObjectCollision(dashPower);
 
                 // Notify only the client that owns this player

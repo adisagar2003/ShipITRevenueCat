@@ -11,6 +11,9 @@ public class DashPower : SpecialPower
     
     [Header("Visual Effects")]
     [SerializeField] private ParticleSystem dashParticles;    // Optional particle effect
+    
+    [Header("Audio Effects")]
+    [SerializeField] private AudioClip dashActivationSound;   // Sound to play on activation (overrides base sound)
 
     public override void ApplyEffect(GameObject player)
     {
@@ -38,5 +41,13 @@ public class DashPower : SpecialPower
         #if debug
             Debug.Log($"<color=#00FFFF><b>[DashPower]</b></color> <color=green>Dash effect applied on client for player {player.name}.</color>");
         #endif
+    }
+    
+    /// <summary>
+    /// Gets the specific dash activation sound, or falls back to base activation sound.
+    /// </summary>
+    public new AudioClip GetActivationSound()
+    {
+        return dashActivationSound != null ? dashActivationSound : activationSound;
     }
 }
