@@ -58,6 +58,9 @@ public class NetworkThirdPersonController : NetworkBehaviour
     private bool isJumping = false;
     private float jumpElapsedTime = 0;
     private bool isGrounded = false;
+    
+    // Simple dash state tracking
+    private bool isDashing = false;
 
     // Input cache
     private Vector2 inputValue;
@@ -442,5 +445,17 @@ public class NetworkThirdPersonController : NetworkBehaviour
             Gizmos.DrawRay(groundCheckRaycastOriginPoint.position, Vector3.down * rayDistance);
             Gizmos.DrawWireSphere(groundCheckRaycastOriginPoint.position + Vector3.down * rayDistance, 0.1f);
         }
+    }
+
+    // Simple methods to control dash state
+    public void SetDashState(bool dashing)
+    {
+        isDashing = dashing;
+        Debug.Log($"<color=orange>[NetworkThirdPersonController]</color> Dash state set to: {dashing}");
+    }
+
+    public bool IsDashing()
+    {
+        return isDashing;
     }
 }

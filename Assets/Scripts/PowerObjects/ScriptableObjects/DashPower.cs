@@ -3,36 +3,37 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Player/Special Powers/Dash Power")]
 public class DashPower : SpecialPower
 {
-    [SerializeField] private float dashForce = 500f;
+    [Header("Dash Settings - Easy to Tweak")]
+    [SerializeField] private float dashSpeed = 15f;           // How fast the dash goes
+    [SerializeField] private float accelerationTime = 0.3f;   // Time to reach full speed
+    [SerializeField] private float dashDuration = 1.0f;       // Total dash time
+    [SerializeField] private float decelerationTime = 0.5f;   // Time to slow down
 
     public override void ApplyEffect(GameObject player)
     {
-        var rb = player.GetComponent<Rigidbody>();
-        if (rb != null)
+        var playerPowerManager = player.GetComponent<PlayerPowerManager>();
+        var networkController = player.GetComponent<NetworkThirdPersonController>();
+        
+        if (playerPowerManager != null && networkController != null)
         {
         #if debug
-            Debug.Log($"<color=#00FFFF><b>[DashPower]</b></color> <color=yellow>Applying dash force: {dashForce} to player {player.name}.</color>");
+            Debug.Log($"<color=#00FFFF><b>[DashPower]</b></color> <color=yellow>Starting smooth dash for player {player.name}.</color>");
         #endif
-            rb.AddForce(player.transform.forward * dashForce, ForceMode.VelocityChange);
+            // Just call our simple method with the 4 parameters
+            playerPowerManager.StartSmoothDash(dashSpeed, accelerationTime, dashDuration, decelerationTime);
         }
         #if debug
             else
             {
-                Debug.Log("<color=#00FFFF><b>[DashPower]</b></color> <color=red>Rigidbody not found on player.</color>");
+                Debug.Log("<color=#00FFFF><b>[DashPower]</b></color> <color=red>Required components not found on player.</color>");
             }
         #endif
     }
 
-    // Now also apply force on the client for immediate feedback
     public void OnEffectAppliedClientRpc(GameObject player)
     {
         #if debug
             Debug.Log($"<color=#00FFFF><b>[DashPower]</b></color> <color=green>Dash effect applied on client for player {player.name}.</color>");
         #endif
-        var rb = player.GetComponent<Rigidbody>();
-        if (rb != null)
-        {
-            rb.AddForce(player.transform.forward * dashForce, ForceMode.VelocityChange);
-        }
     }
 }

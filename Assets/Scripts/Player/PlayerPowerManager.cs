@@ -145,10 +145,118 @@ public class PlayerPowerManager : NetworkBehaviour
 #endif
     }
 
+    // Simple method to start a smooth dash (4 configurable parameters)
+    public void StartSmoothDash(float dashSpeed, float accelerationTime, float dashDuration, float decelerationTime)
+    {
+#if debug
+        Debug.Log($"<color=#00FFAA><b>[PlayerPowerManager]</b></color> <color=yellow>Starting smooth dash for {gameObject.name}.</color>");
+#endif
+        StartCoroutine(DashSequence(dashSpeed, accelerationTime, dashDuration, decelerationTime));
+    }
+
+    // Main dash sequence - broken into simple, easy-to-understand steps
+    private IEnumerator DashSequence(float targetSpeed, float accelTime, float dashTime, float decelTime)
+    {
+        var networkController = GetComponent<NetworkThirdPersonController>();
+        if (networkController == null) yield break;
+
+        // Step 1: Start the dash
+        StartDash(networkController, targetSpeed);
+        
+        // Step 2: Speed up smoothly
+        yield return StartCoroutine(AccelerateDash(targetSpeed, accelTime));
+        
+        // Step 3: Keep dash speed
+        yield return StartCoroutine(MaintainDash(targetSpeed, dashTime - accelTime));
+        
+        // Step 4: Slow down smoothly  
+        yield return StartCoroutine(DecelerateDash(targetSpeed, decelTime));
+        
+        // Step 5: End the dash
+        EndDash(networkController);
+    }
+
+    // Step 1: Simple method to start dash
+    private void StartDash(NetworkThirdPersonController controller, float targetSpeed)
+    {
+        Debug.Log($"<color=green>[PlayerPowerManager]</color> Starting dash!");
+        controller.SetDashState(true);
+    }
+
+    // Step 2: Gradually increase speed (smooth acceleration)
+    private IEnumerator AccelerateDash(float targetSpeed, float accelTime)
+    {
+        Debug.Log($"<color=green>[PlayerPowerManager]</color> Accelerating to {targetSpeed}!");
+        
+        float startSpeed = rb.linearVelocity.magnitude;
+        float elapsed = 0f;
+        
+        while (elapsed < accelTime)
+        {
+            float progress = elapsed / accelTime; // Goes from 0 to 1
+            float currentSpeed = Mathf.Lerp(startSpeed, targetSpeed, progress);
+            
+            ApplyDashSpeed(currentSpeed);
+            
+            elapsed += Time.fixedDeltaTime;
+            yield return new WaitForFixedUpdate();
+        }
+    }
+
+    // Step 3: Keep the same speed (maintain phase)
+    private IEnumerator MaintainDash(float targetSpeed, float maintainTime)
+    {
+        Debug.Log($"<color=green>[PlayerPowerManager]</color> Maintaining speed {targetSpeed}!");
+        
+        float elapsed = 0f;
+        while (elapsed < maintainTime)
+        {
+            ApplyDashSpeed(targetSpeed);
+            elapsed += Time.fixedDeltaTime;
+            yield return new WaitForFixedUpdate();
+        }
+    }
+
+    // Step 4: Gradually decrease speed (smooth deceleration)
+    private IEnumerator DecelerateDash(float startSpeed, float decelTime)
+    {
+        Debug.Log($"<color=green>[PlayerPowerManager]</color> Decelerating from {startSpeed}!");
+        
+        float endSpeed = 5f; // Back to normal movement speed
+        float elapsed = 0f;
+        
+        while (elapsed < decelTime)
+        {
+            float progress = elapsed / decelTime; // Goes from 0 to 1
+            float currentSpeed = Mathf.Lerp(startSpeed, endSpeed, progress);
+            
+            ApplyDashSpeed(currentSpeed);
+            
+            elapsed += Time.fixedDeltaTime;
+            yield return new WaitForFixedUpdate();
+        }
+    }
+
+    // Step 5: Simple method to end dash
+    private void EndDash(NetworkThirdPersonController controller)
+    {
+        Debug.Log($"<color=green>[PlayerPowerManager]</color> Ending dash!");
+        controller.SetDashState(false);
+    }
+
+    // Helper method to apply speed in forward direction only
+    private void ApplyDashSpeed(float speed)
+    {
+        Vector3 dashVelocity = transform.forward * speed;
+        dashVelocity.y = rb.linearVelocity.y; // Keep the same up/down movement (gravity)
+        rb.linearVelocity = dashVelocity;
+    }
+
 
 [Rpc(SendTo.ClientsAndHost)]
     public void ActivateDashPowerClientRpc(ulong networkObjectOwnerClientId)
     {
-        throw new NotImplementedException();
+        Debug.Log("Dash Power activated successfully");
+
     }
 }
