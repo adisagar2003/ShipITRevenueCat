@@ -163,8 +163,8 @@ public class PlayerPowerManager : NetworkBehaviour
         while (elapsed < duration)
         {
             float progress = elapsed / duration; // Goes from 0 to 1
-            // Start strong, get weaker over time
-            float currentForce = Mathf.Lerp(jumpForce, jumpForce * 0.2f, progress);
+            // Start strong, get weaker over time (but not too weak)
+            float currentForce = Mathf.Lerp(jumpForce, jumpForce * 0.5f, progress);
             
             ApplySuperJumpUpwardForce(currentForce);
             
@@ -185,8 +185,13 @@ public class PlayerPowerManager : NetworkBehaviour
     {
         if (!IsServer) return; // Server authoritative - only server applies physics forces
         
-        Vector3 upwardForce = Vector3.up * (force * Time.fixedDeltaTime);
+        // Apply force directly without Time.fixedDeltaTime scaling - that was making it too weak!
+        Vector3 upwardForce = Vector3.up * force;
         rb.AddForce(upwardForce, ForceMode.Force);
+        
+#if debug
+        Debug.Log($"<color=purple>[PlayerPowerManager]</color> Applied upward force: {upwardForce.magnitude}");
+#endif
     }
 
     // Simple method to start particle effect

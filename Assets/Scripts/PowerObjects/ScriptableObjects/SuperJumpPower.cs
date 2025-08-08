@@ -5,7 +5,7 @@ using UnityEngine;
 public class SuperJumpPower : SpecialPower
 {
     [Header("Super Jump Settings - Easy to Tweak")]
-    [SerializeField] private float jumpForce = 100f;          // How strong the jump is
+    [SerializeField] private float jumpForce = 2000f;        // How strong the jump is (was too low at 100!)
     [SerializeField] private float jumpDuration = 1f;        // How long the jump lasts  
     [SerializeField] private float airControl = 0.5f;        // How much movement control in air
     
