@@ -1,4 +1,4 @@
-#define OnGUI
+#define debug
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -10,8 +10,6 @@ public class FinishLineTrigger : NetworkBehaviour
 {
     private NetworkVariable<ulong> winnerClientId = new NetworkVariable<ulong>(ulong.MaxValue);
 
-    private string resultString = "";
-
     private void OnTriggerEnter(Collider other)
     {
         if (!IsServer) return; // Only server determines winner
@@ -22,10 +20,12 @@ public class FinishLineTrigger : NetworkBehaviour
         if (winnerClientId.Value != ulong.MaxValue) return; // Winner already determined
 
         winnerClientId.Value = netObj.OwnerClientId;
-        Debug.Log($"Player with ClientId {netObj.OwnerClientId} has finished first!");
+        
+#if debug
+        Debug.Log($"<color=#FFD700><b>[FinishLineTrigger]</b></color> <color=yellow>Player with ClientId {netObj.OwnerClientId} has finished first!</color>");
+#endif
 
         NotifyClientsWinnerRpc(netObj.OwnerClientId);
-       
     }
 
     [Rpc(SendTo.NotServer)]
@@ -33,40 +33,36 @@ public class FinishLineTrigger : NetworkBehaviour
     {
         if (NetworkManager.Singleton.LocalClientId == winnerId)
         {
-            resultString = "<color=green>You Win!</color>";
+#if debug
+            Debug.Log($"<color=#00FF00><b>[FinishLineTrigger]</b></color> <color=green><size=20>🏆 YOU WIN! 🏆</size></color>");
+#endif
             // TODO: Switch to victory camera, disable player movement, show win UI
         }
         else
         {
-            resultString = "<color=red>You Lose!</color>";
+#if debug
+            Debug.Log($"<color=#FF0000><b>[FinishLineTrigger]</b></color> <color=red><size=18>💔 You Lose! 💔</size></color>");
+#endif
             // TODO: Switch to lose camera, disable player movement, show lose UI
         }
 
         // Only the server calls ForceResetScene
         if (IsServer)
         {
-            GameManager gm = FindObjectOfType<GameManager>();
+#if debug
+            Debug.Log($"<color=#FFD700><b>[FinishLineTrigger]</b></color> <color=orange>Server initiating return to lobby...</color>");
+#endif
+            GameManager gm = FindFirstObjectByType<GameManager>();
             if (gm != null)
             {
                 gm.PutPlayersBackToLobby();
             }
-        }
-    }
-
-#if OnGUI
-    private void OnGUI()
-    {
-        if (!string.IsNullOrEmpty(resultString))
-        {
-            GUIStyle style = new GUIStyle(GUI.skin.label)
+#if debug
+            else
             {
-                fontSize = 40,
-                alignment = TextAnchor.MiddleCenter,
-                richText = true
-            };
-
-            GUI.Label(new Rect(Screen.width / 2 - 150, Screen.height / 2 - 25, 300, 50), resultString, style);
+                Debug.Log($"<color=#FFD700><b>[FinishLineTrigger]</b></color> <color=red>GameManager not found!</color>");
+            }
+#endif
         }
     }
-#endif
 }
