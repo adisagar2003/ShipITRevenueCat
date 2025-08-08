@@ -13,7 +13,16 @@ public class PlayerPowerManager : NetworkBehaviour
     [SerializeField] private SpecialPower[] availablePowers;
     private NetworkVariable<int> currentPowerIndex = new NetworkVariable<int>(0);
     private Rigidbody rb;
-
+    
+    [Header("Particle Spawn Settings")]
+    [SerializeField] private Transform particlesSpawnLocation;
+    
+    [Header("Trail Settings")]
+    [SerializeField] private TrailRenderer dashTrailRenderer;
+    
+    // Track instantiated particles so we can destroy them
+    private ParticleSystem currentDashParticles = null;
+    private ParticleSystem currentSuperJumpParticles = null;
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -137,10 +146,10 @@ public class PlayerPowerManager : NetworkBehaviour
         // Step 1: Start the super jump
         StartSuperJumpHelper(networkController, jumpForce);
         StartSuperJumpParticles(particles);
-        
+
         // Step 2: Apply upward force over time (server authoritative)
         yield return StartCoroutine(ApplySuperJumpForce(jumpForce, duration));
-        
+
         // Step 3: End the super jump
         EndSuperJump(networkController);
         StopSuperJumpParticles(particles);
@@ -157,17 +166,17 @@ public class PlayerPowerManager : NetworkBehaviour
     private IEnumerator ApplySuperJumpForce(float jumpForce, float duration)
     {
         Debug.Log($"<color=purple>[PlayerPowerManager]</color> Applying super jump force over {duration}s!");
-        
+
         float elapsed = 0f;
-        
+
         while (elapsed < duration)
         {
             float progress = elapsed / duration; // Goes from 0 to 1
             // Start strong, get weaker over time (but not too weak)
             float currentForce = Mathf.Lerp(jumpForce, jumpForce * 0.5f, progress);
-            
+
             ApplySuperJumpUpwardForce(currentForce);
-            
+
             elapsed += Time.fixedDeltaTime;
             yield return new WaitForFixedUpdate();
         }
@@ -184,37 +193,42 @@ public class PlayerPowerManager : NetworkBehaviour
     private void ApplySuperJumpUpwardForce(float force)
     {
         if (!IsServer) return; // Server authoritative - only server applies physics forces
-        
+
         // Apply force directly without Time.fixedDeltaTime scaling - that was making it too weak!
         Vector3 upwardForce = Vector3.up * force;
         rb.AddForce(upwardForce, ForceMode.Force);
-        
+
 #if debug
         Debug.Log($"<color=purple>[PlayerPowerManager]</color> Applied upward force: {upwardForce.magnitude}");
 #endif
     }
 
-    // Simple method to start particle effect
-    private void StartSuperJumpParticles(ParticleSystem particles)
+    // Simple method to start particle effect by instantiating it
+    private void StartSuperJumpParticles(ParticleSystem particlesPrefab)
     {
-        if (particles != null)
+        if (particlesPrefab != null && particlesSpawnLocation != null)
         {
-            particles.Play();
-            Debug.Log($"<color=purple>[PlayerPowerManager]</color> Started super jump particles!");
+            // Instantiate the particle system as a child of the spawn location
+            currentSuperJumpParticles = Instantiate(particlesPrefab, particlesSpawnLocation.position, particlesSpawnLocation.rotation, particlesSpawnLocation);
+            currentSuperJumpParticles.Play();
+            Debug.Log($"<color=purple>[PlayerPowerManager]</color> Instantiated and started super jump particles!");
         }
         else
         {
-            Debug.Log($"<color=yellow>[PlayerPowerManager]</color> No particles assigned for super jump.");
+            Debug.Log($"<color=yellow>[PlayerPowerManager]</color> No particles prefab or spawn location assigned for super jump.");
         }
     }
 
-    // Simple method to stop particle effect
-    private void StopSuperJumpParticles(ParticleSystem particles)
+    // Simple method to stop particle effect and destroy the instance
+    private void StopSuperJumpParticles(ParticleSystem particlesPrefab)
     {
-        if (particles != null)
+        if (currentSuperJumpParticles != null)
         {
-            particles.Stop();
-            Debug.Log($"<color=purple>[PlayerPowerManager]</color> Stopped super jump particles!");
+            currentSuperJumpParticles.Stop();
+            // Destroy after the particle system finishes playing
+            Destroy(currentSuperJumpParticles.gameObject, currentSuperJumpParticles.main.duration + currentSuperJumpParticles.main.startLifetime.constantMax);
+            Debug.Log($"<color=purple>[PlayerPowerManager]</color> Stopped and scheduled destruction of super jump particles!");
+            currentSuperJumpParticles = null;
         }
     }
 
@@ -263,6 +277,7 @@ public class PlayerPowerManager : NetworkBehaviour
     {
         Debug.Log($"<color=green>[PlayerPowerManager]</color> Starting dash!");
         controller.SetDashState(true);
+        StartDashTrail();
     }
 
     // Step 2: Gradually increase speed (smooth acceleration)
@@ -324,6 +339,7 @@ public class PlayerPowerManager : NetworkBehaviour
     {
         Debug.Log($"<color=green>[PlayerPowerManager]</color> Ending dash!");
         controller.SetDashState(false);
+        StopDashTrail();
     }
 
     // Helper method to apply speed in forward direction only
@@ -334,29 +350,56 @@ public class PlayerPowerManager : NetworkBehaviour
         rb.linearVelocity = dashVelocity;
     }
 
-    // Simple method to start particle effect
-    private void StartDashParticles(ParticleSystem particles)
+    // Simple method to start particle effect by instantiating it
+    private void StartDashParticles(ParticleSystem particlesPrefab)
     {
-        particles.transform.position = rb.transform.position + new Vector3(0,particleYOffset,0); // Add some upwards offset for visibility.
-        if (particles != null)
+        if (particlesPrefab != null && particlesSpawnLocation != null)
         {
-            particles.Play();
-            Debug.Log($"<color=green>[PlayerPowerManager]</color> Started dash particles!");
+            // Instantiate the particle system as a child of the spawn location
+            currentDashParticles = Instantiate(particlesPrefab, particlesSpawnLocation.position, particlesSpawnLocation.rotation, particlesSpawnLocation);
+            currentDashParticles.Play();
+            Debug.Log($"<color=green>[PlayerPowerManager]</color> Instantiated and started dash particles!");
         }
         else
         {
-            Debug.Log($"<color=yellow>[PlayerPowerManager]</color> No particles assigned for dash.");
+            Debug.Log($"<color=yellow>[PlayerPowerManager]</color> No particles prefab or spawn location assigned for dash.");
         }
     }
 
-
-    // Simple method to stop particle effect
-    private void StopDashParticles(ParticleSystem particles)
+    // Simple method to stop particle effect and destroy the instance
+    private void StopDashParticles(ParticleSystem particlesPrefab)
     {
-        if (particles != null)
+        if (currentDashParticles != null)
         {
-            particles.Stop();
-            Debug.Log($"<color=green>[PlayerPowerManager]</color> Stopped dash particles!");
+            currentDashParticles.Stop();
+            // Destroy after the particle system finishes playing
+            Destroy(currentDashParticles.gameObject, currentDashParticles.main.duration + currentDashParticles.main.startLifetime.constantMax);
+            Debug.Log($"<color=green>[PlayerPowerManager]</color> Stopped and scheduled destruction of dash particles!");
+            currentDashParticles = null;
+        }
+    }
+
+    // Simple method to start the dash trail effect
+    private void StartDashTrail()
+    {
+        if (dashTrailRenderer != null)
+        {
+            dashTrailRenderer.enabled = true;
+            Debug.Log($"<color=green>[PlayerPowerManager]</color> Started dash trail effect!");
+        }
+        else
+        {
+            Debug.Log($"<color=yellow>[PlayerPowerManager]</color> No trail renderer assigned for dash.");
+        }
+    }
+
+    // Simple method to stop the dash trail effect
+    private void StopDashTrail()
+    {
+        if (dashTrailRenderer != null)
+        {
+            dashTrailRenderer.enabled = false;
+            Debug.Log($"<color=green>[PlayerPowerManager]</color> Stopped dash trail effect!");
         }
     }
 
