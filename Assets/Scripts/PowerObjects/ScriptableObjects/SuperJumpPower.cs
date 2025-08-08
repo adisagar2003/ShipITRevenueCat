@@ -4,10 +4,8 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Player/Special Powers/Super Jump Power")]
 public class SuperJumpPower : SpecialPower
 {
-    [Header("Super Jump Settings - Easy to Tweak")]
-    [SerializeField] private float jumpForce = 2000f;        // How strong the jump is (was too low at 100!)
-    [SerializeField] private float jumpDuration = 1f;        // How long the jump lasts  
-    [SerializeField] private float airControl = 0.5f;        // How much movement control in air
+    [Header("Super Jump Settings")]
+    [SerializeField] private float jumpForce = 2000f;        // How strong the instant jump is
     
     [Header("Visual Effects")]
     [SerializeField] private ParticleSystem jumpParticles;   // Optional particle effect
@@ -15,20 +13,19 @@ public class SuperJumpPower : SpecialPower
     public override void ApplyEffect(GameObject player)
     {
         var playerPowerManager = player.GetComponent<PlayerPowerManager>();
-        var networkController = player.GetComponent<NetworkThirdPersonController>();
         
-        if (playerPowerManager != null && networkController != null)
+        if (playerPowerManager != null)
         {
 #if debug
-            Debug.Log($"<color=#00FFAA><b>[SuperJumpPower]</b></color> <color=yellow>Starting smooth super jump for player {player.name}.</color>");
+            Debug.Log($"<color=#00FFAA><b>[SuperJumpPower]</b></color> <color=yellow>Starting quick super jump for player {player.name}.</color>");
 #endif
-            // Call our simple method with server authority
-            playerPowerManager.StartSmoothSuperJump(jumpForce, jumpDuration, airControl, jumpParticles);
+            // Call the simplified instant super jump method
+            playerPowerManager.StartQuickSuperJump(jumpForce, jumpParticles);
         }
 #if debug
         else
         {
-            Debug.Log("<color=#00FFAA><b>[SuperJumpPower]</b></color> <color=red>Required components not found on player.</color>");
+            Debug.Log("<color=#00FFAA><b>[SuperJumpPower]</b></color> <color=red>PlayerPowerManager component not found on player.</color>");
         }
 #endif
     }

@@ -13,13 +13,13 @@ public class PlayerPowerManager : NetworkBehaviour
     [SerializeField] private SpecialPower[] availablePowers;
     private NetworkVariable<int> currentPowerIndex = new NetworkVariable<int>(0);
     private Rigidbody rb;
-    
+
     [Header("Particle Spawn Settings")]
     [SerializeField] private Transform particlesSpawnLocation;
-    
+
     [Header("Trail Settings")]
     [SerializeField] private TrailRenderer dashTrailRenderer;
-    
+
     // Track instantiated particles so we can destroy them
     private ParticleSystem currentDashParticles = null;
     private ParticleSystem currentSuperJumpParticles = null;
@@ -128,79 +128,26 @@ public class PlayerPowerManager : NetworkBehaviour
         currentPower.ApplyEffect(gameObject);
     }
 
-    // Simple method to start a smooth super jump (3 configurable parameters + optional particles)
-    public void StartSmoothSuperJump(float jumpForce, float jumpDuration, float airControl = 0.5f, ParticleSystem particles = null)
+    // Simple instant super jump with particles
+    public void StartQuickSuperJump(float jumpForce, ParticleSystem particles = null)
     {
 #if debug
-        Debug.Log($"<color=#00FFAA><b>[PlayerPowerManager]</b></color> <color=yellow>Starting smooth super jump for {gameObject.name}.</color>");
+        Debug.Log($"<color=purple>[PlayerPowerManager]</color> Starting quick super jump for {gameObject.name}!");
 #endif
-        StartCoroutine(SuperJumpSequence(jumpForce, jumpDuration, airControl, particles));
-    }
-
-    // Main super jump sequence - broken into simple steps
-    private IEnumerator SuperJumpSequence(float jumpForce, float duration, float airControl, ParticleSystem particles = null)
-    {
-        var networkController = GetComponent<NetworkThirdPersonController>();
-        if (networkController == null) yield break;
-
-        // Step 1: Start the super jump
-        StartSuperJumpHelper(networkController, jumpForce);
-        StartSuperJumpParticles(particles);
-
-        // Step 2: Apply upward force over time (server authoritative)
-        yield return StartCoroutine(ApplySuperJumpForce(jumpForce, duration));
-
-        // Step 3: End the super jump
-        EndSuperJump(networkController);
-        StopSuperJumpParticles(particles);
-    }
-
-    // Step 1: Simple method to start super jump
-    private void StartSuperJumpHelper(NetworkThirdPersonController controller, float jumpForce)
-    {
-        Debug.Log($"<color=purple>[PlayerPowerManager]</color> Starting super jump!");
-        controller.SetSuperJumpState(true);
-    }
-
-    // Step 2: Apply upward force over time (server authoritative)
-    private IEnumerator ApplySuperJumpForce(float jumpForce, float duration)
-    {
-        Debug.Log($"<color=purple>[PlayerPowerManager]</color> Applying super jump force over {duration}s!");
-
-        float elapsed = 0f;
-
-        while (elapsed < duration)
+        
+        // Apply instant upward force (server authoritative)
+        if (IsServer)
         {
-            float progress = elapsed / duration; // Goes from 0 to 1
-            // Start strong, get weaker over time (but not too weak)
-            float currentForce = Mathf.Lerp(jumpForce, jumpForce * 0.5f, progress);
-
-            ApplySuperJumpUpwardForce(currentForce);
-
-            elapsed += Time.fixedDeltaTime;
-            yield return new WaitForFixedUpdate();
+            Vector3 upwardForce = Vector3.up * jumpForce;
+            rb.AddForce(upwardForce, ForceMode.Impulse);
+            Debug.Log($"<color=purple>[PlayerPowerManager]</color> Applied instant super jump force: {upwardForce.magnitude}");
         }
-    }
 
-    // Step 3: Simple method to end super jump
-    private void EndSuperJump(NetworkThirdPersonController controller)
-    {
-        Debug.Log($"<color=purple>[PlayerPowerManager]</color> Ending super jump!");
-        controller.SetSuperJumpState(false);
-    }
-
-    // Helper method to apply upward force (server authoritative)
-    private void ApplySuperJumpUpwardForce(float force)
-    {
-        if (!IsServer) return; // Server authoritative - only server applies physics forces
-
-        // Apply force directly without Time.fixedDeltaTime scaling - that was making it too weak!
-        Vector3 upwardForce = Vector3.up * force;
-        rb.AddForce(upwardForce, ForceMode.Force);
-
-#if debug
-        Debug.Log($"<color=purple>[PlayerPowerManager]</color> Applied upward force: {upwardForce.magnitude}");
-#endif
+        // Start particles for visual feedback
+        StartSuperJumpParticles(particles);
+        
+        // Stop particles after a short duration
+        StartCoroutine(StopSuperJumpAfterDelay(particles, 2f));
     }
 
     // Simple method to start particle effect by instantiating it
@@ -232,10 +179,17 @@ public class PlayerPowerManager : NetworkBehaviour
         }
     }
 
+    // Helper coroutine to stop super jump particles after a delay
+    private IEnumerator StopSuperJumpAfterDelay(ParticleSystem particles, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        StopSuperJumpParticles(particles);
+    }
+
     // Backward compatibility method for existing SuperJumpPower usage
     public void StartSuperJump(float jumpForce, float jumpDuration)
     {
-        StartSmoothSuperJump(jumpForce, jumpDuration, 0.5f, null);
+        StartQuickSuperJump(jumpForce, null);
     }
 
     // Simple method to start a smooth dash (4 configurable parameters + optional particles)
