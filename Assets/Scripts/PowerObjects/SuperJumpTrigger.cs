@@ -19,17 +19,21 @@ public class SuperJumpTrigger : NetworkBehaviour
         if (!IsServer) return; // server-authoritative
 
         var playerManager = other.GetComponent<PlayerPowerManager>();
-        if (playerManager != null && superJumpPower != null)
+        var networkObject = other.GetComponentInParent<NetworkObject>();
+        if (playerManager != null && superJumpPower != null && networkObject != null)
         {
 #if debug
             Debug.Log("<color=#00FFAA><b>[SuperJumpTrigger]</b></color> <color=yellow>Player entered trigger. Activating SuperJumpPower.</color>");
 #endif
             playerManager.OnServerPowerObjectCollision(superJumpPower);
+            
+            // Notify only the client that owns this player (similar to dash trigger)
+            // Note: Super jump is server-authoritative, so no client RPC needed for physics
         }
 #if debug
         else
         {
-            Debug.Log("<color=#00FFAA><b>[SuperJumpTrigger]</b></color> <color=red>PlayerManager or SuperJumpPower missing on trigger enter.</color>");
+            Debug.Log("<color=#00FFAA><b>[SuperJumpTrigger]</b></color> <color=red>PlayerManager, SuperJumpPower, or NetworkObject missing on trigger enter.</color>");
         }
 #endif
     }
@@ -37,18 +41,26 @@ public class SuperJumpTrigger : NetworkBehaviour
     private void OnTriggerExit(Collider other)
     {
         if (!IsServer) return; // Only the server should handle power deactivation
-
-        var playerManager = other.GetComponent<PlayerPowerManager>();
-        if (playerManager != null)
+        
+        // Get the network controller to check if super jump is active
+        var networkController = other.GetComponent<NetworkThirdPersonController>();
+        if (networkController != null && networkController.IsSuperJumping())
         {
+            // Force end super jump if player exits trigger during super jump
+            networkController.SetSuperJumpState(false);
+            
 #if debug
-            Debug.Log("<color=#00FFAA><b>[SuperJumpTrigger]</b></color> <color=yellow>Player exited trigger. Deactivating SuperJumpPower.</color>");
+            Debug.Log("<color=#00FFAA><b>[SuperJumpTrigger]</b></color> <color=yellow>Player exited trigger during super jump - force stopping super jump.</color>");
 #endif
-            }
+        }
 #if debug
+        else if (networkController == null)
+        {
+            Debug.Log("<color=#00FFAA><b>[SuperJumpTrigger]</b></color> <color=red>NetworkController missing on trigger exit.</color>");
+        }
         else
         {
-            Debug.Log("<color=#00FFAA><b>[SuperJumpTrigger]</b></color> <color=red>PlayerManager missing on trigger exit.</color>");
+            Debug.Log("<color=#00FFAA><b>[SuperJumpTrigger]</b></color> <color=yellow>Player exited trigger (was not super jumping).</color>");
         }
 #endif
     }
