@@ -181,7 +181,23 @@ public class NetworkThirdPersonController : NetworkBehaviour
         cameraRight.Normalize();
 
         // Calculate camera-relative movement direction
-        Vector3 moveDirection = cameraForward * inputValue.y + cameraRight * inputValue.x;
+        Vector3 moveDirection;
+        
+        // If dashing, only allow left/right movement (no forward/backward)
+        if (isDashing)
+        {
+            moveDirection = cameraRight * inputValue.x; // Only left/right movement
+#if debug
+            if (enableMovementLogs && inputValue.y != 0)
+            {
+                Debug.Log($"<color=orange>[NetworkThirdPersonController]</color> <color=white>Dash mode: blocking forward/backward input ({inputValue.y}), allowing left/right ({inputValue.x})</color>");
+            }
+#endif
+        }
+        else
+        {
+            moveDirection = cameraForward * inputValue.y + cameraRight * inputValue.x; // Normal movement
+        }
 
 #if debug
         if (enableMovementLogs && hasInput)
@@ -191,13 +207,37 @@ public class NetworkThirdPersonController : NetworkBehaviour
 #endif
 
         // Apply movement with Fall Guys-style physics
-        Vector3 desiredVelocity = moveDirection * moveSpeed;
-        desiredVelocity.y = rb.linearVelocity.y; // Preserve vertical velocity
-
         Vector3 beforeVelocity = rb.linearVelocity;
-
-        // Clamp to max speed to prevent teleporting
-        rb.linearVelocity = Vector3.ClampMagnitude(desiredVelocity, maxSpeed);
+        
+        if (isDashing)
+        {
+            // During dash, only apply lateral (left/right) movement adjustments
+            Vector3 lateralVelocity = moveDirection * moveSpeed;
+            Vector3 currentVelocity = rb.linearVelocity;
+            
+            // Keep forward dash speed, only modify left/right component
+            Vector3 forwardComponent = Vector3.Project(currentVelocity, transform.forward);
+            Vector3 newVelocity = forwardComponent + lateralVelocity;
+            newVelocity.y = currentVelocity.y; // Preserve vertical velocity
+            
+            rb.linearVelocity = newVelocity;
+            
+#if debug
+            if (enableMovementLogs && hasInput)
+            {
+                Debug.Log($"<color=orange>[NetworkThirdPersonController]</color> <color=white>Dash movement - Lateral: {lateralVelocity}, Forward: {forwardComponent}, Final: {newVelocity}</color>");
+            }
+#endif
+        }
+        else
+        {
+            // Normal movement
+            Vector3 desiredVelocity = moveDirection * moveSpeed;
+            desiredVelocity.y = rb.linearVelocity.y; // Preserve vertical velocity
+            
+            // Clamp to max speed to prevent teleporting
+            rb.linearVelocity = Vector3.ClampMagnitude(desiredVelocity, maxSpeed);
+        }
 
 #if debug
         if (enableMovementLogs && hasInput)
