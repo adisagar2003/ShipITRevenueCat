@@ -61,6 +61,9 @@ public class NetworkThirdPersonController : NetworkBehaviour
     
     // Simple dash state tracking
     private bool isDashing = false;
+    
+    // Simple super jump state tracking
+    private bool isSuperJumping = false;
 
     // Input cache
     private Vector2 inputValue;
@@ -497,5 +500,17 @@ public class NetworkThirdPersonController : NetworkBehaviour
     public bool IsDashing()
     {
         return isDashing;
+    }
+
+    // Simple methods to control super jump state
+    public void SetSuperJumpState(bool superJumping)
+    {
+        isSuperJumping = superJumping;
+        Debug.Log($"<color=purple>[NetworkThirdPersonController]</color> Super jump state set to: {superJumping}");
+    }
+
+    public bool IsSuperJumping()
+    {
+        return isSuperJumping;
     }
 }

@@ -119,30 +119,104 @@ public class PlayerPowerManager : NetworkBehaviour
         currentPower.ApplyEffect(gameObject);
     }
 
-    public void StartSuperJump(float jumpForce, float jumpDuration)
+    // Simple method to start a smooth super jump (3 configurable parameters + optional particles)
+    public void StartSmoothSuperJump(float jumpForce, float jumpDuration, float airControl = 0.5f, ParticleSystem particles = null)
     {
 #if debug
-        Debug.Log($"<color=#00FFAA><b>[PlayerPowerManager]</b></color> <color=yellow>Starting gradual super jump for {gameObject.name}: force={jumpForce}, duration={jumpDuration}s.</color>");
+        Debug.Log($"<color=#00FFAA><b>[PlayerPowerManager]</b></color> <color=yellow>Starting smooth super jump for {gameObject.name}.</color>");
 #endif
-        StartCoroutine(SuperJumpCoroutine(jumpForce, jumpDuration));
+        StartCoroutine(SuperJumpSequence(jumpForce, jumpDuration, airControl, particles));
     }
 
-    private IEnumerator SuperJumpCoroutine(float jumpForce, float duration)
+    // Main super jump sequence - broken into simple steps
+    private IEnumerator SuperJumpSequence(float jumpForce, float duration, float airControl, ParticleSystem particles = null)
     {
+        var networkController = GetComponent<NetworkThirdPersonController>();
+        if (networkController == null) yield break;
+
+        // Step 1: Start the super jump
+        StartSuperJumpHelper(networkController, jumpForce);
+        StartSuperJumpParticles(particles);
+        
+        // Step 2: Apply upward force over time (server authoritative)
+        yield return StartCoroutine(ApplySuperJumpForce(jumpForce, duration));
+        
+        // Step 3: End the super jump
+        EndSuperJump(networkController);
+        StopSuperJumpParticles(particles);
+    }
+
+    // Step 1: Simple method to start super jump
+    private void StartSuperJumpHelper(NetworkThirdPersonController controller, float jumpForce)
+    {
+        Debug.Log($"<color=purple>[PlayerPowerManager]</color> Starting super jump!");
+        controller.SetSuperJumpState(true);
+    }
+
+    // Step 2: Apply upward force over time (server authoritative)
+    private IEnumerator ApplySuperJumpForce(float jumpForce, float duration)
+    {
+        Debug.Log($"<color=purple>[PlayerPowerManager]</color> Applying super jump force over {duration}s!");
+        
         float elapsed = 0f;
-        var rb = GetComponent<Rigidbody>();
+        
         while (elapsed < duration)
         {
-            if (rb != null)
-            {
-                rb.AddForce(Vector3.up * (jumpForce * Time.fixedDeltaTime / duration), ForceMode.Force);
-            }
+            float progress = elapsed / duration; // Goes from 0 to 1
+            // Start strong, get weaker over time
+            float currentForce = Mathf.Lerp(jumpForce, jumpForce * 0.2f, progress);
+            
+            ApplySuperJumpUpwardForce(currentForce);
+            
             elapsed += Time.fixedDeltaTime;
             yield return new WaitForFixedUpdate();
         }
-#if debug
-        Debug.Log($"<color=#00FFAA><b>[PlayerPowerManager]</b></color> <color=yellow>Super jump finished for {gameObject.name}.</color>");
-#endif
+    }
+
+    // Step 3: Simple method to end super jump
+    private void EndSuperJump(NetworkThirdPersonController controller)
+    {
+        Debug.Log($"<color=purple>[PlayerPowerManager]</color> Ending super jump!");
+        controller.SetSuperJumpState(false);
+    }
+
+    // Helper method to apply upward force (server authoritative)
+    private void ApplySuperJumpUpwardForce(float force)
+    {
+        if (!IsServer) return; // Server authoritative - only server applies physics forces
+        
+        Vector3 upwardForce = Vector3.up * (force * Time.fixedDeltaTime);
+        rb.AddForce(upwardForce, ForceMode.Force);
+    }
+
+    // Simple method to start particle effect
+    private void StartSuperJumpParticles(ParticleSystem particles)
+    {
+        if (particles != null)
+        {
+            particles.Play();
+            Debug.Log($"<color=purple>[PlayerPowerManager]</color> Started super jump particles!");
+        }
+        else
+        {
+            Debug.Log($"<color=yellow>[PlayerPowerManager]</color> No particles assigned for super jump.");
+        }
+    }
+
+    // Simple method to stop particle effect
+    private void StopSuperJumpParticles(ParticleSystem particles)
+    {
+        if (particles != null)
+        {
+            particles.Stop();
+            Debug.Log($"<color=purple>[PlayerPowerManager]</color> Stopped super jump particles!");
+        }
+    }
+
+    // Backward compatibility method for existing SuperJumpPower usage
+    public void StartSuperJump(float jumpForce, float jumpDuration)
+    {
+        StartSmoothSuperJump(jumpForce, jumpDuration, 0.5f, null);
     }
 
     // Simple method to start a smooth dash (4 configurable parameters + optional particles)
@@ -163,21 +237,22 @@ public class PlayerPowerManager : NetworkBehaviour
         // Step 1: Start the dash
         StartDash(networkController, targetSpeed);
         StartDashParticles(particles);
-        
+
         // Step 2: Speed up smoothly
         yield return StartCoroutine(AccelerateDash(targetSpeed, accelTime));
-        
+
         // Step 3: Keep dash speed
         yield return StartCoroutine(MaintainDash(targetSpeed, dashTime - accelTime));
-        
-        // Step 4: Slow down smoothly  
+
+        // Step 4: Slow down smoothly
         yield return StartCoroutine(DecelerateDash(targetSpeed, decelTime));
-        
+
         // Step 5: End the dash
         EndDash(networkController);
         StopDashParticles(particles);
     }
 
+    private static float particleYOffset = .3f;
     // Step 1: Simple method to start dash
     private void StartDash(NetworkThirdPersonController controller, float targetSpeed)
     {
@@ -189,17 +264,17 @@ public class PlayerPowerManager : NetworkBehaviour
     private IEnumerator AccelerateDash(float targetSpeed, float accelTime)
     {
         Debug.Log($"<color=green>[PlayerPowerManager]</color> Accelerating to {targetSpeed}!");
-        
+
         float startSpeed = rb.linearVelocity.magnitude;
         float elapsed = 0f;
-        
+
         while (elapsed < accelTime)
         {
             float progress = elapsed / accelTime; // Goes from 0 to 1
             float currentSpeed = Mathf.Lerp(startSpeed, targetSpeed, progress);
-            
+
             ApplyDashSpeed(currentSpeed);
-            
+
             elapsed += Time.fixedDeltaTime;
             yield return new WaitForFixedUpdate();
         }
@@ -209,7 +284,7 @@ public class PlayerPowerManager : NetworkBehaviour
     private IEnumerator MaintainDash(float targetSpeed, float maintainTime)
     {
         Debug.Log($"<color=green>[PlayerPowerManager]</color> Maintaining speed {targetSpeed}!");
-        
+
         float elapsed = 0f;
         while (elapsed < maintainTime)
         {
@@ -223,17 +298,17 @@ public class PlayerPowerManager : NetworkBehaviour
     private IEnumerator DecelerateDash(float startSpeed, float decelTime)
     {
         Debug.Log($"<color=green>[PlayerPowerManager]</color> Decelerating from {startSpeed}!");
-        
+
         float endSpeed = 5f; // Back to normal movement speed
         float elapsed = 0f;
-        
+
         while (elapsed < decelTime)
         {
             float progress = elapsed / decelTime; // Goes from 0 to 1
             float currentSpeed = Mathf.Lerp(startSpeed, endSpeed, progress);
-            
+
             ApplyDashSpeed(currentSpeed);
-            
+
             elapsed += Time.fixedDeltaTime;
             yield return new WaitForFixedUpdate();
         }
@@ -257,6 +332,7 @@ public class PlayerPowerManager : NetworkBehaviour
     // Simple method to start particle effect
     private void StartDashParticles(ParticleSystem particles)
     {
+        particles.transform.position = rb.transform.position + new Vector3(0,particleYOffset,0); // Add some upwards offset for visibility.
         if (particles != null)
         {
             particles.Play();
@@ -267,6 +343,7 @@ public class PlayerPowerManager : NetworkBehaviour
             Debug.Log($"<color=yellow>[PlayerPowerManager]</color> No particles assigned for dash.");
         }
     }
+
 
     // Simple method to stop particle effect
     private void StopDashParticles(ParticleSystem particles)

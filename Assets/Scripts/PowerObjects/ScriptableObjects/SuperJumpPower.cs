@@ -1,44 +1,43 @@
 #define debug
-using System.Collections;
-using System.Collections.Generic;
-using Unity.Netcode;
 using UnityEngine;
-
 
 [CreateAssetMenu(menuName = "Player/Special Powers/Super Jump Power")]
 public class SuperJumpPower : SpecialPower
 {
-    [SerializeField] private float jumpForce = 100f;
-    [SerializeField] private float jumpDuration = 1f; // Duration for which the jump force is applied
+    [Header("Super Jump Settings - Easy to Tweak")]
+    [SerializeField] private float jumpForce = 100f;          // How strong the jump is
+    [SerializeField] private float jumpDuration = 1f;        // How long the jump lasts  
+    [SerializeField] private float airControl = 0.5f;        // How much movement control in air
+    
+    [Header("Visual Effects")]
+    [SerializeField] private ParticleSystem jumpParticles;   // Optional particle effect
 
     public override void ApplyEffect(GameObject player)
     {
-        var playerManager = player.GetComponent<PlayerPowerManager>();
-        if (playerManager != null)
+        var playerPowerManager = player.GetComponent<PlayerPowerManager>();
+        var networkController = player.GetComponent<NetworkThirdPersonController>();
+        
+        if (playerPowerManager != null && networkController != null)
         {
 #if debug
-            Debug.Log($"<color=#00FFAA><b>[SuperJumpPower]</b></color> <color=yellow>Triggering gradual super jump: {jumpForce} for {jumpDuration}s on {player.name}.</color>");
+            Debug.Log($"<color=#00FFAA><b>[SuperJumpPower]</b></color> <color=yellow>Starting smooth super jump for player {player.name}.</color>");
 #endif
-            playerManager.StartSuperJump(jumpForce, jumpDuration);
+            // Call our simple method with server authority
+            playerPowerManager.StartSmoothSuperJump(jumpForce, jumpDuration, airControl, jumpParticles);
         }
 #if debug
         else
         {
-            Debug.Log("<color=#00FFAA><b>[SuperJumpPower]</b></color> <color=red>PlayerPowerManager not found on player.</color>");
+            Debug.Log("<color=#00FFAA><b>[SuperJumpPower]</b></color> <color=red>Required components not found on player.</color>");
         }
 #endif
     }
 
-    [Rpc(SendTo.ClientsAndHost)]
     public void OnEffectAppliedClientRpc(GameObject player)
     {
 #if debug
         Debug.Log($"<color=#00FFAA><b>[SuperJumpPower]</b></color> <color=green>Super jump effect applied on client for player {player.name}.</color>");
 #endif
-        var rb = player.GetComponent<Rigidbody>();
-        if (rb != null)
-        {
-            rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
-        }
+        // No client-side physics - server authoritative only!
     }
 }
