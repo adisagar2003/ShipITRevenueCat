@@ -197,6 +197,17 @@ public class NetworkThirdPersonController : NetworkBehaviour
             }
 #endif
         }
+        // If super jumping, allow reduced air control
+        else if (isSuperJumping)
+        {
+            moveDirection = (cameraForward * inputValue.y + cameraRight * inputValue.x) * 0.3f; // Reduced air control
+#if debug
+            if (enableMovementLogs && hasInput)
+            {
+                Debug.Log($"<color=purple>[NetworkThirdPersonController]</color> <color=white>Super jump mode: reduced air control ({inputValue})</color>");
+            }
+#endif
+        }
         else
         {
             moveDirection = cameraForward * inputValue.y + cameraRight * inputValue.x; // Normal movement
