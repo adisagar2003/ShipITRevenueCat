@@ -19,16 +19,54 @@ public class PlayerPowerManager : NetworkBehaviour
 
     [Header("Trail Settings")]
     [SerializeField] private TrailRenderer dashTrailRenderer;
-
+    
+    [Header("Player Color Settings")]
+    [SerializeField] private Renderer[] playerRenderers;        // Renderers to apply color to
+    [SerializeField] private string materialColorProperty = "_BaseColor"; // Material property to modify
+    
     // Track instantiated particles so we can destroy them
     private ParticleSystem currentDashParticles = null;
     private ParticleSystem currentSuperJumpParticles = null;
+    
+    // Player color system
+    private NetworkVariable<Color> playerBaseColor = new NetworkVariable<Color>();
+    private Gradient playerGradient;
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
 #if debug
         Debug.Log($"<color=#00FF00><b>[PlayerPowerManager]</b></color> <color=cyan>Awake called for {gameObject.name}.</color>");
 #endif
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+        
+        // Only the server assigns colors to avoid conflicts
+        if (IsServer)
+        {
+            AssignRandomPlayerColor();
+        }
+        
+        // All clients subscribe to color changes
+        playerBaseColor.OnValueChanged += OnPlayerColorChanged;
+        
+        // Apply current color if it's already set
+        if (playerBaseColor.Value != Color.clear)
+        {
+            ApplyPlayerColor(playerBaseColor.Value);
+        }
+    }
+    
+    public override void OnNetworkDespawn()
+    {
+        // Unsubscribe from color changes
+        if (playerBaseColor != null)
+        {
+            playerBaseColor.OnValueChanged -= OnPlayerColorChanged;
+        }
+        base.OnNetworkDespawn();
     }
 
     private void Start()
@@ -355,6 +393,101 @@ public class PlayerPowerManager : NetworkBehaviour
             dashTrailRenderer.enabled = false;
             Debug.Log($"<color=green>[PlayerPowerManager]</color> Stopped dash trail effect!");
         }
+    }
+
+    // Color system methods
+    private void AssignRandomPlayerColor()
+    {
+        // Generate a random vibrant color
+        Color randomColor = GenerateRandomVibrantColor();
+        
+        // Set the network variable - this will sync to all clients
+        playerBaseColor.Value = randomColor;
+        
+        // Create gradient from random color to white
+        CreateColorGradient(randomColor);
+        
+        Debug.Log($"<color={ColorToHex(randomColor)}>[PlayerPowerManager]</color> Assigned random color: {randomColor} to player {gameObject.name}");
+    }
+    
+    private Color GenerateRandomVibrantColor()
+    {
+        // Generate vibrant colors by ensuring at least one channel is high
+        float r = UnityEngine.Random.Range(0.3f, 1f);
+        float g = UnityEngine.Random.Range(0.3f, 1f);
+        float b = UnityEngine.Random.Range(0.3f, 1f);
+        
+        // Boost one random channel to maximum for vibrancy
+        int maxChannel = UnityEngine.Random.Range(0, 3);
+        switch (maxChannel)
+        {
+            case 0: r = 1f; break;
+            case 1: g = 1f; break;
+            case 2: b = 1f; break;
+        }
+        
+        return new Color(r, g, b, 1f);
+    }
+    
+    private void CreateColorGradient(Color baseColor)
+    {
+        playerGradient = new Gradient();
+        
+        // Create gradient keys: start with base color, fade to white
+        GradientColorKey[] colorKeys = new GradientColorKey[2];
+        colorKeys[0] = new GradientColorKey(baseColor, 0f);     // Start with base color
+        colorKeys[1] = new GradientColorKey(Color.white, 1f);   // End with white
+        
+        // Alpha keys (fully opaque)
+        GradientAlphaKey[] alphaKeys = new GradientAlphaKey[2];
+        alphaKeys[0] = new GradientAlphaKey(1f, 0f);
+        alphaKeys[1] = new GradientAlphaKey(1f, 1f);
+        
+        playerGradient.SetKeys(colorKeys, alphaKeys);
+    }
+    
+    private void OnPlayerColorChanged(Color oldColor, Color newColor)
+    {
+        ApplyPlayerColor(newColor);
+    }
+    
+    private void ApplyPlayerColor(Color color)
+    {
+        CreateColorGradient(color);
+        
+        if (playerRenderers != null)
+        {
+            foreach (var playerRenderer in playerRenderers)
+            {
+                if (playerRenderer != null && playerRenderer.material != null)
+                {
+                    // Apply the base color to the material
+                    if (playerRenderer.material.HasProperty(materialColorProperty))
+                    {
+                        playerRenderer.material.SetColor(materialColorProperty, color);
+                    }
+                }
+            }
+        }
+        
+        Debug.Log($"<color={ColorToHex(color)}>[PlayerPowerManager]</color> Applied color {color} to player {gameObject.name}");
+    }
+    
+    private string ColorToHex(Color color)
+    {
+        return $"#{ColorUtility.ToHtmlStringRGB(color)}";
+    }
+    
+    // Public method to get current player gradient (useful for effects)
+    public Gradient GetPlayerGradient()
+    {
+        return playerGradient;
+    }
+    
+    // Public method to get current player base color
+    public Color GetPlayerBaseColor()
+    {
+        return playerBaseColor.Value;
     }
 
 
