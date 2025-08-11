@@ -24,13 +24,13 @@ public class JumpCommand : ICommand
     public void Execute()
     {
         bool jumpPressed = inputManager.GetJumpPressed();
-        
+
         if (jumpPressed)
         {
 #if debug
             UnityEngine.Debug.Log($"<color=cyan>[JumpCommand]</color> <color=white>Jump input detected - executing jump</color>");
 #endif
-            
+
             if (playerMovement != null)
             {
 #if debug

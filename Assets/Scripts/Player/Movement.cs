@@ -13,6 +13,9 @@ using System;
     [SerializeField] private bool canMove = false;
     [SerializeField] private float jumpEnergy = 10.0f;
     [SerializeField] private bool testMode = false;
+    
+    // Simple dash state tracking
+    private bool isDashing = false;
 
     // Ground check
     [SerializeField] private Transform groundCheckRaycastOriginPoint;
@@ -232,6 +235,18 @@ using System;
         }
         
         rb.AddForce(Vector3.up * jumpEnergy, ForceMode.Impulse);
+    }
+
+    // Simple methods to control dash state
+    public void SetDashState(bool dashing)
+    {
+        isDashing = dashing;
+        Debug.Log($"<color=orange>[Movement]</color> Dash state set to: {dashing}");
+    }
+
+    public bool IsDashing()
+    {
+        return isDashing;
     }
 
     // Simplified debug - edge detection gizmos are now in EdgeDetection component

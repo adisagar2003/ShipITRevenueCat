@@ -201,8 +201,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 996032748}
   m_HandleRect: {fileID: 996032747}
   m_Direction: 2
-  m_Value: -0.000005348748
-  m_Size: 0.48429143
+  m_Value: -0.0000009905089
+  m_Size: 0.48649296
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -1299,7 +1299,7 @@ MonoBehaviour:
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
-          m_StringArgument: random1
+          m_StringArgument: random1Lobby
           m_BoolArgument: 0
         m_CallState: 2
 --- !u!114 &827546370
@@ -1631,7 +1631,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 154.05083}
+  m_AnchoredPosition: {x: 0, y: 154.05016}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &998687371

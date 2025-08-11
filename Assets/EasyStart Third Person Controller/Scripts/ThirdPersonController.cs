@@ -103,18 +103,18 @@ public class ThirdPersonController : MonoBehaviour
         Vector3 verticalDirection = Vector3.up * directionY;
         Vector3 horizontalDirection = forward + right;
 
-        Vector3 moviment = verticalDirection + horizontalDirection;
+        Vector3 movement = verticalDirection + horizontalDirection;
 
         // Apply the calculated movement to the rigidbody
-        rb.linearVelocity = moviment;
+        rb.linearVelocity = movement;
     }
-    
+
     // Public methods for command pattern integration
     public void Move(Vector2 input)
     {
         currentInput = input;
     }
-    
+
     public void Jump()
     {
         // Only jump if not already jumping (simple ground check)

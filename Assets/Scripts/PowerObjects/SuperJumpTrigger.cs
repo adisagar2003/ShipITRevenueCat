@@ -1,4 +1,3 @@
-#define debug
 
 using System.Collections;
 using System.Collections.Generic;

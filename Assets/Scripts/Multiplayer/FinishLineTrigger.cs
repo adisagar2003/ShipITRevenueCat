@@ -15,7 +15,7 @@ public class FinishLineTrigger : NetworkBehaviour
     {
         if (!IsServer) return; // Only server determines finish order
 
-        NetworkObject netObj = other.GetComponent<NetworkObject>();
+        NetworkObject netObj = other.GetComponentInParent<NetworkObject>(); // parent third person component has NetworkObject.
         if (netObj == null) return; // Only consider objects with NetworkObject
 
         ulong clientId = netObj.OwnerClientId;
@@ -33,7 +33,7 @@ public class FinishLineTrigger : NetworkBehaviour
         if (RaceResultsManager.Instance != null)
         {
             RaceResultsManager.Instance.RecordPlayerFinish(clientId, playerName);
-            
+
 #if debug
             string finishPosition = finishedClients.Count == 1 ? "FIRST" : "SECOND";
             Debug.Log($"<color=#FFD700><b>[FinishLineTrigger]</b></color> <color=yellow>Player {playerName} (ClientId {clientId}) finished {finishPosition}!</color>");
