@@ -285,37 +285,47 @@ public class LeaderboardManager : NetworkBehaviour
 
     /// <summary>
     /// Public method called by BackToLobby button.
-    /// Returns all players to the lobby scene.
+    /// Handles client disconnect vs server shutdown scenarios properly.
     /// </summary>
     public void BackToLobby()
     {
+        ulong requestingClientId = NetworkManager.Singleton.LocalClientId;
+        
 #if debug
-        Debug.Log($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=orange>BackToLobby button pressed</color>");
+        Debug.Log($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=orange>BackToLobby pressed by client {requestingClientId} (IsHost: {IsHost}, IsServer: {IsServer})</color>");
 #endif
 
-        // Only server can initiate scene transitions
-        if (!IsServer)
+        if (IsHost || IsServer)
         {
-#if debug
-            Debug.Log($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=yellow>Requesting server to return to lobby...</color>");
-#endif
-            RequestBackToLobbyServerRpc();
-            return;
+            // Host/Server wants to end session - disconnect all players
+            HandleHostBackToLobby();
         }
+        else
+        {
+            // Client wants to leave - only disconnect this client
+            HandleClientBackToLobby();
+        }
+    }
+    
+    /// <summary>
+    /// Handles when host/server wants to end the session - disconnects all clients
+    /// </summary>
+    private void HandleHostBackToLobby()
+    {
+#if debug
+        Debug.Log($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=red>Host disconnecting - shutting down session for all players</color>");
+#endif
 
-        // Server logic: Clear results and return to lobby
+        // Clear race results
         if (RaceResultsManager.Instance != null)
         {
             RaceResultsManager.Instance.ClearResults();
         }
 
-        // Find GameManager and call existing lobby return method
+        // Use GameManager to properly disconnect all clients
         GameManager gameManager = FindFirstObjectByType<GameManager>();
         if (gameManager != null)
         {
-#if debug
-            Debug.Log($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=green>Initiating return to lobby via GameManager</color>");
-#endif
             gameManager.PutPlayersBackToLobby();
         }
         else
@@ -323,22 +333,47 @@ public class LeaderboardManager : NetworkBehaviour
 #if debug
             Debug.LogError($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=red>GameManager not found!</color>");
 #endif
-            // Fallback: Direct scene load
-            NetworkManager.SceneManager.LoadScene(lobbySceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
+            // Fallback: Direct scene load and shutdown
+            NetworkManager.Singleton.Shutdown();
+            UnityEngine.SceneManagement.SceneManager.LoadScene(lobbySceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
         }
     }
-
+    
     /// <summary>
-    /// Server RPC to handle back to lobby requests from clients
+    /// Handles when a client wants to leave - only disconnects the requesting client
     /// </summary>
-    [Rpc(SendTo.Server)]
-    private void RequestBackToLobbyServerRpc()
+    private void HandleClientBackToLobby()
     {
 #if debug
-        Debug.Log($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=cyan>Server received BackToLobby request</color>");
+        Debug.Log($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=yellow>Client requesting to leave session</color>");
 #endif
-        BackToLobby();
+
+        // Client disconnects immediately and returns to lobby
+        StartCoroutine(DisconnectClientAndReturnToLobby());
     }
+    
+    /// <summary>
+    /// Coroutine to handle clean client disconnect and return to lobby
+    /// </summary>
+    private System.Collections.IEnumerator DisconnectClientAndReturnToLobby()
+    {
+        // Small delay to ensure any final network messages are sent
+        yield return new WaitForSeconds(0.1f);
+        
+#if debug
+        Debug.Log($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=cyan>Client disconnecting and returning to lobby</color>");
+#endif
+
+        // Disconnect from network session
+        if (NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.Shutdown();
+        }
+        
+        // Return to lobby scene
+        UnityEngine.SceneManagement.SceneManager.LoadScene(lobbySceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
+    }
+
 
     /// <summary>
     /// Validates UI references in the editor
