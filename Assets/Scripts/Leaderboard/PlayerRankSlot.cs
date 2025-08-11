@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
@@ -11,10 +12,15 @@ public class PlayerRankSlot : MonoBehaviour
     [Header("UI References")]
     [SerializeField] private TextMeshProUGUI rankText;
     [SerializeField] private TextMeshProUGUI playerNameText;
+    [SerializeField] private RectTransform panelRectTransform; // Panel background to resize
 
     [Header("Rank Display Settings")]
     [SerializeField] private string rankFormat = "#{0}";  // Format for rank display (e.g., "#1", "#2")
-    [SerializeField] private int maxNameLength = 20;      // Maximum character length for player names
+    [SerializeField] private int maxNameLength = 20;
+    
+    [Header("Panel Auto-Sizing")]
+    [SerializeField] private Vector2 panelPadding = new Vector2(20f, 10f); // Extra padding around text
+    [SerializeField] private bool autoSizePanel = true; // Enable/disable auto-sizing
 
     /// <summary>
     /// Updates the rank slot with the provided player data.
@@ -24,13 +30,11 @@ public class PlayerRankSlot : MonoBehaviour
     /// <param name="playerName">The player's display name</param>
     public void SetData(int rank, string playerName)
     {
-        // Update rank text with formatting
         if (rankText != null)
         {
             rankText.text = string.Format(rankFormat, rank);
         }
 
-        // Update player name text with length limiting
         if (playerNameText != null)
         {
             // Truncate name if it exceeds maximum length
@@ -39,12 +43,18 @@ public class PlayerRankSlot : MonoBehaviour
             {
                 displayName = displayName.Substring(0, maxNameLength - 3) + "...";
             }
-            
+
             playerNameText.text = displayName;
         }
 
         // Apply special styling for top positions
         ApplyRankStyling(rank);
+        
+        // Auto-size panel to fit text content
+        if (autoSizePanel)
+        {
+            StartCoroutine(AutoSizePanelAfterTextUpdate());
+        }
     }
 
     /// <summary>
@@ -91,12 +101,72 @@ public class PlayerRankSlot : MonoBehaviour
     }
 
     /// <summary>
+    /// Coroutine to auto-size the panel after text has been updated.
+    /// Waits one frame for text to render before calculating bounds.
+    /// </summary>
+    private System.Collections.IEnumerator AutoSizePanelAfterTextUpdate()
+    {
+        // Wait one frame for text to update and calculate bounds
+        yield return null;
+        
+        AutoSizePanel();
+    }
+    
+    /// <summary>
+    /// Auto-sizes the panel background to fit the text content with padding.
+    /// </summary>
+    private void AutoSizePanel()
+    {
+        if (panelRectTransform == null) return;
+        
+        // Calculate combined bounds of both text elements
+        Vector2 totalTextSize = CalculateCombinedTextSize();
+        
+        // Add padding to the text size
+        Vector2 panelSize = totalTextSize + panelPadding;
+        
+        // Apply the new size to the panel
+        panelRectTransform.sizeDelta = panelSize;
+        
+        // Debug log for verification
+        #if UNITY_EDITOR
+        Debug.Log($"[PlayerRankSlot] Panel auto-sized to {panelSize} (text: {totalTextSize}, padding: {panelPadding})");
+        #endif
+    }
+    
+    /// <summary>
+    /// Calculates the combined size needed to display both rank and player name text.
+    /// </summary>
+    /// <returns>The minimum size needed to contain both text elements</returns>
+    private Vector2 CalculateCombinedTextSize()
+    {
+        Vector2 totalSize = Vector2.zero;
+        
+        // Get preferred size from rank text
+        if (rankText != null)
+        {
+            Vector2 rankSize = rankText.GetPreferredValues();
+            totalSize.x += rankSize.x;
+            totalSize.y = Mathf.Max(totalSize.y, rankSize.y);
+        }
+        
+        // Get preferred size from player name text
+        if (playerNameText != null)
+        {
+            Vector2 nameSize = playerNameText.GetPreferredValues();
+            totalSize.x += nameSize.x;
+            totalSize.y = Mathf.Max(totalSize.y, nameSize.y);
+        }
+        
+        return totalSize;
+    }
+
+    /// <summary>
     /// Validates that all required UI components are assigned.
     /// Called automatically by Unity when the object is validated in the editor.
     /// </summary>
     private void OnValidate()
     {
-        // Help developers catch missing references in the editor
         if (rankText == null)
         {
             Debug.LogWarning($"[PlayerRankSlot] rankText is not assigned on {gameObject.name}", this);
@@ -106,19 +176,11 @@ public class PlayerRankSlot : MonoBehaviour
         {
             Debug.LogWarning($"[PlayerRankSlot] playerNameText is not assigned on {gameObject.name}", this);
         }
+        
+        if (panelRectTransform == null && autoSizePanel)
+        {
+            Debug.LogWarning($"[PlayerRankSlot] panelRectTransform is not assigned but autoSizePanel is enabled on {gameObject.name}", this);
+        }
     }
 
-    /// <summary>
-    /// Alternative method to set data with additional player information.
-    /// Can be extended in the future for more complex leaderboard data.
-    /// </summary>
-    /// <param name="rank">The player's rank position</param>
-    /// <param name="playerName">The player's display name</param>
-    /// <param name="score">The player's score (optional, for future use)</param>
-    public void SetData(int rank, string playerName, int score)
-    {
-        SetData(rank, playerName);
-        // Future implementation: could display score or other stats
-        // For now, just call the basic SetData method
-    }
 }

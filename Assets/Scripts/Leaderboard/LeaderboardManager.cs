@@ -21,6 +21,10 @@ public class LeaderboardManager : NetworkBehaviour
     [SerializeField] private float slotSpacing = -70f;         // Y spacing between slots
     [SerializeField] private float populationDelay = 0.5f;     // Delay before populating UI
     
+    [Header("Position Settings")]
+    [SerializeField] private Vector3 slotOffset = Vector3.zero; // Additional transform offset for slots
+    [SerializeField] private float firstSlotYPosition = 0f;     // Starting Y position for first slot
+    
     [Header("Winner Celebration")]
     [SerializeField] private GameObject winnerCelebrationEffect; // Optional winner celebration
     [SerializeField] private AudioClip victorySound;           // Optional victory sound
@@ -109,26 +113,38 @@ public class LeaderboardManager : NetworkBehaviour
         // Clear any existing slots
         ClearLeaderboard();
 
+        // Count valid results first to properly size array
+        int validResultsCount = 0;
+        foreach (var result in raceResults)
+        {
+            if (result.clientId != 0) validResultsCount++;
+        }
+        
         // Create array to track instantiated slots
-        instantiatedSlots = new PlayerRankSlot[raceResults.Length];
+        instantiatedSlots = new PlayerRankSlot[validResultsCount];
 
         // Sort results: Winner first, then by finish time
         var sortedResults = SortRaceResults(raceResults);
 
-        // Instantiate PlayerRankSlot for each result
+        // Instantiate PlayerRankSlot for each valid result
+        int validSlotPosition = 0; // Separate counter for valid slots only
         for (int i = 0; i < sortedResults.Length; i++)
         {
             var result = sortedResults[i];
             
-            // Skip empty results
+            // Skip empty results but don't affect positioning
             if (result.clientId == 0) continue;
 
             // Instantiate slot prefab
             GameObject slotObject = Instantiate(playerRankSlotPrefab.gameObject, contentParent);
             PlayerRankSlot slot = slotObject.GetComponent<PlayerRankSlot>();
 
-            // Position the slot
-            Vector3 position = new Vector3(0, i * slotSpacing, 0);
+            // Position the slot with proper offset and spacing
+            Vector3 position = new Vector3(
+                slotOffset.x, 
+                firstSlotYPosition + (validSlotPosition * slotSpacing) + slotOffset.y, 
+                slotOffset.z
+            );
             slotObject.transform.localPosition = position;
 
             // Determine rank (1 for winner, 2 for loser in 2-player race)
@@ -141,12 +157,15 @@ public class LeaderboardManager : NetworkBehaviour
             // Set slot data
             slot.SetData(rank, displayName);
 
-            // Store reference
-            instantiatedSlots[i] = slot;
+            // Store reference using validSlotPosition index
+            instantiatedSlots[validSlotPosition] = slot;
+            
+            // Increment valid slot position counter
+            validSlotPosition++;
 
 #if debug
             string status = result.isWinner ? "WINNER" : (result.hasFinished ? "FINISHED" : "DNF");
-            Debug.Log($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=cyan>Slot {i + 1}: {playerName} - {status} ({result.finishTime:F2}s)</color>");
+            Debug.Log($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=cyan>Slot {validSlotPosition}: {playerName} - {status} ({result.finishTime:F2}s)</color>");
 #endif
         }
 
