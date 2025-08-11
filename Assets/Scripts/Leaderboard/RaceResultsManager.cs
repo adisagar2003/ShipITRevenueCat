@@ -16,12 +16,15 @@ public class RaceResultsManager : NetworkBehaviour
     [Header("Race Settings")]
     [SerializeField] private float leaderboardDelaySeconds = 3f;  // Delay before showing leaderboard
     
-    // Race results data structure
+    [Header("Scene Management")]
+    [SerializeField] private string leaderboardSceneName = "Leaderboard"; // Scene to transition to after race
+
+    // This is a custom object synced across clients and server for reading and writing.
     [System.Serializable]
     public struct PlayerRaceResult : INetworkSerializable
     {
         public ulong clientId;
-        public FixedString64Bytes playerName;
+        public string playerName;
         public float finishTime;
         public bool isWinner;
         public bool hasFinished;
@@ -63,7 +66,7 @@ public class RaceResultsManager : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
-        
+
         if (IsServer)
         {
             InitializeRace();
@@ -159,14 +162,14 @@ public class RaceResultsManager : NetworkBehaviour
 
         // Find unfinished players and mark them as DNF
         var connectedClients = NetworkManager.Singleton.ConnectedClientsList;
-        
+
         // Get list of already finished client IDs
         var finishedClientIds = new System.Collections.Generic.HashSet<ulong>();
         for (int i = 0; i < finishedPlayerCount; i++)
         {
             finishedClientIds.Add(raceResults[i].clientId);
         }
-        
+
         // Mark remaining connected clients as DNF
         foreach (var client in connectedClients)
         {
@@ -219,13 +222,13 @@ public class RaceResultsManager : NetworkBehaviour
 
         raceCompleted = true;
         isRaceActive.Value = false;
-
+        // Send data to all clients
+        SendRaceResultsClientRpc(raceResults);
 #if debug
         Debug.Log($"<color=#FF6B35><b>[RaceResultsManager]</b></color> <color=green>Transitioning to leaderboard scene...</color>");
 #endif
-
         // Use NetworkSceneManager to transition all clients
-        NetworkManager.SceneManager.LoadScene("Leaderboard", UnityEngine.SceneManagement.LoadSceneMode.Single);
+        NetworkManager.SceneManager.LoadScene(leaderboardSceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
     }
 
     /// <summary>
@@ -276,6 +279,15 @@ public class RaceResultsManager : NetworkBehaviour
     {
         return isRaceActive.Value;
     }
+
+    // Push race results to client before transitioning to the leaderboard.
+    [ClientRpc]
+    private void SendRaceResultsClientRpc(PlayerRaceResult[] results)
+    {
+        // Store locally for the leaderboard
+        raceResults = results;
+    }
+
 
     private void OnDestroy()
     {

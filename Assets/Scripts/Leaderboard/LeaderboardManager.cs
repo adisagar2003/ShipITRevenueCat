@@ -29,6 +29,9 @@ public class LeaderboardManager : NetworkBehaviour
     [SerializeField] private GameObject winnerCelebrationEffect; // Optional winner celebration
     [SerializeField] private AudioClip victorySound;           // Optional victory sound
     [SerializeField] private AudioSource audioSource;          // Audio source for sounds
+    
+    [Header("Scene Management")]
+    [SerializeField] private string lobbySceneName = "LobbyandHost"; // Scene to return to when leaving
 
     // Leaderboard state
     private bool isLeaderboardPopulated = false;
@@ -321,7 +324,7 @@ public class LeaderboardManager : NetworkBehaviour
             Debug.LogError($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=red>GameManager not found!</color>");
 #endif
             // Fallback: Direct scene load
-            NetworkManager.SceneManager.LoadScene("LobbyandHost", UnityEngine.SceneManagement.LoadSceneMode.Single);
+            NetworkManager.SceneManager.LoadScene(lobbySceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
         }
     }
 
