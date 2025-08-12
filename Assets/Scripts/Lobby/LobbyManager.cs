@@ -250,8 +250,24 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             return;
         }
 
+        // Ensure NetworkManager is in clean state before creating session
+        if (!IsNetworkManagerClean())
+        {
 #if debug
-        Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> ✅ All validations passed, starting session creation...");
+            Debug.LogWarning("<color=orange><b>[LOBBY WORKFLOW]</b></color> ⚠️ NetworkManager not in clean state, performing cleanup...");
+#endif
+            bool cleanupSuccess = await SafeShutdownNetworkManager();
+            if (!cleanupSuccess)
+            {
+#if debug
+                Debug.LogError("<color=red><b>[LOBBY WORKFLOW ERROR]</b></color> ❌ Failed to cleanup NetworkManager before session creation");
+#endif
+                return;
+            }
+        }
+
+#if debug
+        Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> ✅ All validations passed, NetworkManager clean, starting session creation...");
 #endif
 
         try
@@ -422,122 +438,203 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     }
 
     #endregion
-    #region Relay & Networking
-        public async void HostStartGame()
+    
+    #region Network State Management
+    /// <summary>
+    /// Checks if NetworkManager is in a clean state for starting new operations
+    /// </summary>
+    private bool IsNetworkManagerClean()
+    {
+        if (NetworkManager.Singleton == null) return false;
+        
+        bool isClean = !NetworkManager.Singleton.IsClient && 
+                      !NetworkManager.Singleton.IsServer && 
+                      !NetworkManager.Singleton.IsHost;
+                      
+#if debug
+        Debug.Log($"<color=cyan><b>[NETWORK STATE]</b></color> NetworkManager clean check - IsClient: {NetworkManager.Singleton.IsClient}, IsServer: {NetworkManager.Singleton.IsServer}, IsHost: {NetworkManager.Singleton.IsHost}, Clean: {isClean}");
+#endif
+        
+        return isClean;
+    }
+    
+    /// <summary>
+    /// Safely shuts down NetworkManager with proper cleanup
+    /// </summary>
+    private async Task<bool> SafeShutdownNetworkManager(float timeoutSeconds = 5f)
+    {
+        if (NetworkManager.Singleton == null) return true;
+        
+        if (!NetworkManager.Singleton.IsClient && !NetworkManager.Singleton.IsServer && !NetworkManager.Singleton.IsHost)
         {
-            if (currentSession == null)
-            {
 #if debug
-                Debug.LogWarning("No session available to start the game.");
+            Debug.Log("<color=cyan><b>[NETWORK STATE]</b></color> NetworkManager already clean, no shutdown needed");
 #endif
-                return;
-            }
-
-            if (NetworkManager.Singleton == null)
-            {
-#if debug
-                Debug.LogError("NetworkManager.Singleton is null, cannot start host.");
-#endif
-                return;
-            }
-
-            if (string.IsNullOrEmpty(gameSceneName))
-            {
-#if debug
-                Debug.LogError("Game scene name is not set.");
-#endif
-                return;
-            }
-
-            try
-            {
-                startingGameText?.SetActive(true);
-
-                // Step 1: Create a Relay Allocation
-#if debug
-                Debug.Log("Creating relay allocation...");
-#endif
-#pragma warning disable CS0436 // Type conflicts with imported type
-                var allocation = await Unity.Services.Relay.Relay.Instance.CreateAllocationAsync(maxPlayers - 1);
-#pragma warning restore CS0436
-
-                if (allocation == null)
-                    throw new InvalidOperationException("Failed to create relay allocation.");
-
-                // Step 2: Get the Join Code
-                string joinCode = await Unity.Services.Relay.Relay.Instance.GetJoinCodeAsync(allocation.AllocationId);
-
-                if (string.IsNullOrEmpty(joinCode))
-                    throw new InvalidOperationException("Failed to retrieve join code.");
-
-#if debug
-                Debug.Log($"Join code: {joinCode}");
-#endif
-
-                // Step 3: Configure Unity Transport for Relay
-                UnityTransport transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
-
-                if (transport == null)
-                    throw new InvalidOperationException("UnityTransport component not found.");
-
-                transport.SetHostRelayData(
-                    allocation.RelayServer.IpV4,
-                    (ushort)allocation.RelayServer.Port,
-                    allocation.AllocationIdBytes,
-                    allocation.Key,
-                    allocation.ConnectionData
-                );
-                var hostSession = currentSession.AsHost();
-
-                hostSession.SetProperty("GameStarted", new SessionProperty("true", VisibilityPropertyOptions.Public));
-                hostSession.SetProperty("JoinCode", new SessionProperty(joinCode, VisibilityPropertyOptions.Public));
-
-                await hostSession.SavePropertiesAsync();
-#if debug
-                Debug.Log("Session updated with game started and join code.");
-#endif
-
-                // Unity 6 Multiplayer Services automatically starts the host when using .WithRelayNetwork()
-                // Wait a moment for the host to initialize, then load the game scene
-                await Task.Delay(1000); // Give time for host initialization
-
-                if (NetworkManager.Singleton.IsHost)
-                {
-#if debug
-                    Debug.Log("Host started successfully by Multiplayer Services, loading game scene...");
-#endif
-                    NetworkManager.Singleton.SceneManager.LoadScene(gameSceneName, LoadSceneMode.Single);
-                }
-                else
-                {
-#if debug
-                    Debug.LogWarning("Expected to be host but NetworkManager.Singleton.IsHost is false");
-#endif
-                }
-            }
-            catch (SessionException se)
-            {
-#if debug
-                Debug.LogError($"Session error: {se.Message}");
-#endif
-            }
-            catch (System.Exception re) when (re.GetType().Name == "RelayServiceException")
-            {
-#if debug
-                Debug.LogError($"Relay error: {re.Message}");
-#endif
-            }
-            catch (Exception ex)
-            {
-#if debug
-                Debug.LogError($"Unexpected error starting host: {ex.Message}");
-#endif
-            }
-            finally
-            {
-                startingGameText?.SetActive(false);
-            }
+            return true;
         }
+        
+#if debug
+        Debug.Log("<color=orange><b>[NETWORK STATE]</b></color> Shutting down NetworkManager...");
+#endif
+        
+        try
+        {
+            NetworkManager.Singleton.Shutdown();
+            
+            // Wait for clean shutdown with timeout
+            float elapsed = 0f;
+            while ((NetworkManager.Singleton.IsClient || NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsHost) && elapsed < timeoutSeconds)
+            {
+                await Task.Delay(100);
+                elapsed += 0.1f;
+            }
+            
+            bool success = !NetworkManager.Singleton.IsClient && !NetworkManager.Singleton.IsServer && !NetworkManager.Singleton.IsHost;
+            
+#if debug
+            if (success)
+            {
+                Debug.Log("<color=green><b>[NETWORK STATE]</b></color> NetworkManager shutdown successful");
+            }
+            else
+            {
+                Debug.LogWarning($"<color=red><b>[NETWORK STATE]</b></color> NetworkManager shutdown timeout after {timeoutSeconds}s");
+            }
+#endif
+            
+            return success;
+        }
+        catch (Exception ex)
+        {
+#if debug
+            Debug.LogError($"<color=red><b>[NETWORK STATE ERROR]</b></color> Failed to shutdown NetworkManager: {ex.Message}");
+#endif
+            return false;
+        }
+    }
+    
+    /// <summary>
+    /// Prepares NetworkManager for hosting by ensuring clean state
+    /// </summary>
+    private async Task<bool> PrepareNetworkManagerForHost()
+    {
+        if (NetworkManager.Singleton == null)
+        {
+#if debug
+            Debug.LogError("<color=red><b>[NETWORK STATE ERROR]</b></color> NetworkManager.Singleton is null");
+#endif
+            return false;
+        }
+        
+        if (IsNetworkManagerClean())
+        {
+#if debug
+            Debug.Log("<color=green><b>[NETWORK STATE]</b></color> NetworkManager already clean, ready for host");
+#endif
+            return true;
+        }
+        
+#if debug
+        Debug.Log("<color=orange><b>[NETWORK STATE]</b></color> NetworkManager not clean, performing shutdown...");
+#endif
+        
+        return await SafeShutdownNetworkManager();
+    }
+    #endregion
+    
+    #region Relay & Networking
+    public async void HostStartGame()
+    {
+#if debug
+        Debug.Log("<color=magenta><b>[HOST START]</b></color> 🚀 HostStartGame called");
+#endif
+
+        if (currentSession == null)
+        {
+#if debug
+            Debug.LogWarning("<color=red><b>[HOST START ERROR]</b></color> No session available to start the game");
+#endif
+            return;
+        }
+
+#if debug
+        Debug.Log("<color=magenta><b>[HOST START]</b></color> ✅ Session validation passed, preparing NetworkManager...");
+#endif
+
+        startingGameText?.SetActive(true);
+
+        try
+        {
+            // Ensure NetworkManager is in clean state before starting host
+            bool networkReady = await PrepareNetworkManagerForHost();
+            if (!networkReady)
+            {
+#if debug
+                Debug.LogError("<color=red><b>[HOST START ERROR]</b></color> Failed to prepare NetworkManager for hosting");
+#endif
+                return;
+            }
+
+#if debug
+            Debug.Log("<color=magenta><b>[HOST START]</b></color> 🌐 Creating relay allocation...");
+#endif
+
+            var allocation = await Unity.Services.Relay.Relay.Instance.CreateAllocationAsync(maxPlayers - 1);
+            string joinCode = await Unity.Services.Relay.Relay.Instance.GetJoinCodeAsync(allocation.AllocationId);
+
+#if debug
+            Debug.Log($"<color=magenta><b>[HOST START]</b></color> ✅ Relay allocation created. Join code: {joinCode}");
+#endif
+
+            var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+            transport.SetHostRelayData(
+                allocation.RelayServer.IpV4,
+                (ushort)allocation.RelayServer.Port,
+                allocation.AllocationIdBytes,
+                allocation.Key,
+                allocation.ConnectionData
+            );
+
+#if debug
+            Debug.Log("<color=magenta><b>[HOST START]</b></color> 🔧 Transport configured, updating session properties...");
+#endif
+
+            var hostSession = currentSession.AsHost();
+            hostSession.SetProperty("GameStarted", new SessionProperty("true", VisibilityPropertyOptions.Public));
+            hostSession.SetProperty("JoinCode", new SessionProperty(joinCode, VisibilityPropertyOptions.Public));
+            await hostSession.SavePropertiesAsync();
+
+#if debug
+            Debug.Log("<color=magenta><b>[HOST START]</b></color> 💾 Session properties saved, starting NetworkManager host...");
+#endif
+
+            if (!NetworkManager.Singleton.StartHost())
+            {
+#if debug
+                Debug.LogError("<color=red><b>[HOST START ERROR]</b></color> ❌ NetworkManager.StartHost() returned false");
+#endif
+                return;
+            }
+
+#if debug
+            Debug.Log("<color=green><b>[HOST START SUCCESS]</b></color> 🎉 Host started successfully, loading game scene...");
+#endif
+
+            NetworkManager.Singleton.SceneManager.LoadScene(gameSceneName, LoadSceneMode.Single);
+        }
+        catch (Exception ex)
+        {
+#if debug
+            Debug.LogError($"<color=red><b>[HOST START ERROR]</b></color> Exception during host startup: {ex.Message}");
+            Debug.LogError($"<color=red><b>[HOST START ERROR]</b></color> Stack trace: {ex.StackTrace}");
+#endif
+        }
+        finally
+        {
+            startingGameText?.SetActive(false);
+        }
+    }
+
 
         public async Task StartPollingForGameStart()
         {
@@ -617,7 +714,12 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                 );
 
                 // Start the client
-                NetworkManager.Singleton.StartClient();
+                if (!NetworkManager.Singleton.StartClient())
+                {
+#if debug
+                    Debug.LogError("Failed to start client.");
+#endif
+                }
 #if debug
                 Debug.Log("Started client with relay");
 #endif
@@ -680,13 +782,13 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             {
                 await currentSession.LeaveAsync();
 #if debug
-                Debug.Log("Left lobby successfully");
+                Debug.Log("<color=green><b>[LEAVE SESSION]</b></color> ✅ Left session successfully");
 #endif
             }
             catch (System.Exception e)
             {
 #if debug
-                Debug.LogError($"Failed to leave lobby: {e}");
+                Debug.LogError($"<color=red><b>[LEAVE SESSION ERROR]</b></color> Failed to leave session: {e.Message}");
 #endif
             }
             finally
@@ -694,6 +796,15 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
                 currentSession = null;
                 shouldRefreshSessions = true; // Re-enable lobby browsing
             }
+        }
+        
+        // Also ensure NetworkManager is clean when leaving session
+        if (!IsNetworkManagerClean())
+        {
+#if debug
+            Debug.Log("<color=orange><b>[LEAVE SESSION]</b></color> Cleaning up NetworkManager state...");
+#endif
+            _ = SafeShutdownNetworkManager(); // Fire and forget cleanup
         }
     }
     #endregion
