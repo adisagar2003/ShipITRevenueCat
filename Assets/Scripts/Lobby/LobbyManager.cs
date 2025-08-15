@@ -1,9 +1,9 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Services.Multiplayer;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
-using System;
 using System.Threading.Tasks;
 using UnityEngine.SceneManagement;
 using System.Collections;
@@ -32,10 +32,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     #endregion
 
     #region Private Fields
-    private bool shouldRefreshSessions = true;
     private int maxPlayers = GameConstants.Networking.DEFAULT_MAX_PLAYERS;
-    private DateTime lastFetchTime = DateTime.MinValue;
-    private const int MIN_FETCH_INTERVAL_SECONDS = 5;
     #endregion
 
     #region Serialized Fields
@@ -55,6 +52,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     #region Services
     private LobbySessionService sessionService;
     private LobbyNetworkService networkService;
+    private LobbyPollingService pollingService;
     #endregion
 
     #region Unity Lifecycle
@@ -92,6 +90,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     {
         sessionService = LobbySessionService.Instance;
         networkService = LobbyNetworkService.Instance;
+        pollingService = LobbyPollingService.Instance;
         
         // Subscribe to session service events for UI updates
         sessionService.OnSessionCreated += OnSessionCreatedByService;
@@ -104,6 +103,11 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         networkService.OnNetworkClientStarted += OnNetworkClientStartedByService;
         networkService.OnNetworkShutdown += OnNetworkShutdownByService;
         networkService.OnNetworkError += OnNetworkErrorByService;
+        
+        // Subscribe to polling service events
+        pollingService.OnSessionsUpdated += OnSessionsUpdatedByService;
+        pollingService.OnGameStartDetected += OnGameStartDetectedByService;
+        pollingService.OnPollingError += OnPollingErrorByService;
         
         GameLogger.LogInfo(GameLogger.LogCategory.Network, "Lobby services initialized");
     }
@@ -118,7 +122,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     {
         currentSession = session;
         uiManager?.ShowLobbyCreatedState();
-        shouldRefreshSessions = false; // Stop polling when we have a session
+        pollingService.StopSessionPolling(); // Stop polling when we have a session
         GameLogger.LogInfo(GameLogger.LogCategory.Network, $"Session created successfully: {session.Name}");
     }
 
@@ -128,8 +132,8 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     private void OnSessionJoinedByService(ISession session)
     {
         currentSession = session;
-        shouldRefreshSessions = false; // Stop polling when we have a session
-        _ = StartPollingForGameStart(); // Start polling for game start
+        pollingService.StopSessionPolling(); // Stop session discovery polling
+        _ = pollingService.StartPollingForGameStartAsync(sessionService); // Start polling for game start
         GameLogger.LogInfo(GameLogger.LogCategory.Network, $"Joined session successfully: {session.Name}");
     }
 
@@ -139,7 +143,8 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     private void OnSessionLeftByService()
     {
         currentSession = null;
-        shouldRefreshSessions = true; // Resume session browsing
+        pollingService.StopPollingForGameStart(); // Stop game start polling
+        _ = pollingService.StartSessionPollingAsync(sessionService); // Resume session browsing
         uiManager?.ResetUIToLobbyState();
         GameLogger.LogInfo(GameLogger.LogCategory.Network, "Left session successfully");
     }
@@ -186,10 +191,36 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         uiManager?.ShowLobbyCreationFailedState();
     }
 
+    /// <summary>
+    /// Handles sessions list updates from the polling service.
+    /// </summary>
+    private void OnSessionsUpdatedByService(List<ISessionInfo> sessions)
+    {
+        availableSessions = sessions;
+        OnSessionsUpdated?.Invoke();
+        GameLogger.LogDebug(GameLogger.LogCategory.Network, $"Sessions updated: {sessions.Count} available");
+    }
+
+    /// <summary>
+    /// Handles game start detection from the polling service.
+    /// </summary>
+    private void OnGameStartDetectedByService(string joinCode)
+    {
+        GameLogger.LogInfo(GameLogger.LogCategory.Network, $"Game start detected, joining with code: {joinCode}");
+        _ = networkService.JoinAsClientAsync(joinCode);
+    }
+
+    /// <summary>
+    /// Handles polling errors from the service.
+    /// </summary>
+    private void OnPollingErrorByService(string errorMessage)
+    {
+        GameLogger.LogWarning(GameLogger.LogCategory.Network, $"Polling service error: {errorMessage}");
+    }
+
     protected override void OnSingletonDestroyed()
     {
-        // Stop lobby operations
-        shouldRefreshSessions = false;
+        // Stop lobby operations - handled by service cleanup
 
         // Unsubscribe from service events to prevent memory leaks
         if (sessionService != null)
@@ -214,6 +245,16 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             networkService.Cleanup();
         }
 
+        if (pollingService != null)
+        {
+            pollingService.OnSessionsUpdated -= OnSessionsUpdatedByService;
+            pollingService.OnGameStartDetected -= OnGameStartDetectedByService;
+            pollingService.OnPollingError -= OnPollingErrorByService;
+            
+            // Clean up polling service
+            pollingService.Cleanup();
+        }
+
         GameLogger.LogInfo(GameLogger.LogCategory.Network, "LobbyManager disposed");
         base.OnSingletonDestroyed();
     }
@@ -224,18 +265,14 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         if (pauseStatus)
         {
             // Temporarily stop lobby refresh to save battery/data
-            shouldRefreshSessions = false;
+            pollingService.PausePolling();
             GameLogger.LogInfo(GameLogger.LogCategory.Network, "Lobby operations paused");
         }
         else
         {
             // Resume lobby operations if we were refreshing
-            if (!sessionService.HasActiveSession) // Only resume if not in a specific session
-            {
-                shouldRefreshSessions = true;
-                _ = RefreshSessionsLoop();
-                GameLogger.LogInfo(GameLogger.LogCategory.Network, "Session operations resumed");
-            }
+            _ = pollingService.ResumePollingAsync(sessionService);
+            GameLogger.LogInfo(GameLogger.LogCategory.Network, "Session operations resumed");
         }
     }
 
@@ -246,7 +283,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         Debug.Log("LobbyManager ready.");
 #endif
         StartCoroutine(WaitForNetworkManagerReady());
-        _ = RefreshSessionsLoop();
+        _ = pollingService.StartSessionPollingAsync(sessionService);
     }
 
     private void OnEnable()
@@ -269,81 +306,6 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             await Task.Delay(100);
     }
 
-    private async Task RefreshSessionsLoop()
-    {
-        while (shouldRefreshSessions && !sessionService.HasActiveSession)
-        {
-            try
-            {
-                await FetchAvailableSessions();
-            }
-            catch (System.Exception ex)
-            {
-                GameLogger.LogError(GameLogger.LogCategory.Network, $"Error in lobby refresh loop: {ex.Message}");
-
-                // Use exponential backoff on errors to avoid spam
-                await Task.Delay(30000); // 30 second backoff on error
-                continue;
-            }
-
-            // Reduced interval to 5 seconds for responsive lobby discovery
-            await Task.Delay(5000);
-        }
-
-        GameLogger.LogInfo(GameLogger.LogCategory.Network, "RefreshSessionsLoop stopped - either shouldRefreshSessions=false or session exists");
-    }
-
-    public async Task FetchAvailableSessions(bool bypassRateLimit = false)
-    {
-        // Rate limiting safeguard - prevent calls within 5 seconds (unless bypassed)
-        if (!bypassRateLimit)
-        {
-            var timeSinceLastFetch = DateTime.Now - lastFetchTime;
-            if (timeSinceLastFetch.TotalSeconds < MIN_FETCH_INTERVAL_SECONDS)
-            {
-                GameLogger.LogWarning(GameLogger.LogCategory.Network, $"FetchAvailableSessions called too soon, skipping. Time since last call: {timeSinceLastFetch.TotalSeconds:F1}s");
-                return;
-            }
-        }
-
-        lastFetchTime = DateTime.Now;
-
-        try
-        {
-            var response = await MultiplayerService.Instance.QuerySessionsAsync(new QuerySessionsOptions());
-
-            if (response?.Sessions != null)
-            {
-                availableSessions = response.Sessions.ToList();
-                OnSessionsUpdated?.Invoke();
-
-                // Ensure UI state is properly synchronized after session fetch
-                if (uiManager != null && createLobbyButton != null && !createLobbyButton.interactable)
-                    uiManager.ShowLobbyCreatedState();
-            }
-            else
-            {
-#if debug
-                Debug.LogWarning("Query response or results is null");
-#endif
-                availableSessions?.Clear();
-            }
-        }
-        catch (SessionException)
-        {
-            // Clear sessions on error to avoid showing stale data
-            availableSessions?.Clear();
-            OnSessionsUpdated?.Invoke();
-        }
-        catch (Exception)
-        {
-            // Clear sessions on error to avoid showing stale data
-            availableSessions?.Clear();
-            OnSessionsUpdated?.Invoke();
-        }
-    }
-
-
     #endregion
 
     #region Manual Refresh
@@ -353,7 +315,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 #if debug
         Debug.Log("<color=yellow><b>[MANUAL REFRESH]</b></color> 🔄 Manual session refresh requested");
 #endif
-        await FetchAvailableSessions(bypassRateLimit: true);
+        await pollingService.ManualRefreshSessionsAsync();
     }
     #endregion
 
@@ -376,7 +338,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         if (success)
         {
             // Refresh available sessions after creation
-            await FetchAvailableSessions(bypassRateLimit: true);
+            await pollingService.FetchAvailableSessionsAsync(bypassRateLimit: true);
         }
     }
 
@@ -514,95 +476,6 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     }
 
 
-    public async Task StartPollingForGameStart()
-    {
-        int failureCount = 0;
-        const int MAX_FAILURES = 5;
-
-        while (ShouldContinuePolling(failureCount))
-        {
-            try
-            {
-                await RefreshSessionData();
-                failureCount = 0; // Reset on success
-
-                if (TryGetGameStartInfo(out string joinCode))
-                {
-                    await HandleGameStartDetected(joinCode);
-                    break;
-                }
-            }
-            catch (System.Exception ex)
-            {
-                failureCount = await HandlePollingError(ex, failureCount, MAX_FAILURES);
-                if (failureCount >= MAX_FAILURES)
-                    break;
-                continue;
-            }
-
-            await Task.Delay(10000); // 10 second polling interval
-        }
-
-        if (failureCount >= MAX_FAILURES)
-        {
-            GameLogger.LogError(GameLogger.LogCategory.Network, "Lobby polling stopped due to repeated failures");
-        }
-    }
-
-    private bool ShouldContinuePolling(int failureCount)
-    {
-        return sessionService.HasActiveSession && failureCount < 5;
-    }
-
-    private async Task RefreshSessionData()
-    {
-        await sessionService.RefreshSessionAsync();
-    }
-
-    private bool TryGetGameStartInfo(out string joinCode)
-    {
-        joinCode = null;
-
-        string gameStarted = sessionService.GetSessionProperty("GameStarted");
-        if (gameStarted == "true")
-        {
-            joinCode = sessionService.GetSessionProperty("JoinCode");
-            if (!string.IsNullOrEmpty(joinCode))
-            {
-                return true;
-            }
-            else
-            {
-                GameLogger.LogError(GameLogger.LogCategory.Network, "Game started but no JoinCode found in session properties");
-            }
-        }
-
-        return false;
-    }
-
-    private async Task HandleGameStartDetected(string joinCode)
-    {
-        GameLogger.LogNetwork("GameStartDetected", "Joining game as client");
-        await networkService.JoinAsClientAsync(joinCode);
-    }
-
-    private async Task<int> HandlePollingError(System.Exception ex, int currentFailureCount, int maxFailures)
-    {
-        int newFailureCount = currentFailureCount + 1;
-        GameLogger.LogError(GameLogger.LogCategory.Network, $"Polling failed (attempt {newFailureCount}/{maxFailures}): {ex.Message}");
-
-        if (newFailureCount >= maxFailures)
-        {
-            GameLogger.LogError(GameLogger.LogCategory.Network, "Max polling failures reached, stopping polling");
-            return newFailureCount;
-        }
-
-        // Exponential backoff for retries
-        int backoffDelay = (int)(10000 * Math.Pow(2, newFailureCount));
-        await Task.Delay(Math.Min(backoffDelay, 60000)); // Cap at 60 seconds
-
-        return newFailureCount;
-    }
 
 
 
