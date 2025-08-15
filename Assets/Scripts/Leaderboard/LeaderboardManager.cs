@@ -14,16 +14,18 @@ public class LeaderboardManager : NetworkBehaviour
 {
     [Header("UI References")]
     [SerializeField] private Transform contentParent;           // ScrollView Content Transform
-    [SerializeField] private PlayerRankSlot playerRankSlotPrefab; // PlayerRankSlot prefab
-    [SerializeField] private Button backToLobbyButton;          // Back to Lobby button
-    
+    [SerializeField] private PlayerRankSlot playerRankSlotPrefab;
+    [SerializeField] private Button backToLobbyButton;
+
     [Header("Leaderboard Settings")]
     [SerializeField] private float slotSpacing = -70f;         // Y spacing between slots
     [SerializeField] private float populationDelay = 0.5f;     // Delay before populating UI
+
     
     [Header("Position Settings")]
     [SerializeField] private Vector3 slotOffset = Vector3.zero; // Additional transform offset for slots
     [SerializeField] private float firstSlotYPosition = 0f;     // Starting Y position for first slot
+
     
     [Header("Winner Celebration")]
     [SerializeField] private GameObject winnerCelebrationEffect; // Optional winner celebration
@@ -36,16 +38,14 @@ public class LeaderboardManager : NetworkBehaviour
     // Leaderboard state
     private bool isLeaderboardPopulated = false;
     private PlayerRankSlot[] instantiatedSlots;
+    private bool isButtonListenerAdded = false;
 
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
-        
-        // Set up button listener
-        if (backToLobbyButton != null)
-        {
-            backToLobbyButton.onClick.AddListener(BackToLobby);
-        }
+
+        // Set up button listener (only once)
+        SetupButtonListener();
 
         // Start leaderboard population process
         StartCoroutine(WaitAndPopulateLeaderboard());
@@ -57,13 +57,30 @@ public class LeaderboardManager : NetworkBehaviour
 
     public override void OnNetworkDespawn()
     {
-        // Clean up button listener
-        if (backToLobbyButton != null)
-        {
-            backToLobbyButton.onClick.RemoveListener(BackToLobby);
-        }
-        
         base.OnNetworkDespawn();
+    }
+
+    /// <summary>
+    /// Sets up the button listener safely (only once)
+    /// </summary>
+    private void SetupButtonListener()
+    {
+        if (!isButtonListenerAdded && backToLobbyButton != null)
+        {
+            backToLobbyButton.onClick.RemoveListener(BackToLobby); // Remove any existing listeners first
+            backToLobbyButton.onClick.AddListener(BackToLobby);
+            isButtonListenerAdded = true;
+            
+#if debug
+            Debug.Log($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=green>Button listener added successfully</color>");
+#endif
+        }
+        else if (backToLobbyButton == null)
+        {
+#if debug
+            Debug.LogWarning($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=yellow>backToLobbyButton is null - cannot add listener</color>");
+#endif
+        }
     }
 
     /// <summary>
@@ -77,7 +94,7 @@ public class LeaderboardManager : NetworkBehaviour
 #if debug
             Debug.Log($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=yellow>Waiting for RaceResultsManager...</color>");
 #endif
-            yield return new WaitForSeconds(0.1f);
+            yield return new WaitForSeconds(0.2f);
         }
 
         // Small delay for UI to settle
@@ -92,14 +109,6 @@ public class LeaderboardManager : NetworkBehaviour
     private void PopulateLeaderboard()
     {
         if (isLeaderboardPopulated) return;
-        if (RaceResultsManager.Instance == null) 
-        {
-#if debug
-            Debug.LogError($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=red>RaceResultsManager.Instance is null!</color>");
-#endif
-            return;
-        }
-
         var raceResults = RaceResultsManager.Instance.GetResults();
         if (raceResults == null || raceResults.Length == 0)
         {
@@ -113,14 +122,13 @@ public class LeaderboardManager : NetworkBehaviour
         Debug.Log($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=green>Populating leaderboard with {raceResults.Length} results</color>");
 #endif
 
-        // Clear any existing slots
         ClearLeaderboard();
 
         // Count valid results first to properly size array
         int validResultsCount = 0;
         foreach (var result in raceResults)
         {
-            if (result.clientId != 0) validResultsCount++;
+            if (result.hasFinished || result.isWinner) validResultsCount++;
         }
         
         // Create array to track instantiated slots
@@ -136,7 +144,7 @@ public class LeaderboardManager : NetworkBehaviour
             var result = sortedResults[i];
             
             // Skip empty results but don't affect positioning
-            if (result.clientId == 0) continue;
+        //            if (result.clientId == 0) continue;
 
             // Instantiate slot prefab
             GameObject slotObject = Instantiate(playerRankSlotPrefab.gameObject, contentParent);
@@ -189,10 +197,6 @@ public class LeaderboardManager : NetworkBehaviour
         // Sort: Winner first, then by finish time (ascending)
         System.Array.Sort(sortedResults, (a, b) => 
         {
-            // Skip empty results
-            if (a.clientId == 0) return 1;
-            if (b.clientId == 0) return -1;
-            
             // Winner always comes first
             if (a.isWinner && !b.isWinner) return -1;
             if (b.isWinner && !a.isWinner) return 1;
@@ -211,7 +215,7 @@ public class LeaderboardManager : NetworkBehaviour
     {
         if (!result.hasFinished)
         {
-            return $"{playerName} (DNF)"; // Did Not Finish
+            return $"{playerName} (Did Not Finish)"; // Did Not Finish
         }
         else if (result.finishTime < float.MaxValue)
         {
@@ -292,10 +296,10 @@ public class LeaderboardManager : NetworkBehaviour
         ulong requestingClientId = NetworkManager.Singleton.LocalClientId;
         
 #if debug
-        Debug.Log($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=orange>BackToLobby pressed by client {requestingClientId} (IsHost: {IsHost}, IsServer: {IsServer})</color>");
+        Debug.Log($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=orange>BackToLobby pressed by client {requestingClientId} (IsHost: {IsHost}, IsServer: {NetworkManager.Singleton.IsHost})</color>");
 #endif
 
-        if (IsHost || IsServer)
+        if (IsHost || NetworkManager.Singleton.IsHost)
         {
             // Host/Server wants to end session - disconnect all players
             HandleHostBackToLobby();
@@ -347,6 +351,11 @@ public class LeaderboardManager : NetworkBehaviour
 #if debug
         Debug.Log($"<color=#9B59B6><b>[LeaderboardManager]</b></color> <color=yellow>Client requesting to leave session</color>");
 #endif
+        // If the scene is already shut down ,then return to lobby safelty
+        if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening) 
+        {
+                UnityEngine.SceneManagement.SceneManager.LoadScene(lobbySceneName);            
+        }
 
         // Client disconnects immediately and returns to lobby
         StartCoroutine(DisconnectClientAndReturnToLobby());
