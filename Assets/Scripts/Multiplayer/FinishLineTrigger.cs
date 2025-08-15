@@ -4,10 +4,25 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using TMPro;
 using System;
 
 public class FinishLineTrigger : NetworkBehaviour
 {
+    [Header("UI References")]
+    [SerializeField] private Canvas finishUICanvas;
+    [SerializeField] private GameObject winUIPanel;
+    [SerializeField] private GameObject loseUIPanel;
+    [SerializeField] private GameObject finishUIPanel;
+    [SerializeField] private TextMeshProUGUI winText;
+    [SerializeField] private TextMeshProUGUI loseText;
+    [SerializeField] private TextMeshProUGUI finishText;
+    
+    [Header("UI Settings")]
+    [SerializeField] private float uiDisplayDuration = 3f;
+    [SerializeField] private float sceneTransitionDelay = 4f;
+    
     // Track which clients have already finished to prevent duplicate entries
     private HashSet<ulong> finishedClients = new HashSet<ulong>();
 
@@ -66,14 +81,18 @@ public class FinishLineTrigger : NetworkBehaviour
 #if debug
                 Debug.Log($"<color=#00FF00><b>[FinishLineTrigger]</b></color> <color=green><size=20>🏆 YOU WIN! 🏆</size></color>");
 #endif
-                // TODO: Switch to victory camera, disable player movement, show win UI
+                // Disable player movement and show win UI
+                DisablePlayerMovement();
+                ShowWinUI();
             }
             else
             {
 #if debug
                 Debug.Log($"<color=#FFA500><b>[FinishLineTrigger]</b></color> <color=orange><size=18>🏃 You finished {GetOrdinalNumber(finishPosition)}! 🏃</size></color>");
 #endif
-                // TODO: Switch to finish camera, disable player movement, show finish UI
+                // Disable player movement and show finish UI
+                DisablePlayerMovement();
+                ShowFinishUI(finishPosition);
             }
         }
         else
@@ -83,7 +102,9 @@ public class FinishLineTrigger : NetworkBehaviour
 #if debug
                 Debug.Log($"<color=#FF0000><b>[FinishLineTrigger]</b></color> <color=red><size=18>💔 {playerName} Won! 💔</size></color>");
 #endif
-                // TODO: Switch to lose camera, disable player movement, show lose UI
+                // Disable player movement and show lose UI
+                DisablePlayerMovement();
+                ShowLoseUI(playerName);
             }
             else
             {
@@ -92,6 +113,9 @@ public class FinishLineTrigger : NetworkBehaviour
 #endif
             }
         }
+
+        // Start scene transition coroutine
+        StartCoroutine(TransitionToLeaderboardAfterDelay());
     }
 
     /// <summary>
@@ -150,6 +174,152 @@ public class FinishLineTrigger : NetworkBehaviour
 #if debug
             Debug.Log($"<color=#FFD700><b>[FinishLineTrigger]</b></color> <color=cyan>Race reset - cleared finished clients</color>");
 #endif
+        }
+    }
+    
+    /// <summary>
+    /// Disables local player movement by finding and calling DisableMovement on NetworkThirdPersonController
+    /// </summary>
+    private void DisablePlayerMovement()
+    {
+        // Find local player's NetworkThirdPersonController
+        var localPlayer = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject();
+        if (localPlayer != null)
+        {
+            var controller = localPlayer.GetComponent<NetworkThirdPersonController>();
+            if (controller != null)
+            {
+                controller.DisableMovement();
+#if debug
+                Debug.Log($"<color=#FFD700><b>[FinishLineTrigger]</b></color> <color=cyan>Disabled local player movement</color>");
+#endif
+            }
+            else
+            {
+#if debug
+                Debug.LogWarning($"<color=#FFD700><b>[FinishLineTrigger]</b></color> <color=yellow>NetworkThirdPersonController not found on local player</color>");
+#endif
+            }
+        }
+        else
+        {
+#if debug
+            Debug.LogWarning($"<color=#FFD700><b>[FinishLineTrigger]</b></color> <color=yellow>Local player object not found</color>");
+#endif
+        }
+    }
+    
+    /// <summary>
+    /// Shows the win UI with celebration text
+    /// </summary>
+    private void ShowWinUI()
+    {
+        if (finishUICanvas != null) finishUICanvas.gameObject.SetActive(true);
+        
+        if (winUIPanel != null)
+        {
+            winUIPanel.SetActive(true);
+            if (winText != null)
+            {
+                winText.text = "🏆 YOU WIN! 🏆";
+            }
+        }
+        
+        // Hide UI after duration
+        StartCoroutine(HideUIAfterDelay(winUIPanel));
+        
+#if debug
+        Debug.Log($"<color=#00FF00><b>[FinishLineTrigger]</b></color> <color=green>Showing win UI</color>");
+#endif
+    }
+    
+    /// <summary>
+    /// Shows the finish UI for non-winner completion
+    /// </summary>
+    private void ShowFinishUI(int finishPosition)
+    {
+        if (finishUICanvas != null) finishUICanvas.gameObject.SetActive(true);
+        
+        if (finishUIPanel != null)
+        {
+            finishUIPanel.SetActive(true);
+            if (finishText != null)
+            {
+                finishText.text = $"🏃 You finished {GetOrdinalNumber(finishPosition)}! 🏃";
+            }
+        }
+        
+        // Hide UI after duration
+        StartCoroutine(HideUIAfterDelay(finishUIPanel));
+        
+#if debug
+        Debug.Log($"<color=#FFA500><b>[FinishLineTrigger]</b></color> <color=orange>Showing finish UI for position {finishPosition}</color>");
+#endif
+    }
+    
+    /// <summary>
+    /// Shows the lose UI when another player wins
+    /// </summary>
+    private void ShowLoseUI(string winnerName)
+    {
+        if (finishUICanvas != null) finishUICanvas.gameObject.SetActive(true);
+        
+        if (loseUIPanel != null)
+        {
+            loseUIPanel.SetActive(true);
+            if (loseText != null)
+            {
+                loseText.text = $"💔 {winnerName} Won! 💔";
+            }
+        }
+        
+        // Hide UI after duration
+        StartCoroutine(HideUIAfterDelay(loseUIPanel));
+        
+#if debug
+        Debug.Log($"<color=#FF0000><b>[FinishLineTrigger]</b></color> <color=red>Showing lose UI - winner: {winnerName}</color>");
+#endif
+    }
+    
+    /// <summary>
+    /// Hides UI panel after the specified duration
+    /// </summary>
+    private IEnumerator HideUIAfterDelay(GameObject uiPanel)
+    {
+        yield return new WaitForSeconds(uiDisplayDuration);
+        
+        if (uiPanel != null)
+        {
+            uiPanel.SetActive(false);
+        }
+        
+        // Hide entire canvas if all panels are inactive
+        if (finishUICanvas != null && 
+            (winUIPanel == null || !winUIPanel.activeInHierarchy) &&
+            (loseUIPanel == null || !loseUIPanel.activeInHierarchy) &&
+            (finishUIPanel == null || !finishUIPanel.activeInHierarchy))
+        {
+            finishUICanvas.gameObject.SetActive(false);
+        }
+    }
+    
+    /// <summary>
+    /// Transitions to leaderboard scene after a delay to allow UI feedback
+    /// </summary>
+    private IEnumerator TransitionToLeaderboardAfterDelay()
+    {
+        yield return new WaitForSeconds(sceneTransitionDelay);
+        
+        // Only transition if we're the host (to avoid multiple scene loads)
+        if (IsHost)
+        {
+#if debug
+            Debug.Log($"<color=#FFD700><b>[FinishLineTrigger]</b></color> <color=yellow>Transitioning to Leaderboard scene</color>");
+#endif
+            
+            // Load the Leaderboard scene directly
+            // Note: Using NetworkManager's SceneManager for proper multiplayer scene transitions
+            NetworkManager.Singleton.SceneManager.LoadScene("Leaderboard", LoadSceneMode.Single);
         }
     }
 }
