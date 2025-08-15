@@ -3,7 +3,6 @@ using UnityEngine;
 using Unity.Services.Multiplayer;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
-using Unity.Services.Authentication;
 using System;
 using System.Threading.Tasks;
 using UnityEngine.SceneManagement;
@@ -53,12 +52,17 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     private LobbyUIManager uiManager;
     #endregion
 
+    #region Services
+    private LobbySessionService sessionService;
+    #endregion
+
     #region Unity Lifecycle
 
     protected override void Initialize()
     {
         base.Initialize();
         SetupUIManager();
+        SetupServices();
         GameLogger.LogInfo(GameLogger.LogCategory.Network, "LobbyManager initialized");
     }
 
@@ -80,36 +84,88 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         uiManager.SetupUIReferences(createLobbyButton, creatingLobbyText, startingGameText);
     }
 
+    /// <summary>
+    /// Sets up service dependencies and event subscriptions.
+    /// </summary>
+    private void SetupServices()
+    {
+        sessionService = LobbySessionService.Instance;
+        
+        // Subscribe to session service events for UI updates
+        sessionService.OnSessionCreated += OnSessionCreatedByService;
+        sessionService.OnSessionJoined += OnSessionJoinedByService;
+        sessionService.OnSessionLeft += OnSessionLeftByService;
+        sessionService.OnSessionError += OnSessionErrorByService;
+        
+        GameLogger.LogInfo(GameLogger.LogCategory.Network, "Lobby services initialized");
+    }
+
+    #endregion
+
+    #region Service Event Handlers
+    /// <summary>
+    /// Handles session creation success from the service.
+    /// </summary>
+    private void OnSessionCreatedByService(ISession session)
+    {
+        currentSession = session;
+        uiManager?.ShowLobbyCreatedState();
+        shouldRefreshSessions = false; // Stop polling when we have a session
+        GameLogger.LogInfo(GameLogger.LogCategory.Network, $"Session created successfully: {session.Name}");
+    }
+
+    /// <summary>
+    /// Handles session join success from the service.
+    /// </summary>
+    private void OnSessionJoinedByService(ISession session)
+    {
+        currentSession = session;
+        shouldRefreshSessions = false; // Stop polling when we have a session
+        _ = StartPollingForGameStart(); // Start polling for game start
+        GameLogger.LogInfo(GameLogger.LogCategory.Network, $"Joined session successfully: {session.Name}");
+    }
+
+    /// <summary>
+    /// Handles session leave from the service.
+    /// </summary>
+    private void OnSessionLeftByService()
+    {
+        currentSession = null;
+        shouldRefreshSessions = true; // Resume session browsing
+        uiManager?.ResetUIToLobbyState();
+        GameLogger.LogInfo(GameLogger.LogCategory.Network, "Left session successfully");
+    }
+
+    /// <summary>
+    /// Handles session errors from the service.
+    /// </summary>
+    private void OnSessionErrorByService(string errorMessage)
+    {
+        uiManager?.ShowLobbyCreationFailedState();
+        GameLogger.LogError(GameLogger.LogCategory.Network, $"Session service error: {errorMessage}");
+    }
+
     protected override void OnSingletonDestroyed()
     {
         // Stop lobby operations
         shouldRefreshSessions = false;
 
-        // Leave current session if in one
-        if (currentSession != null)
+        // Unsubscribe from service events to prevent memory leaks
+        if (sessionService != null)
         {
-            _ = LeaveSessionOnDestroy();
+            sessionService.OnSessionCreated -= OnSessionCreatedByService;
+            sessionService.OnSessionJoined -= OnSessionJoinedByService;
+            sessionService.OnSessionLeft -= OnSessionLeftByService;
+            sessionService.OnSessionError -= OnSessionErrorByService;
+            
+            // Clean up session service
+            sessionService.Cleanup();
         }
 
         GameLogger.LogInfo(GameLogger.LogCategory.Network, "LobbyManager disposed");
         base.OnSingletonDestroyed();
     }
 
-    private async Task LeaveSessionOnDestroy()
-    {
-        try
-        {
-            if (currentSession != null && AuthenticationService.Instance.IsSignedIn)
-            {
-                await currentSession.LeaveAsync();
-                GameLogger.LogInfo(GameLogger.LogCategory.Network, "Left session during cleanup");
-            }
-        }
-        catch (Exception ex)
-        {
-            GameLogger.LogWarning(GameLogger.LogCategory.Network, $"Failed to leave lobby during cleanup: {ex.Message}");
-        }
-    }
 
     private void OnApplicationPause(bool pauseStatus)
     {
@@ -122,7 +178,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         else
         {
             // Resume lobby operations if we were refreshing
-            if (currentSession == null) // Only resume if not in a specific session
+            if (!sessionService.HasActiveSession) // Only resume if not in a specific session
             {
                 shouldRefreshSessions = true;
                 _ = RefreshSessionsLoop();
@@ -163,7 +219,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 
     private async Task RefreshSessionsLoop()
     {
-        while (shouldRefreshSessions && currentSession == null)
+        while (shouldRefreshSessions && !sessionService.HasActiveSession)
         {
             try
             {
@@ -182,7 +238,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             await Task.Delay(5000);
         }
 
-        GameLogger.LogInfo(GameLogger.LogCategory.Network, "RefreshSessionsLoop stopped - either shouldRefreshSessions=false or currentSession exists");
+        GameLogger.LogInfo(GameLogger.LogCategory.Network, "RefreshSessionsLoop stopped - either shouldRefreshSessions=false or session exists");
     }
 
     public async Task FetchAvailableSessions(bool bypassRateLimit = false)
@@ -256,57 +312,22 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         Debug.Log($"<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🚀 CreateSession called with name: <color=yellow>{lobbyName}</color>");
 #endif
 
-        if (!ValidateSessionCreation(lobbyName))
-            return;
-
         if (!await PrepareForSessionCreation())
             return;
 
-        try
+        // Show creating UI state
+        ShowCreatingLobbyUI();
+
+        // Use service to create session - UI updates handled by event handlers
+        bool success = await sessionService.CreateSessionAsync(lobbyName, maxPlayers);
+        
+        if (success)
         {
-            ShowCreatingLobbyUI();
-            await CreateSessionInternal(lobbyName);
-            OnSessionCreatedSuccessfully();
+            // Refresh available sessions after creation
             await FetchAvailableSessions(bypassRateLimit: true);
         }
-        catch (SessionException e)
-        {
-            HandleSessionCreationError(e.Message);
-        }
-        catch (Exception e)
-        {
-            HandleSessionCreationError($"Unexpected error: {e.Message}");
-        }
     }
 
-    private bool ValidateSessionCreation(string lobbyName)
-    {
-        if (string.IsNullOrWhiteSpace(lobbyName))
-        {
-#if debug
-            Debug.LogError("<color=red><b>[LOBBY WORKFLOW ERROR]</b></color> ❌ Lobby name cannot be null or empty");
-#endif
-            return false;
-        }
-
-        if (currentSession != null)
-        {
-#if debug
-            Debug.LogWarning($"<color=orange><b>[LOBBY WORKFLOW WARNING]</b></color> ⚠️ Already in session: {currentSession.Name}");
-#endif
-            return false;
-        }
-
-        if (!AuthenticationService.Instance.IsSignedIn)
-        {
-#if debug
-            Debug.LogError("<color=red><b>[LOBBY WORKFLOW ERROR]</b></color> ❌ Not authenticated, cannot create session");
-#endif
-            return false;
-        }
-
-        return true;
-    }
 
     private async Task<bool> PrepareForSessionCreation()
     {
@@ -339,125 +360,18 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         uiManager?.ShowCreatingLobbyState();
     }
 
-    private async Task CreateSessionInternal(string lobbyName)
-    {
-#if debug
-        Debug.Log($"<color=cyan><b>[LOBBY WORKFLOW]</b></color> ⚙️ Creating SessionOptions: Name={lobbyName}, MaxPlayers={maxPlayers}");
-#endif
-        var sessionOptions = new SessionOptions
-        {
-            Name = lobbyName,
-            MaxPlayers = maxPlayers,
-            IsPrivate = false,
-            IsLocked = false
-        }.WithRelayNetwork();
-
-#if debug
-        Debug.Log("<color=cyan><b>[LOBBY WORKFLOW]</b></color> 🌐 Calling MultiplayerService.Instance.CreateSessionAsync...");
-#endif
-        currentSession = await MultiplayerService.Instance.CreateSessionAsync(sessionOptions);
-#if debug
-        Debug.Log($"<color=green><b>[LOBBY WORKFLOW SUCCESS]</b></color> 🎉 Session created! ID: {currentSession.Id}, Name: {currentSession.Name}");
-#endif
-    }
-
-    private void OnSessionCreatedSuccessfully()
-    {
-        uiManager?.ShowLobbyCreatedState();
-    }
 
 
-    private void HandleSessionCreationError(string errorMessage)
-    {
-#if debug
-        Debug.LogError($"Failed to create lobby: {errorMessage}");
-#endif
-        ResetUIOnFailure();
-    }
-
-    private void ResetUIOnFailure()
-    {
-        uiManager?.ShowLobbyCreationFailedState();
-    }
 
     #endregion
 
     #region Session Joining Operations
+    /// <summary>
+    /// Joins a session by its ID using the session service.
+    /// </summary>
     private async void JoinSessionById(string lobbyId)
     {
-        if (!ValidateSessionJoin(lobbyId))
-            return;
-
-        try
-        {
-            await JoinSessionInternal(lobbyId);
-            OnSessionJoinedSuccessfully();
-        }
-        catch (SessionException e)
-        {
-            HandleSessionJoinError(e.Message);
-        }
-        catch (Exception e)
-        {
-            HandleSessionJoinError($"Unexpected error: {e.Message}");
-        }
-    }
-
-    private bool ValidateSessionJoin(string lobbyId)
-    {
-        if (string.IsNullOrWhiteSpace(lobbyId))
-        {
-#if debug
-            Debug.LogError("Lobby ID cannot be null or empty");
-#endif
-            return false;
-        }
-
-        if (currentSession != null)
-        {
-#if debug
-            Debug.LogWarning("Already in a session, leave current session first");
-#endif
-            return false;
-        }
-
-        if (!AuthenticationService.Instance.IsSignedIn)
-        {
-#if debug
-            Debug.LogError("Not authenticated, cannot join session");
-#endif
-            return false;
-        }
-
-        return true;
-    }
-
-    private async Task JoinSessionInternal(string lobbyId)
-    {
-        currentSession = await MultiplayerService.Instance.JoinSessionByIdAsync(lobbyId);
-#if debug
-        Debug.Log($"Joined lobby: {currentSession.Name}");
-#endif
-    }
-
-    private void OnSessionJoinedSuccessfully()
-    {
-        shouldRefreshSessions = false;
-        _ = StartPollingForGameStart();
-    }
-
-    private void HandleSessionJoinError(string errorMessage)
-    {
-#if debug
-        Debug.LogError($"Failed to join lobby: {errorMessage}");
-#endif
-        ResetSessionStateOnError();
-    }
-
-    private void ResetSessionStateOnError()
-    {
-        currentSession = null;
-        shouldRefreshSessions = true;
+        await sessionService.JoinSessionAsync(lobbyId);
     }
 
     #endregion
@@ -605,7 +519,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 
     private bool ValidateHostStartConditions()
     {
-        if (currentSession == null)
+        if (!sessionService.HasActiveSession)
         {
 #if debug
             Debug.LogWarning("<color=red><b>[HOST START ERROR]</b></color> No session available to start the game");
@@ -653,10 +567,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         Debug.Log("<color=magenta><b>[HOST START]</b></color> 🔧 Transport configured, updating session properties...");
 #endif
 
-        var hostSession = currentSession.AsHost();
-        hostSession.SetProperty("GameStarted", new SessionProperty("true", VisibilityPropertyOptions.Public));
-        hostSession.SetProperty("JoinCode", new SessionProperty(joinCode, VisibilityPropertyOptions.Public));
-        await hostSession.SavePropertiesAsync();
+        // Use session service to set properties
+        await sessionService.SetSessionPropertyAsync("GameStarted", "true");
+        await sessionService.SetSessionPropertyAsync("JoinCode", joinCode);
 
 #if debug
         Debug.Log("<color=magenta><b>[HOST START]</b></color> 💾 Session properties saved, starting NetworkManager host...");
@@ -739,24 +652,24 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 
     private bool ShouldContinuePolling(int failureCount)
     {
-        return currentSession != null && failureCount < 5;
+        return sessionService.HasActiveSession && failureCount < 5;
     }
 
     private async Task RefreshSessionData()
     {
-        await currentSession.RefreshAsync();
+        await sessionService.RefreshSessionAsync();
     }
 
     private bool TryGetGameStartInfo(out string joinCode)
     {
         joinCode = null;
 
-        if (currentSession?.Properties.TryGetValue("GameStarted", out var gameStarted) == true &&
-            gameStarted.Value == "true")
+        string gameStarted = sessionService.GetSessionProperty("GameStarted");
+        if (gameStarted == "true")
         {
-            if (currentSession.Properties.TryGetValue("JoinCode", out var joinCodeProperty))
+            joinCode = sessionService.GetSessionProperty("JoinCode");
+            if (!string.IsNullOrEmpty(joinCode))
             {
-                joinCode = joinCodeProperty.Value;
                 return true;
             }
             else
@@ -872,7 +785,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     #region Scene Navigation
     public void BackToPreviousScene()
     {
-        if (currentSession != null)
+        if (sessionService.HasActiveSession)
         {
             LeaveSession();
         }
@@ -888,27 +801,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 
     public async void LeaveSession()
     {
-        if (currentSession != null)
-        {
-            try
-            {
-                await currentSession.LeaveAsync();
-#if debug
-                Debug.Log("<color=green><b>[LEAVE SESSION]</b></color> ✅ Left session successfully");
-#endif
-            }
-            catch (System.Exception e)
-            {
-#if debug
-                Debug.LogError($"<color=red><b>[LEAVE SESSION ERROR]</b></color> Failed to leave session: {e.Message}");
-#endif
-            }
-            finally
-            {
-                currentSession = null;
-                shouldRefreshSessions = true; // Re-enable lobby browsing
-            }
-        }
+        await sessionService.LeaveSessionAsync();
 
         // Also ensure NetworkManager is clean when leaving session
         if (!IsNetworkManagerClean())
