@@ -44,6 +44,10 @@ public class NetworkThirdPersonController : NetworkBehaviour
     [SerializeField] private Transform cameraTransform;
     [SerializeField] private bool autoFindCamera = true;
 
+    [Header("Movement Control")]
+    [Tooltip("Controls whether player can move. Set to false to disable movement until race starts.")]
+    [SerializeField] private bool canMove = false;
+
     [Header("Debug Settings")]
     [SerializeField] private bool enableDebugLogs = true;
     [SerializeField] private bool enableMovementLogs = true;
@@ -69,9 +73,25 @@ public class NetworkThirdPersonController : NetworkBehaviour
     private Vector2 inputValue;
     private bool jumpInput;
 
-    // Network variables for animation synchronization
-    private NetworkVariable<bool> networkIsJumping = new NetworkVariable<bool>(false);
-    private NetworkVariable<Vector3> networkVelocity = new NetworkVariable<Vector3>(Vector3.zero);
+    // Network variables for animation synchronization - owner can write
+    private NetworkVariable<bool> networkIsJumping = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+    private NetworkVariable<Vector3> networkVelocity = new NetworkVariable<Vector3>(Vector3.zero, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
+    private void OnEnable()
+    {
+        StartRaceCountdown.OnPlayerPossessionEvent += EnableMovement;
+#if debug
+        if (enableDebugLogs) Debug.Log($"<color=cyan>[NetworkThirdPersonController]</color> <color=white>Subscribed to OnPlayerPossessionEvent on {gameObject.name}</color>");
+#endif
+    }
+
+    private void OnDisable()
+    {
+        StartRaceCountdown.OnPlayerPossessionEvent -= EnableMovement;
+#if debug
+        if (enableDebugLogs) Debug.Log($"<color=cyan>[NetworkThirdPersonController]</color> <color=white>Unsubscribed from OnPlayerPossessionEvent on {gameObject.name}</color>");
+#endif
+    }
 
     private void Start()
     {
@@ -126,8 +146,13 @@ public class NetworkThirdPersonController : NetworkBehaviour
     private void FixedUpdate()
     {
         if (!IsOwner) return;
-        HandleMovement();
-        HandleJump();
+        
+        // Only handle movement if race has started
+        if (canMove)
+        {
+            HandleMovement();
+            HandleJump();
+        }
 
         networkIsJumping.Value = isJumping;
         networkVelocity.Value = rb.linearVelocity;
@@ -138,7 +163,15 @@ public class NetworkThirdPersonController : NetworkBehaviour
         if (!IsOwner)
         {
 #if debug
-            if (enableInputLogs) Debug.Log($"<color=orange>[NetworkThirdPersonController]</color> <color=white>co() called but not owner - ignoring input: {input}</color>");
+            if (enableInputLogs) Debug.Log($"<color=orange>[NetworkThirdPersonController]</color> <color=white>Move() called but not owner - ignoring input: {input}</color>");
+#endif
+            return;
+        }
+
+        if (!canMove)
+        {
+#if debug
+            if (enableInputLogs && input.sqrMagnitude > 0.01f) Debug.Log($"<color=yellow>[NetworkThirdPersonController]</color> <color=white>Move() called but movement disabled - race hasn't started yet</color>");
 #endif
             return;
         }
@@ -347,6 +380,15 @@ public class NetworkThirdPersonController : NetworkBehaviour
             return;
         }
 
+        // Check if movement is enabled
+        if (!canMove)
+        {
+#if debug
+            if (enableJumpLogs) Debug.Log($"<color=yellow>[NetworkThirdPersonController]</color> <color=white>Jump() rejected - Movement disabled, race hasn't started yet</color>");
+#endif
+            return;
+        }
+
         // Check if grounded
         if (!isGrounded)
         {
@@ -523,5 +565,27 @@ public class NetworkThirdPersonController : NetworkBehaviour
     public bool IsSuperJumping()
     {
         return isSuperJumping;
+    }
+
+    /// <summary>
+    /// Event handler for race start - enables player movement when countdown finishes
+    /// </summary>
+    private void EnableMovement()
+    {
+        canMove = true;
+#if debug
+        if (enableDebugLogs) Debug.Log($"<color=lime>[NetworkThirdPersonController]</color> <color=white>Movement enabled for {gameObject.name} - Race started!</color>");
+#endif
+    }
+
+    /// <summary>
+    /// Public method to disable player movement - useful for race finish, cutscenes, etc.
+    /// </summary>
+    public void DisableMovement()
+    {
+        canMove = false;
+#if debug
+        if (enableDebugLogs) Debug.Log($"<color=red>[NetworkThirdPersonController]</color> <color=white>Movement disabled for {gameObject.name}</color>");
+#endif
     }
 }
