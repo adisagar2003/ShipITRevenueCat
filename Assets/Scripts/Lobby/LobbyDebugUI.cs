@@ -87,7 +87,7 @@ public class LobbyDebugUI : NetworkBehaviour
             debugInfo += $"<b>IsHost:</b> {NetworkManager.Singleton.IsHost}\n";
             debugInfo += $"<b>Connected Clients:</b> {NetworkManager.Singleton}\n";
 
-            if (IsServer)
+            if (IsHost)
             {
                 foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
                 {

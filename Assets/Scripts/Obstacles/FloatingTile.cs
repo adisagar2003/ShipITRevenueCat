@@ -36,7 +36,7 @@ public class FloatingTile : NetworkBehaviour
     {
         basePosition = useLocalSpace ? transform.localPosition : transform.position;
         
-        if (IsServer && randomizeStartPosition)
+        if (IsHost && randomizeStartPosition)
         {
             networkPhaseOffset.Value = Random.Range(0f, Mathf.PI * 2);
         }

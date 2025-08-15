@@ -42,8 +42,8 @@ public class PlayerPowerManager : NetworkBehaviour
     {
         base.OnNetworkSpawn();
 
-        // Only the server assigns colors to avoid conflicts
-        if (IsServer)
+        // Only the host assigns colors to avoid conflicts
+        if (IsHost)
         {
             AssignRandomPlayerColor();
         }
@@ -77,7 +77,7 @@ public class PlayerPowerManager : NetworkBehaviour
 
     private void Update()
     {
-        if (!IsServer) return;
+        if (!IsHost) return;
 
         SpecialPower currentPower = GetCurrentPower();
         if (currentPower == null) return;
@@ -101,7 +101,7 @@ public class PlayerPowerManager : NetworkBehaviour
 
     public void OnServerPowerObjectCollision(SpecialPower power)
     {
-        if (!IsServer) return;
+        if (!IsHost) return;
         if (power.activationType == ActivationType.Passive)
         {
         #if debug
@@ -133,7 +133,7 @@ public class PlayerPowerManager : NetworkBehaviour
 
     private void ActivateCurrentPowerRpc(ulong playerClientId)
     {
-        if (!IsServer) return;
+        if (!IsHost) return;
 
         SpecialPower currentPower = GetCurrentPower();
         if (currentPower == null) return;
@@ -172,8 +172,8 @@ public class PlayerPowerManager : NetworkBehaviour
         Debug.Log($"<color=purple>[PlayerPowerManager]</color> Starting quick super jump for {gameObject.name}!");
 #endif
 
-        // Apply instant upward force (server authoritative)
-        if (IsServer)
+        // Apply instant upward force (host authoritative)
+        if (IsHost)
         {
             Vector3 upwardForce = Vector3.up * jumpForce;
             rb.AddForce(upwardForce, ForceMode.Impulse);

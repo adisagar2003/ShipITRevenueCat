@@ -82,7 +82,7 @@ public class SpawnManager : ThreadSafeNetworkSingleton<SpawnManager>
 
     public void FreeSpawnPoint(Transform spawnPoint)
     {
-        if (!IsServer) return;
+        if (!IsHost) return;
         
         lock (spawnLock)
         {
@@ -126,7 +126,7 @@ public class SpawnManager : ThreadSafeNetworkSingleton<SpawnManager>
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && OnGUI
     private void OnGUI()
     {
-        if (!IsServer) return; // Only show debug on server
+        if (!IsHost) return; // Only show debug on host
 
         // Create a debug window
         GUILayout.BeginArea(new Rect(10, 10, 300, 400));
@@ -138,7 +138,7 @@ public class SpawnManager : ThreadSafeNetworkSingleton<SpawnManager>
 
         // Basic info
         GUILayout.Label($"Total Spawn Points: {spawnPoints.Count}", GUI.skin.label);
-        GUILayout.Label($"Network Role: {(IsServer ? "SERVER" : "CLIENT")}", GUI.skin.label);
+        GUILayout.Label($"Network Role: {(IsHost ? "HOST" : IsServer ? "SERVER" : "CLIENT")}", GUI.skin.label);
         GUILayout.Label($"Is Spawned: {IsSpawned}", GUI.skin.label);
         GUILayout.Space(10);
 
@@ -194,7 +194,7 @@ public class SpawnManager : ThreadSafeNetworkSingleton<SpawnManager>
 
         if (GUILayout.Button("Test NetworkManager Player Spawning"))
         {
-            if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer)
+            if (NetworkManager.Singleton != null && (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer))
             {
                 Debug.Log($"NetworkManager PlayerPrefab: {(NetworkManager.Singleton.NetworkConfig.PlayerPrefab != null ? NetworkManager.Singleton.NetworkConfig.PlayerPrefab.name : "NULL")}");
                 Debug.Log($"Connected Clients: {NetworkManager.Singleton.ConnectedClientsList.Count}");

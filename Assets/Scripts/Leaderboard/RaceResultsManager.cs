@@ -67,13 +67,13 @@ public class RaceResultsManager : NetworkBehaviour
     {
         base.OnNetworkSpawn();
 
-        if (IsServer)
+        if (IsHost)
         {
             InitializeRace();
         }
 
 #if debug
-        Debug.Log($"<color=#FF6B35><b>[RaceResultsManager]</b></color> <color=cyan>Network spawned - Server: {IsServer}</color>");
+        Debug.Log($"<color=#FF6B35><b>[RaceResultsManager]</b></color> <color=cyan>Network spawned - Server: {IsServer}, Host: {IsHost}</color>");
 #endif
     }
 
@@ -82,7 +82,7 @@ public class RaceResultsManager : NetworkBehaviour
     /// </summary>
     public void InitializeRace()
     {
-        if (!IsServer) return;
+        if (!IsHost) return;
 
         raceStartTime = Time.time;
         finishedPlayerCount = 0;
@@ -115,7 +115,7 @@ public class RaceResultsManager : NetworkBehaviour
     /// <param name="playerName">Player's display name</param>
     public void RecordPlayerFinish(ulong clientId, string playerName)
     {
-        if (!IsServer) return;
+        if (!IsHost) return;
         if (raceCompleted) return;
         if (finishedPlayerCount >= 2) return;
 
@@ -157,7 +157,7 @@ public class RaceResultsManager : NetworkBehaviour
     /// </summary>
     public void ForceRaceCompletion()
     {
-        if (!IsServer) return;
+        if (!IsHost) return;
         if (raceCompleted) return;
 
         // Find unfinished players and mark them as DNF
@@ -217,7 +217,7 @@ public class RaceResultsManager : NetworkBehaviour
     /// </summary>
     private void TransitionToLeaderboard()
     {
-        if (!IsServer) return;
+        if (!IsHost) return;
         if (raceCompleted) return;
 
         raceCompleted = true;
@@ -261,7 +261,7 @@ public class RaceResultsManager : NetworkBehaviour
     /// </summary>
     public void ClearResults()
     {
-        if (!IsServer) return;
+        if (!IsHost) return;
 
         InitializeRace();
         isRaceActive.Value = false;

@@ -13,7 +13,7 @@ public class FinishLineTrigger : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!IsServer) return; // Only server determines finish order
+        if (!IsHost) return; // Only host determines finish order
 
         NetworkObject netObj = other.GetComponentInParent<NetworkObject>(); // parent third person component has NetworkObject.
         if (netObj == null) return; // Only consider objects with NetworkObject
@@ -144,7 +144,7 @@ public class FinishLineTrigger : NetworkBehaviour
     /// </summary>
     public void ResetRace()
     {
-        if (IsServer)
+        if (IsHost)
         {
             finishedClients.Clear();
 #if debug

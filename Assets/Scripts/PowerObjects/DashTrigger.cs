@@ -14,7 +14,7 @@ public class DashTrigger : NetworkBehaviour
         private void OnTriggerEnter(Collider other)
         {
             Debug.Log($"<color=#FF00FF><b>[DashTrigger]</b></color> {other.gameObject.name} <color=yellow>Player. Activating DashPower.</color>");
-            if (!IsServer) return; // server-authoritative
+            if (!IsHost) return; // host-authoritative
 
             var playerManager = other.GetComponent<PlayerPowerManager>();
             var networkObject = other.GetComponentInParent<NetworkObject>();
@@ -46,7 +46,7 @@ public class DashTrigger : NetworkBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        if (!IsServer) return; // Only the server should handle power deactivation
+        if (!IsHost) return; // Only the host should handle power deactivation
 
         // Get the network controller to check if dash is active
         var networkController = other.GetComponent<NetworkThirdPersonController>();

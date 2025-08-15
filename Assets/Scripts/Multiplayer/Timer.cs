@@ -18,7 +18,7 @@ public class Timer : NetworkBehaviour
 
     private void Update()
     {
-        if (!IsServer) return;
+        if (!IsHost) return;
 
         if (timerRunning && levelTimer.Value > 0f)
         {
@@ -41,7 +41,7 @@ public class Timer : NetworkBehaviour
     [ContextMenu("Start Timer")]
     public void StartTimer()
     {
-        if (!IsServer) return;
+        if (!IsHost) return;
 
         if (levelTimer.Value <= 0f)
         {
@@ -53,7 +53,7 @@ public class Timer : NetworkBehaviour
 
     public void StopTimer()
     {
-        if (!IsServer) return;
+        if (!IsHost) return;
 
         timerRunning = false;
         Debug.Log("Timer stopped.");
@@ -61,7 +61,7 @@ public class Timer : NetworkBehaviour
 
     public void ResetTimer()
     {
-        if (!IsServer) return;
+        if (!IsHost) return;
 
         levelTimer.Value = startingTime;
         timerRunning = false;

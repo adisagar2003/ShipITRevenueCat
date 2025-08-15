@@ -7,7 +7,7 @@ public class FallDetector : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            if (!NetworkManager.Singleton.IsServer) return;
+            if (!NetworkManager.Singleton.IsHost) return;
             Debug.Log($"{other.name} has fallen, triggering respawn.");
             PlayerRespawn respawn = other.GetComponent<PlayerRespawn>();
             if (respawn != null)

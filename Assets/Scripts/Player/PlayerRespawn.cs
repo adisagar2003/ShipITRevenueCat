@@ -17,9 +17,8 @@ public class PlayerRespawn : NetworkBehaviour
 
     public void RequestRespawn()
     {
-        if (!IsSpawned) return;
 
-        if (IsServer)
+        if (IsHost)
         {
             RespawnPlayerAtNearestPoint();
         }
