@@ -111,7 +111,21 @@ public class LobbyUIManager : MonoBehaviour
     {
         if (creatingLobbyText != null)
         {
-            creatingLobbyText.SetActive(visible);
+            // Try TextMeshPro first
+            var tmpText = creatingLobbyText.GetComponent<TMPro.TextMeshProUGUI>();
+            if (tmpText != null)
+            {
+                tmpText.text = visible ? "Creating Lobby..." : "";
+            }
+            else
+            {
+                // Fallback to legacy Text component
+                var legacyText = creatingLobbyText.GetComponent<UnityEngine.UI.Text>();
+                if (legacyText != null)
+                {
+                    legacyText.text = visible ? "Creating Lobby..." : "";
+                }
+            }
         }
         else if (visible) // Only warn when trying to show missing text
         {
@@ -123,7 +137,21 @@ public class LobbyUIManager : MonoBehaviour
     {
         if (startingGameText != null)
         {
-            startingGameText.SetActive(visible);
+            // Try TextMeshPro first
+            var tmpText = startingGameText.GetComponent<TMPro.TextMeshProUGUI>();
+            if (tmpText != null)
+            {
+                tmpText.text = visible ? "Starting Game..." : "";
+            }
+            else
+            {
+                // Fallback to legacy Text component
+                var legacyText = startingGameText.GetComponent<UnityEngine.UI.Text>();
+                if (legacyText != null)
+                {
+                    legacyText.text = visible ? "Starting Game..." : "";
+                }
+            }
         }
         else if (visible) // Only warn when trying to show missing text
         {
@@ -134,8 +162,32 @@ public class LobbyUIManager : MonoBehaviour
 
     #region Public Property Access
     public bool IsCreateLobbyButtonEnabled => createLobbyButton != null && createLobbyButton.interactable;
-    public bool IsCreatingLobbyTextVisible => creatingLobbyText != null && creatingLobbyText.activeSelf;
-    public bool IsStartingGameTextVisible => startingGameText != null && startingGameText.activeSelf;
+    public bool IsCreatingLobbyTextVisible => creatingLobbyText != null && !string.IsNullOrEmpty(GetTextContent(creatingLobbyText));
+    public bool IsStartingGameTextVisible => startingGameText != null && !string.IsNullOrEmpty(GetTextContent(startingGameText));
+    
+    /// <summary>
+    /// Helper method to get text content from either TextMeshPro or legacy Text components.
+    /// </summary>
+    private string GetTextContent(GameObject textObject)
+    {
+        if (textObject == null) return string.Empty;
+        
+        // Try TextMeshPro first
+        var tmpText = textObject.GetComponent<TMPro.TextMeshProUGUI>();
+        if (tmpText != null)
+        {
+            return tmpText.text;
+        }
+        
+        // Fallback to legacy Text component
+        var legacyText = textObject.GetComponent<UnityEngine.UI.Text>();
+        if (legacyText != null)
+        {
+            return legacyText.text;
+        }
+        
+        return string.Empty;
+    }
     #endregion
 
     #region Component References Setup
@@ -170,38 +222,39 @@ public class LobbyUIManager : MonoBehaviour
     {
         bool foundAny = false;
         
-        // Try to find Create Lobby Button if null
+        // Try to find Create Lobby Button if null - look for "CreateLobby" GameObject
         if (createLobbyButton == null)
         {
-            createLobbyButton = FindUIElementByNameOrType<Button>("CreateLobbyButton", "Create Lobby", "CreateSession");
-            if (createLobbyButton != null)
+            GameObject buttonObject = GameObject.Find("CreateLobby");
+            if (buttonObject != null && buttonObject.TryGetComponent<Button>(out Button button))
             {
+                createLobbyButton = button;
                 foundAny = true;
-                GameLogger.LogInfo(GameLogger.LogCategory.UI, "Auto-discovered createLobbyButton");
+                GameLogger.LogInfo(GameLogger.LogCategory.UI, "Auto-discovered createLobbyButton from 'CreateLobby' GameObject");
             }
         }
         
-        // Try to find Creating Lobby Text if null
+        // Try to find Creating Lobby Text if null - look for "CreatingLobbyText" GameObject
         if (creatingLobbyText == null)
         {
-            Transform textTransform = FindUIElementByNameOrType<Transform>("CreatingLobbyText", "Creating Lobby", "CreatingText");
-            creatingLobbyText = textTransform?.gameObject;
-            if (creatingLobbyText != null)
+            GameObject textObject = GameObject.Find("CreatingLobbyText");
+            if (textObject != null)
             {
+                creatingLobbyText = textObject;
                 foundAny = true;
-                GameLogger.LogInfo(GameLogger.LogCategory.UI, "Auto-discovered creatingLobbyText");
+                GameLogger.LogInfo(GameLogger.LogCategory.UI, "Auto-discovered creatingLobbyText from 'CreatingLobbyText' GameObject");
             }
         }
         
-        // Try to find Starting Game Text if null
+        // Try to find Starting Game Text if null - look for "StartingGameText" GameObject
         if (startingGameText == null)
         {
-            Transform textTransform = FindUIElementByNameOrType<Transform>("StartingGameText", "Starting Game", "StartingText");
-            startingGameText = textTransform?.gameObject;
-            if (startingGameText != null)
+            GameObject textObject = GameObject.Find("StartingGameText");
+            if (textObject != null)
             {
+                startingGameText = textObject;
                 foundAny = true;
-                GameLogger.LogInfo(GameLogger.LogCategory.UI, "Auto-discovered startingGameText");
+                GameLogger.LogInfo(GameLogger.LogCategory.UI, "Auto-discovered startingGameText from 'StartingGameText' GameObject");
             }
         }
         
@@ -211,33 +264,6 @@ public class LobbyUIManager : MonoBehaviour
         }
     }
     
-    /// <summary>
-    /// Finds a UI element using multiple search strategies and name variations.
-    /// </summary>
-    private T FindUIElementByNameOrType<T>(params string[] searchNames) where T : Component
-    {
-        foreach (string searchName in searchNames)
-        {
-            // Strategy 1: Find by exact name
-            GameObject foundObject = GameObject.Find(searchName);
-            if (foundObject != null && foundObject.TryGetComponent<T>(out T component))
-            {
-                return component;
-            }
-            
-            // Strategy 2: Find all components of type T and match by name
-            T[] allComponents = FindObjectsByType<T>(FindObjectsSortMode.None);
-            foreach (T comp in allComponents)
-            {
-                if (comp.gameObject.name.Contains(searchName, System.StringComparison.OrdinalIgnoreCase))
-                {
-                    return comp;
-                }
-            }
-        }
-        
-        return null;
-    }
     
     /// <summary>
     /// Validates that all UI references are available and logs missing ones.

@@ -336,17 +336,31 @@ public class LobbyUIReferenceService : ThreadSafeSimpleSingleton<LobbyUIReferenc
         if (directFind != null && directFind.TryGetComponent<Button>(out Button directButton))
         {
             GameLogger.LogDebug(GameLogger.LogCategory.UI, $"Found button '{buttonName}' by direct search");
+            
+            // Assign listener for CreateLobby button specifically
+            if (buttonName.Equals("CreateLobby", StringComparison.OrdinalIgnoreCase))
+            {
+                LobbyManager.Instance.AssignCreateButtonListener();
+            }
+            
             return directButton;
         }
         
         // Strategy 2: Find all buttons and search by name
-        Button[] allButtons = Object.FindObjectsByType<Button>(FindObjectsSortMode.None);
+        Button[] allButtons = UnityEngine.Object.FindObjectsByType<Button>(FindObjectsSortMode.None);
         foreach (Button button in allButtons)
         {
             if (button.gameObject.name.Equals(buttonName, StringComparison.OrdinalIgnoreCase) ||
                 button.gameObject.name.Contains(buttonName, StringComparison.OrdinalIgnoreCase))
             {
                 GameLogger.LogDebug(GameLogger.LogCategory.UI, $"Found button '{buttonName}' by component search");
+                
+                // Assign listener for CreateLobby button specifically
+                if (buttonName.Equals("CreateLobby", StringComparison.OrdinalIgnoreCase))
+                {
+                    LobbyManager.Instance.AssignCreateButtonListener();
+                }
+                
                 return button;
             }
         }
@@ -365,7 +379,7 @@ public class LobbyUIReferenceService : ThreadSafeSimpleSingleton<LobbyUIReferenc
         }
         
         // Strategy 2: Find all GameObjects and search by name
-        GameObject[] allObjects = Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
+        GameObject[] allObjects = UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
         foreach (GameObject obj in allObjects)
         {
             if (obj.name.Equals(objectName, StringComparison.OrdinalIgnoreCase) ||
@@ -383,7 +397,7 @@ public class LobbyUIReferenceService : ThreadSafeSimpleSingleton<LobbyUIReferenc
     {
         GameLogger.LogWarning(GameLogger.LogCategory.UI, "UI elements not found. Listing available GameObjects for debugging:");
         
-        GameObject[] allObjects = Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
+        GameObject[] allObjects = UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
         int loggedCount = 0;
         
         foreach (GameObject obj in allObjects)

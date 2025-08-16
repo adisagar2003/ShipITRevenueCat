@@ -11,10 +11,6 @@ using System.Linq;
 using UnityEngine.UI;
 /// <summary>
 /// Manages multiplayer lobby creation, joining, and relay connectivity.
-/// Compatible with Unity 6 Multiplayer Services package - uses the unified Sessions approach.
-/// Uses ISession interface for session management instead of deprecated Lobby API.
-/// 
-/// REFACTORED FOR BETTER MAINTAINABILITY:
 /// - Broken down large methods into smaller, focused functions
 /// - Grouped related functionality into logical regions
 /// - Added comprehensive documentation
@@ -355,7 +351,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         
         // Refresh UI references when returning to lobby scene using service
         RefreshUIReferences();
-        
+        Initialize(); // reset everything for testing purposes.
         // Reset UI state when returning to lobby scene
         if (uiManager != null)
         {
@@ -533,7 +529,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     /// <summary>
     /// Assigns the CreateSession listener to the createLobbyButton with "randomLobby" parameter.
     /// </summary>
-    private void AssignCreateButtonListener()
+    public void AssignCreateButtonListener()
     {
         if (createLobbyButton != null)
         {
@@ -789,10 +785,6 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         Debug.LogError($"<color=red><b>[HOST START ERROR]</b></color> Stack trace: {ex.StackTrace}");
 #endif
     }
-
-
-
-
 
     #region Unity Coroutines
     /// <summary>
