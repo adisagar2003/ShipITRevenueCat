@@ -39,8 +39,8 @@ public class LobbyUIReferenceService : ThreadSafeSimpleSingleton<LobbyUIReferenc
     private MonoBehaviour coroutineHost;
     private Coroutine uiPollingCoroutine;
     private bool isPollingEnabled = true;
-    private float pollingInterval = 1f;
-    private float reducedPollingInterval = 5f;
+    private float pollingInterval = 3f;
+    private float reducedPollingInterval = 8f;
     #endregion
 
     #region Service Lifecycle

@@ -38,9 +38,9 @@ public static class GameConstants
         /// <summary>Default maximum number of players in a multiplayer lobby.</summary>
         public const int DEFAULT_MAX_PLAYERS = 2;
         /// <summary>Interval in seconds for polling lobby updates.</summary>
-        public const float LOBBY_POLLING_INTERVAL = 1f;
+        public const float LOBBY_POLLING_INTERVAL = 3f;
         /// <summary>Interval in seconds for checking if all players have connected.</summary>
-        public const float PLAYER_WAIT_POLLING_INTERVAL = 0.5f;
+        public const float PLAYER_WAIT_POLLING_INTERVAL = 2f;
         /// <summary>Maximum relay connections (maxPlayers - 1 for host).</summary>
         public const int RELAY_MAX_CONNECTIONS = 1;
     }

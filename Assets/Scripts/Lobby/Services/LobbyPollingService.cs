@@ -26,11 +26,11 @@ public class LobbyPollingService : ThreadSafeSimpleSingleton<LobbyPollingService
     #region Private Fields
     private bool shouldRefreshSessions = true;
     private DateTime lastFetchTime = DateTime.MinValue;
-    private const int MIN_FETCH_INTERVAL_SECONDS = 5;
+    private const int MIN_FETCH_INTERVAL_SECONDS = 8;
     private const int MAX_POLLING_FAILURES = 5;
-    private const int POLLING_INTERVAL_MS = 5000; // 5 seconds
-    private const int GAME_START_POLLING_INTERVAL_MS = 10000; // 10 seconds
-    private const int ERROR_BACKOFF_MS = 30000; // 30 seconds
+    private const int POLLING_INTERVAL_MS = 8000; // 8 seconds
+    private const int GAME_START_POLLING_INTERVAL_MS = 15000; // 15 seconds
+    private const int ERROR_BACKOFF_MS = 45000; // 45 seconds
     #endregion
 
     #region Session Discovery Polling

@@ -52,25 +52,92 @@ public class AddAttachmentsToCharacter : NetworkBehaviour
         int headIndex = PlayerPrefs.GetInt(GameConstants.PlayerPrefsKeys.HEAD_INDEX, 0);
         int glassesIndex = PlayerPrefs.GetInt(GameConstants.PlayerPrefsKeys.GLASSES_INDEX, 0);
 
+        GameLogger.LogDebug(GameLogger.LogCategory.Gameplay, $"Applying customization - Body: {bodyIndex}, Head: {headIndex}, Glasses: {glassesIndex}");
   
         // ---- Apply Glasses ----
-        if (customizationDatabase != null && customizationDatabase.glassPrefabs != null && 
-            customizationDatabase.glassPrefabs.Count > glassesIndex && hatsContainer != null)
+        GameLogger.LogDebug(GameLogger.LogCategory.Gameplay, "Starting glass attachment process");
+        
+        // Validate customization database
+        if (customizationDatabase == null)
         {
-            // Clean up existing glasses
-            if (currentGlassesInstance != null)
-            {
-                ResourceManager.SafeDestroy(currentGlassesInstance);
-                currentGlassesInstance = null;
-            }
+            GameLogger.LogError(GameLogger.LogCategory.Gameplay, "Customization database is null - cannot apply glasses");
+            return;
+        }
+        
+        if (customizationDatabase.glassPrefabs == null)
+        {
+            GameLogger.LogError(GameLogger.LogCategory.Gameplay, "Glass prefabs list is null in customization database");
+            return;
+        }
+        
+        // Validate hats container - try fallback if not assigned
+        if (hatsContainer == null)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.Gameplay, "Hats container is not assigned - attempting to find 'Hats' transform");
+            hatsContainer = transform.FindDeepChild("Hats");
             
-            // Instantiate new glasses
-            var glassPrefab = customizationDatabase.glassPrefabs[glassesIndex];
-            if (glassPrefab != null)
+            if (hatsContainer == null)
             {
-                currentGlassesInstance = Instantiate(glassPrefab, hatsContainer);
-                ResourceManager.TrackObject(currentGlassesInstance, $"Glasses_{GetInstanceID()}");
+                GameLogger.LogError(GameLogger.LogCategory.Gameplay, "Could not find 'Hats' transform in hierarchy - cannot attach glasses");
+                return;
             }
+            else
+            {
+                GameLogger.LogInfo(GameLogger.LogCategory.Gameplay, $"Found Hats transform automatically: {hatsContainer.name}");
+            }
+        }
+        
+        GameLogger.LogDebug(GameLogger.LogCategory.Gameplay, $"Hats container found: {hatsContainer.name}");
+        
+        // Validate glasses index
+        if (glassesIndex < 0 || glassesIndex >= customizationDatabase.glassPrefabs.Count)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.Gameplay, $"Glasses index {glassesIndex} is out of bounds (0-{customizationDatabase.glassPrefabs.Count - 1})");
+            return;
+        }
+        
+        GameLogger.LogDebug(GameLogger.LogCategory.Gameplay, $"Glass prefabs available: {customizationDatabase.glassPrefabs.Count}, selected index: {glassesIndex}");
+        
+        // Clean up existing glasses and any other children in hats container
+        if (currentGlassesInstance != null)
+        {
+            GameLogger.LogDebug(GameLogger.LogCategory.Gameplay, "Cleaning up existing glasses instance");
+            ResourceManager.SafeDestroy(currentGlassesInstance);
+            currentGlassesInstance = null;
+        }
+        
+        // Also clear any other children that might exist in the hats container
+        int childCount = hatsContainer.childCount;
+        if (childCount > 0)
+        {
+            GameLogger.LogDebug(GameLogger.LogCategory.Gameplay, $"Clearing {childCount} existing children from hats container");
+            foreach (Transform child in hatsContainer)
+            {
+                ResourceManager.SafeDestroy(child.gameObject);
+            }
+        }
+        
+        // Get the glass prefab
+        var glassPrefab = customizationDatabase.glassPrefabs[glassesIndex];
+        if (glassPrefab == null)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.Gameplay, $"Glass prefab at index {glassesIndex} is null");
+            return;
+        }
+        
+        GameLogger.LogDebug(GameLogger.LogCategory.Gameplay, $"Instantiating glass prefab: {glassPrefab.name}");
+        
+        // Instantiate new glasses
+        currentGlassesInstance = Instantiate(glassPrefab, hatsContainer);
+        if (currentGlassesInstance != null)
+        {
+            currentGlassesInstance.SetActive(true);
+            ResourceManager.TrackObject(currentGlassesInstance, $"Glasses_{GetInstanceID()}");
+            GameLogger.LogInfo(GameLogger.LogCategory.Gameplay, $"Successfully attached glasses '{glassPrefab.name}' to {hatsContainer.name}");
+        }
+        else
+        {
+            GameLogger.LogError(GameLogger.LogCategory.Gameplay, "Failed to instantiate glass prefab");
         }
 
         // ---- Apply Body Mesh ----
