@@ -98,6 +98,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         // Initialize UI reference service
         uiReferenceService.Initialize(this);
         
+        // Initialize session service game event subscriptions
+        sessionService.InitializeGameEvents();
+        
         // Subscribe to session service events for UI updates
         sessionService.OnSessionCreated += OnSessionCreatedByService;
         sessionService.OnSessionJoined += OnSessionJoinedByService;

@@ -290,12 +290,77 @@ public class LobbySessionService : ThreadSafeSimpleSingleton<LobbySessionService
     }
     #endregion
 
+    #region Game Integration
+    /// <summary>
+    /// Initializes event subscriptions for game integration.
+    /// Call this during service setup.
+    /// </summary>
+    public void InitializeGameEvents()
+    {
+        // Subscribe to race level events for session cleanup
+        RaceLevelManager.OnAllPlayersConnected += OnAllPlayersConnectedHandler;
+        GameLogger.LogDebug(GameLogger.LogCategory.Network, "Subscribed to RaceLevelManager.OnAllPlayersConnected event");
+    }
+
+    /// <summary>
+    /// Handles the event when all players are connected in the race level.
+    /// Only processes if this instance is the host to avoid duplicate cleanup.
+    /// </summary>
+    private async void OnAllPlayersConnectedHandler()
+    {
+        // Double-check host authority for safety
+        if (Unity.Netcode.NetworkManager.Singleton == null || !Unity.Netcode.NetworkManager.Singleton.IsHost)
+        {
+            GameLogger.LogDebug(GameLogger.LogCategory.Network, "Ignoring session cleanup - not host");
+            return;
+        }
+
+        if (CurrentSession == null)
+        {
+            GameLogger.LogDebug(GameLogger.LogCategory.Network, "No active session to cleanup");
+            return;
+        }
+
+        try
+        {
+            GameLogger.LogInfo(GameLogger.LogCategory.Network, "All players connected - cleaning up lobby session");
+            bool success = await LeaveSessionAsync();
+            
+            if (success)
+            {
+                GameLogger.LogInfo(GameLogger.LogCategory.Network, "✅ Session successfully cleaned up after all players joined");
+            }
+            else
+            {
+                GameLogger.LogWarning(GameLogger.LogCategory.Network, "⚠️ Session cleanup completed with warnings");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't block game - session cleanup is not critical for gameplay
+            GameLogger.LogError(GameLogger.LogCategory.Network, $"❌ Error during session cleanup: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Unsubscribes from game events. Called during cleanup.
+    /// </summary>
+    private void CleanupGameEvents()
+    {
+        RaceLevelManager.OnAllPlayersConnected -= OnAllPlayersConnectedHandler;
+        GameLogger.LogDebug(GameLogger.LogCategory.Network, "Unsubscribed from RaceLevelManager events");
+    }
+    #endregion
+
     #region Cleanup
     /// <summary>
     /// Cleanup method called during service destruction.
     /// </summary>
     public void Cleanup()
     {
+        // Unsubscribe from events first
+        CleanupGameEvents();
+        
         if (CurrentSession != null)
         {
             // Fire-and-forget cleanup - don't wait for async operation
