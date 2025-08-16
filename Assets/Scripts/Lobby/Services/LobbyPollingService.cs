@@ -38,6 +38,7 @@ public class LobbyPollingService : ThreadSafeSimpleSingleton<LobbyPollingService
     /// Starts the session refresh polling loop.
     /// This runs continuously until stopped or a session is joined.
     /// </summary>
+    /// 
     public async Task StartSessionPollingAsync(LobbySessionService sessionService)
     {
         if (IsPollingActive)

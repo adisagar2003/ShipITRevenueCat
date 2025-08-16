@@ -40,7 +40,7 @@ public class RaceResultsManager : NetworkBehaviour
     }
 
     // Race state
-    private PlayerRaceResult[] raceResults = new PlayerRaceResult[2]; // Fixed for 2 players
+    [SerializeField] private PlayerRaceResult[] raceResults = new PlayerRaceResult[2]; // Fixed for 2 players
     private int finishedPlayerCount = 0;
     private float raceStartTime;
     private bool raceCompleted = false;
@@ -73,7 +73,7 @@ public class RaceResultsManager : NetworkBehaviour
         }
 
 #if debug
-        Debug.Log($"<color=#FF6B35><b>[RaceResultsManager]</b></color> <color=cyan>Network spawned - Server: {IsServer}, Host: {IsHost}</color>");
+        Debug.Log($"<color=#FF6B35><b>[RaceResultsManager]</b></color> <color=cyan>Network spawned - Server: {NetworkManager.Singleton.IsHost}</color>");
 #endif
     }
 
@@ -82,7 +82,7 @@ public class RaceResultsManager : NetworkBehaviour
     /// </summary>
     public void InitializeRace()
     {
-        if (!IsHost) return;
+        if (!NetworkManager.Singleton.IsHost) return;
 
         raceStartTime = Time.time;
         finishedPlayerCount = 0;
@@ -115,7 +115,7 @@ public class RaceResultsManager : NetworkBehaviour
     /// <param name="playerName">Player's display name</param>
     public void RecordPlayerFinish(ulong clientId, string playerName)
     {
-        if (!IsHost) return;
+        if (!NetworkManager.Singleton.IsHost) return;
         if (raceCompleted) return;
         if (finishedPlayerCount >= 2) return;
 
@@ -157,7 +157,7 @@ public class RaceResultsManager : NetworkBehaviour
     /// </summary>
     public void ForceRaceCompletion()
     {
-        if (!IsHost) return;
+        if (!NetworkManager.Singleton.IsHost) return;
         if (raceCompleted) return;
 
         // Find unfinished players and mark them as DNF
@@ -217,7 +217,7 @@ public class RaceResultsManager : NetworkBehaviour
     /// </summary>
     private void TransitionToLeaderboard()
     {
-        if (!IsHost) return;
+        if (!NetworkManager.Singleton.IsHost) return;
         if (raceCompleted) return;
 
         raceCompleted = true;

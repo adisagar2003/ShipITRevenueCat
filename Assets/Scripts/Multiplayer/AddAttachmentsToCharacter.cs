@@ -73,25 +73,25 @@ public class AddAttachmentsToCharacter : NetworkBehaviour
             }
         }
 
-        // ---- Apply Body Material ----
-        if (customizationDatabase != null && customizationDatabase.bodyMaterials != null &&
-            customizationDatabase.bodyMaterials.Count > bodyIndex && bodyRenderer != null)
+        // ---- Apply Body Mesh ----
+        if (customizationDatabase != null && customizationDatabase.bodyMeshes != null &&
+            customizationDatabase.bodyMeshes.Count > bodyIndex && bodyRenderer != null)
         {
-            var bodyMaterial = customizationDatabase.bodyMaterials[bodyIndex];
-            if (bodyMaterial != null)
+            var bodyMesh = customizationDatabase.bodyMeshes[bodyIndex];
+            if (bodyMesh != null)
             {
-                bodyRenderer.material = bodyMaterial;
+                bodyRenderer.sharedMesh = bodyMesh;
             }
         }
 
-        // ---- Apply Head Material ----
-        if (customizationDatabase != null && customizationDatabase.headMaterials != null &&
-            customizationDatabase.headMaterials.Count > headIndex && headRenderer != null)
+        // ---- Apply Head Mesh ----
+        if (customizationDatabase != null && customizationDatabase.headMeshes != null &&
+            customizationDatabase.headMeshes.Count > headIndex && headRenderer != null)
         {
-            var headMaterial = customizationDatabase.headMaterials[headIndex];
-            if (headMaterial != null)
+            var headMesh = customizationDatabase.headMeshes[headIndex];
+            if (headMesh != null)
             {
-                headRenderer.material = headMaterial;
+                headRenderer.sharedMesh = headMesh;
             }
         }
     }

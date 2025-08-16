@@ -186,7 +186,7 @@ public class FinishLineTrigger : NetworkBehaviour
         var localPlayer = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject();
         if (localPlayer != null)
         {
-            var controller = localPlayer.GetComponent<NetworkThirdPersonController>();
+            var controller = localPlayer.GetComponentInChildren<NetworkThirdPersonController>();
             if (controller != null)
             {
                 controller.DisableMovement();

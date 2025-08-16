@@ -15,6 +15,7 @@ public class LobbySlotData : MonoBehaviour
     [SerializeField] private TextMeshProUGUI playerCountText;
     private string lobbyId;
     private LobbyManager lobbyManager;
+        private LobbySessionService lobbySessionService;
     private bool hasJoined;
     private bool isHost;
     private bool isJoining; // Prevent double-clicks while joining
@@ -23,6 +24,7 @@ public class LobbySlotData : MonoBehaviour
     private void Awake()
     {
         lobbyManager = FindObjectOfType<LobbyManager>();
+        lobbySessionService = lobbyManager.sessionService;
         joinLobbyButton.onClick.AddListener(JoinLobby);
         startGameButton.onClick.AddListener(StartGame);
     }
@@ -218,7 +220,7 @@ public class LobbySlotData : MonoBehaviour
             // Start polling for game start if we're not the host
             if (!isHost)
             {
-                _ = LobbyManager.Instance.StartPollingForGameStart();
+                _ = LobbyPollingService.Instance.StartPollingForGameStartAsync(lobbySessionService);
 #if debug
                 Debug.Log("Started polling for game start as client");
 #endif

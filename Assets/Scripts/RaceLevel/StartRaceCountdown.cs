@@ -27,7 +27,7 @@ public class StartRaceCountdown : NetworkBehaviour
 
         public void StartCountdown()
         {
-                if (!IsHost) return;
+                if (!NetworkManager.Singleton.IsHost) return;
 
                 StartCoroutine(CountdownRoutine());
         }

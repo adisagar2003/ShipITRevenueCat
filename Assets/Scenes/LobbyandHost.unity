@@ -201,8 +201,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 996032748}
   m_HandleRect: {fileID: 996032747}
   m_Direction: 2
-  m_Value: -0.0000009905089
-  m_Size: 0.48649296
+  m_Value: -0.0000014857633
+  m_Size: 0.4864738
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -361,7 +361,7 @@ GameObject:
   - component: {fileID: 163264061}
   - component: {fileID: 163264060}
   m_Layer: 5
-  m_Name: CreateLobby
+  m_Name: BackButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -873,7 +873,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.20392157}
+  m_Color: {r: 0.4292453, g: 0.6007715, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -915,7 +915,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &542892166
 RectTransform:
   m_ObjectHideFlags: 0
@@ -955,7 +955,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Starting Game...
+  m_text: 
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -1004,7 +1004,7 @@ MonoBehaviour:
   m_linkedTextComponent: {fileID: 0}
   parentLinkedComponent: {fileID: 0}
   m_enableKerning: 1
-  m_ActiveFontFeatures: 00000000
+  m_ActiveFontFeatures: 6e72656b
   m_enableExtraPadding: 0
   checkPaddingRequired: 0
   m_isRichText: 1
@@ -1631,7 +1631,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 154.05016}
+  m_AnchoredPosition: {x: 0, y: 154.05022}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &998687371
@@ -1660,7 +1660,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1005689271}
   m_Layer: 5
-  m_Name: BackButton
+  m_Name: BackButtonContainer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1838,7 +1838,8 @@ PrefabInstance:
         type: 3}
       propertyPath: NetworkConfig.PlayerPrefab
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 5760493320708922015, guid: 268bbd229edfdba45a4d45903e472716,
+        type: 3}
     m_RemovedComponents:
     - {fileID: 4434038701710932214, guid: 0bebe1583fc858e41a6114f0b7745489, type: 3}
     m_RemovedGameObjects: []
@@ -1854,9 +1855,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1419815445}
-  - component: {fileID: 1419815448}
   - component: {fileID: 1419815446}
   - component: {fileID: 1419815444}
+  - component: {fileID: 1419815448}
   - component: {fileID: 1419815447}
   m_Layer: 0
   m_Name: LobbyHandler
@@ -1884,7 +1885,7 @@ MonoBehaviour:
   createLobbyButton: {fileID: 827546369}
   creatingLobbyText: {fileID: 1862801281}
   startingGameText: {fileID: 542892165}
-  previousSceneName: CharacterCustomization
+  previousSceneName: CharacterCustomizer
 --- !u!4 &1419815445
 Transform:
   m_ObjectHideFlags: 0
@@ -2282,7 +2283,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Creating Lobby
+  m_text: 
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}

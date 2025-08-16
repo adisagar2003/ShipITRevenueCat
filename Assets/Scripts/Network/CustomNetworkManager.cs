@@ -15,7 +15,7 @@ public class CustomNetworkManager : NetworkManager
     /// <summary>
     /// Overrides the default player spawn position to add random X-axis offset
     /// </summary>
-    public override Vector3 GetPlayerSpawnPosition(ulong clientId, GameObject playerPrefab)
+    public  Vector3 GetPlayerSpawnPosition(ulong clientId, GameObject playerPrefab)
     {
         // Generate a random offset on the X-axis
         float randomXOffset = Random.Range(-spawnOffsetRange, spawnOffsetRange);
@@ -33,7 +33,7 @@ public class CustomNetworkManager : NetworkManager
     /// <summary>
     /// Overrides player spawn rotation - keeps default rotation for now
     /// </summary>
-    public override Quaternion GetPlayerSpawnRotation(ulong clientId, GameObject playerPrefab)
+    public  Quaternion GetPlayerSpawnRotation(ulong clientId, GameObject playerPrefab)
     {
         return Quaternion.identity; // Default forward rotation
     }

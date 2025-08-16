@@ -12,7 +12,7 @@ public static class GameConstants
     public static class PlayerPrefsKeys
     {
         /// <summary>Index of the selected body mesh in the customization database.</summary>
-        public const string BODY_INDEX = "Body_Index";
+        public const string BODY_INDEX = "BodyMesh_Index";
         /// <summary>Index of the selected head mesh in the customization database.</summary>
         public const string HEAD_INDEX = "Head_Index";
         /// <summary>Index of the selected glasses/hat in the customization database.</summary>

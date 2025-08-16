@@ -64,5 +64,6 @@
     "dotrush.roslyn.projectOrSolutionFiles": "ShipITRevenueCat.sln",
     "omnisharp.path": "latest",
     "csharp.semanticHighlighting.enabled": true,
-    "csharp.format.enable": true
+    "csharp.format.enable": true,
+    "dotnet.preferCSharpExtension": true
 } 
