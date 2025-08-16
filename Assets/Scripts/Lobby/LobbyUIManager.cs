@@ -141,17 +141,135 @@ public class LobbyUIManager : MonoBehaviour
     #region Component References Setup
     /// <summary>
     /// Sets up UI component references. Called by LobbyManager during initialization.
+    /// Handles null references gracefully and attempts automatic discovery if needed.
     /// </summary>
     public void SetupUIReferences(Button createButton, GameObject creatingText, GameObject startingText)
     {
-        createLobbyButton = createButton;
-        creatingLobbyText = creatingText;
-        startingGameText = startingText;
+        // Update references, keeping existing ones if new ones are null
+        if (createButton != null)
+            createLobbyButton = createButton;
+        if (creatingText != null)
+            creatingLobbyText = creatingText;
+        if (startingText != null)
+            startingGameText = startingText;
+        
+        // If any references are still null, attempt automatic discovery
+        AttemptAutomaticUIDiscovery();
         
         // Immediately reset to clean state with new references
         ResetUIToLobbyState();
         
         GameLogger.LogInfo(GameLogger.LogCategory.UI, "UI references configured");
+    }
+    
+    /// <summary>
+    /// Attempts to automatically discover UI elements if references are null.
+    /// This provides a fallback when serialized references become stale.
+    /// </summary>
+    private void AttemptAutomaticUIDiscovery()
+    {
+        bool foundAny = false;
+        
+        // Try to find Create Lobby Button if null
+        if (createLobbyButton == null)
+        {
+            createLobbyButton = FindUIElementByNameOrType<Button>("CreateLobbyButton", "Create Lobby", "CreateSession");
+            if (createLobbyButton != null)
+            {
+                foundAny = true;
+                GameLogger.LogInfo(GameLogger.LogCategory.UI, "Auto-discovered createLobbyButton");
+            }
+        }
+        
+        // Try to find Creating Lobby Text if null
+        if (creatingLobbyText == null)
+        {
+            Transform textTransform = FindUIElementByNameOrType<Transform>("CreatingLobbyText", "Creating Lobby", "CreatingText");
+            creatingLobbyText = textTransform?.gameObject;
+            if (creatingLobbyText != null)
+            {
+                foundAny = true;
+                GameLogger.LogInfo(GameLogger.LogCategory.UI, "Auto-discovered creatingLobbyText");
+            }
+        }
+        
+        // Try to find Starting Game Text if null
+        if (startingGameText == null)
+        {
+            Transform textTransform = FindUIElementByNameOrType<Transform>("StartingGameText", "Starting Game", "StartingText");
+            startingGameText = textTransform?.gameObject;
+            if (startingGameText != null)
+            {
+                foundAny = true;
+                GameLogger.LogInfo(GameLogger.LogCategory.UI, "Auto-discovered startingGameText");
+            }
+        }
+        
+        if (!foundAny)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "No UI elements could be auto-discovered");
+        }
+    }
+    
+    /// <summary>
+    /// Finds a UI element using multiple search strategies and name variations.
+    /// </summary>
+    private T FindUIElementByNameOrType<T>(params string[] searchNames) where T : Component
+    {
+        foreach (string searchName in searchNames)
+        {
+            // Strategy 1: Find by exact name
+            GameObject foundObject = GameObject.Find(searchName);
+            if (foundObject != null && foundObject.TryGetComponent<T>(out T component))
+            {
+                return component;
+            }
+            
+            // Strategy 2: Find all components of type T and match by name
+            T[] allComponents = FindObjectsByType<T>(FindObjectsSortMode.None);
+            foreach (T comp in allComponents)
+            {
+                if (comp.gameObject.name.Contains(searchName, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    return comp;
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    /// <summary>
+    /// Validates that all UI references are available and logs missing ones.
+    /// </summary>
+    public bool ValidateUIReferences()
+    {
+        bool allValid = true;
+        
+        if (createLobbyButton == null)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "createLobbyButton is null - buttons may not work");
+            allValid = false;
+        }
+        
+        if (creatingLobbyText == null)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "creatingLobbyText is null - creation status may not display");
+            allValid = false;
+        }
+        
+        if (startingGameText == null)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "startingGameText is null - game start status may not display");
+            allValid = false;
+        }
+        
+        if (allValid)
+        {
+            GameLogger.LogDebug(GameLogger.LogCategory.UI, "All UI references validated successfully");
+        }
+        
+        return allValid;
     }
     #endregion
 }

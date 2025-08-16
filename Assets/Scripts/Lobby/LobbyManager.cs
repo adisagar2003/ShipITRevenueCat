@@ -45,12 +45,17 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     [SerializeField] private string previousSceneName = GameConstants.Graphics.SCENE_CHARACTER_CUSTOMIZER;
     #endregion
 
+    #region Scene Management
+    private string currentSceneName;
+    private bool isSceneTransitioning = false;
+    #endregion
+
     #region UI Management
     private LobbyUIManager uiManager;
     #endregion
 
     #region Services
-    private LobbySessionService sessionService;
+    public LobbySessionService sessionService;
     private LobbyNetworkService networkService;
     private LobbyPollingService pollingService;
     #endregion
@@ -288,6 +293,16 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 
     private void OnEnable()
     {
+        // Detect scene changes and refresh UI accordingly
+        DetectSceneChange();
+        
+        // Refresh UI references when returning to lobby scene
+        // This fixes the DontDestroyOnLoad stale reference issue
+        RefreshUIReferences();
+        
+        // Validate UI references after refresh
+        ValidateAndLogUIState();
+        
         // Reset UI state when returning to lobby scene
         // This fixes the "Creating Lobby..." persistence issue
         if (uiManager != null)
@@ -296,7 +311,177 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             GameLogger.LogDebug(GameLogger.LogCategory.UI, "UI state reset on scene enable");
         }
     }
+    
+    /// <summary>
+    /// Detects scene changes and sets appropriate flags for UI management.
+    /// </summary>
+    private void DetectSceneChange()
+    {
+        string newSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        
+        if (currentSceneName != newSceneName)
+        {
+            string previousScene = currentSceneName ?? "Unknown";
+            currentSceneName = newSceneName;
+            isSceneTransitioning = false; // Reset transition flag
+            
+            GameLogger.LogInfo(GameLogger.LogCategory.UI, 
+                $"Scene change detected: {previousScene} -> {newSceneName}");
+                
+            // If we're entering a lobby-related scene, mark for UI refresh
+            if (IsLobbyScene(newSceneName))
+            {
+                GameLogger.LogDebug(GameLogger.LogCategory.UI, "Entering lobby scene - will refresh UI");
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Determines if the current scene is a lobby-related scene.
+    /// </summary>
+    private bool IsLobbyScene(string sceneName)
+    {
+        return sceneName.Contains("Lobby", System.StringComparison.OrdinalIgnoreCase) ||
+               sceneName.Contains("Host", System.StringComparison.OrdinalIgnoreCase) ||
+               sceneName == "LobbyandHost"; // Specific to this project
+    }
+    
+    /// <summary>
+    /// Validates UI state and logs current status for debugging.
+    /// </summary>
+    private void ValidateAndLogUIState()
+    {
+        if (uiManager != null)
+        {
+            bool isValid = uiManager.ValidateUIReferences();
+            if (!isValid)
+            {
+                GameLogger.LogWarning(GameLogger.LogCategory.UI, 
+                    "UI references validation failed - some UI elements may not work correctly");
+            }
+        }
+        else
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "UIManager is null");
+        }
+    }
 
+    #endregion
+
+    #region UI Reference Management
+    /// <summary>
+    /// Refreshes UI references when returning to the lobby scene.
+    /// This fixes the DontDestroyOnLoad stale reference issue.
+    /// </summary>
+    private void RefreshUIReferences()
+    {
+        // Find UI elements by name in the current scene
+        Button foundCreateButton = FindUIElementByName<Button>("CreateLobbyButton");
+        Transform foundCreatingTextTransform = FindUIElementByName<Transform>("CreatingLobbyText");
+        Transform foundStartingTextTransform = FindUIElementByName<Transform>("StartingGameText");
+        
+        // Convert transforms to GameObjects
+        GameObject foundCreatingText = foundCreatingTextTransform?.gameObject;
+        GameObject foundStartingText = foundStartingTextTransform?.gameObject;
+        
+        // Update references if found
+        bool referencesUpdated = false;
+        
+        if (foundCreateButton != null && createLobbyButton != foundCreateButton)
+        {
+            createLobbyButton = foundCreateButton;
+            referencesUpdated = true;
+            GameLogger.LogInfo(GameLogger.LogCategory.UI, "Updated createLobbyButton reference");
+        }
+        
+        if (foundCreatingText != null && creatingLobbyText != foundCreatingText)
+        {
+            creatingLobbyText = foundCreatingText;
+            referencesUpdated = true;
+            GameLogger.LogInfo(GameLogger.LogCategory.UI, "Updated creatingLobbyText reference");
+        }
+        
+        if (foundStartingText != null && startingGameText != foundStartingText)
+        {
+            startingGameText = foundStartingText;
+            referencesUpdated = true;
+            GameLogger.LogInfo(GameLogger.LogCategory.UI, "Updated startingGameText reference");
+        }
+        
+        // Update UI manager references if any were updated
+        if (referencesUpdated && uiManager != null)
+        {
+            uiManager.SetupUIReferences(createLobbyButton, creatingLobbyText, startingGameText);
+            GameLogger.LogInfo(GameLogger.LogCategory.UI, "UI references refreshed successfully");
+        }
+        else if (!referencesUpdated)
+        {
+            GameLogger.LogDebug(GameLogger.LogCategory.UI, "No UI reference updates needed");
+        }
+    }
+    
+    /// <summary>
+    /// Finds a UI element by name in the current scene.
+    /// Uses multiple search strategies for robust discovery.
+    /// </summary>
+    private T FindUIElementByName<T>(string elementName) where T : Component
+    {
+        // Strategy 1: Find by exact GameObject name
+        GameObject foundObject = GameObject.Find(elementName);
+        if (foundObject != null)
+        {
+            if (foundObject.TryGetComponent<T>(out T component))
+            {
+                GameLogger.LogDebug(GameLogger.LogCategory.UI, $"Found {elementName} by exact name search");
+                return component;
+            }
+        }
+        
+        // Strategy 2: Find in all objects of type T and match by name
+        T[] allComponents = FindObjectsByType<T>(FindObjectsSortMode.None);
+        foreach (T component in allComponents)
+        {
+            if (component.gameObject.name.Contains(elementName) || 
+                component.gameObject.name.Equals(elementName, System.StringComparison.OrdinalIgnoreCase))
+            {
+                GameLogger.LogDebug(GameLogger.LogCategory.UI, $"Found {elementName} by component search");
+                return component;
+            }
+        }
+        
+        // Strategy 3: Find by tag (if element has appropriate tag)
+        string tagName = GetTagForUIElement(elementName);
+        if (!string.IsNullOrEmpty(tagName))
+        {
+            GameObject taggedObject = GameObject.FindGameObjectWithTag(tagName);
+            if (taggedObject != null)
+            {
+                if (taggedObject.TryGetComponent<T>(out T component))
+                {
+                    GameLogger.LogDebug(GameLogger.LogCategory.UI, $"Found {elementName} by tag search: {tagName}");
+                    return component;
+                }
+            }
+        }
+        
+        GameLogger.LogWarning(GameLogger.LogCategory.UI, $"Could not find UI element: {elementName}");
+        return null;
+    }
+    
+    /// <summary>
+    /// Maps UI element names to their expected tags for fallback search.
+    /// </summary>
+    private string GetTagForUIElement(string elementName)
+    {
+        return elementName switch
+        {
+            "CreateLobbyButton" => "CreateLobbyButton",
+            "CreatingLobbyText" => "CreatingLobbyText",
+            "StartingGameText" => "StartingGameText",
+            _ => null
+        };
+    }
+    
     #endregion
 
     #region Lobby Management
