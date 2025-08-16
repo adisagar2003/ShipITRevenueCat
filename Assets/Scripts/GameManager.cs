@@ -7,7 +7,7 @@ using System.Collections.Generic;
 public class GameManager : NetworkBehaviour
 {
     [SerializeField] private string lobbySceneName = "LobbyandHost";
-
+    
     private void Start()
     {
         if (NetworkManager.Singleton == null)
@@ -46,12 +46,12 @@ public class GameManager : NetworkBehaviour
 
     private void OnSceneLoadComplete(string sceneName, LoadSceneMode loadSceneMode, List<ulong> clientsCompleted, List<ulong> clientsTimedOut)
     {
-        Debug.Log($"<color=cyan>[SCENE LOAD COMPLETE]</color> Scene: {sceneName}, IsServer: {IsServer}, IsHost: {IsHost}");
+        Debug.Log($"<color=cyan>[SCENE LOAD COMPLETE]</color> Scene: {sceneName}, IsServer: {IsServer}");
         LogNetworkManagerState($"Scene Load Complete - {sceneName}");
         
         if (!IsHost) 
         {
-            Debug.LogWarning($"<color=yellow>[SCENE LOAD COMPLETE]</color> IsHost is FALSE for scene: {sceneName}");
+            Debug.LogWarning($"<color=yellow>[SCENE LOAD COMPLETE]</color> IsServer is FALSE for scene: {sceneName}");
             return;
         }
 
@@ -100,6 +100,12 @@ public class GameManager : NetworkBehaviour
     {
         if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsClient)
         {
+            // First leave any active session to clean up properly
+            if (LobbyManager.Instance != null)
+            {
+                LobbyManager.Instance.LeaveSession();
+            }
+            
             NetworkManager.Singleton.Shutdown();
             SceneManager.LoadScene(lobbySceneName);
         }
