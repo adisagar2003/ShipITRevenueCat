@@ -216,6 +216,48 @@ public class LobbySessionService : ThreadSafeSimpleSingleton<LobbySessionService
             OnSessionLeft?.Invoke();
         }
     }
+
+    /// <summary>
+    /// Deletes/destroys the current session entirely (host authority).
+    /// This completely removes the session from Unity Multiplayer Services.
+    /// </summary>
+    /// <returns>True if session was successfully deleted</returns>
+    public async Task<bool> DeleteSessionAsync()
+    {
+        if (CurrentSession == null)
+        {
+            GameLogger.LogDebug(GameLogger.LogCategory.Network, "No active session to delete");
+            return true;
+        }
+
+        try
+        {
+            var sessionName = CurrentSession.Name;
+            GameLogger.LogInfo(GameLogger.LogCategory.Network, $"Deleting session: {sessionName}");
+            
+            // Get host session and delete it entirely
+            var hostSession = CurrentSession.AsHost();
+            await hostSession.DeleteAsync();
+            CurrentSession = null;
+            
+            GameLogger.LogInfo(GameLogger.LogCategory.Network, $"Successfully deleted session: {sessionName}");
+            OnSessionLeft?.Invoke();
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            var errorMsg = $"Error deleting session: {ex.Message}";
+            GameLogger.LogError(GameLogger.LogCategory.Network, errorMsg);
+            OnSessionError?.Invoke(errorMsg);
+            
+            // Force clear the session even if delete failed
+            CurrentSession = null;
+            OnSessionLeft?.Invoke();
+            
+            return false;
+        }
+    }
     #endregion
 
     #region Session State Management
@@ -323,16 +365,16 @@ public class LobbySessionService : ThreadSafeSimpleSingleton<LobbySessionService
 
         try
         {
-            GameLogger.LogInfo(GameLogger.LogCategory.Network, "All players connected - cleaning up lobby session");
-            bool success = await LeaveSessionAsync();
+            GameLogger.LogInfo(GameLogger.LogCategory.Network, "All players connected - destroying lobby session as host");
+            bool success = await DeleteSessionAsync();
             
             if (success)
             {
-                GameLogger.LogInfo(GameLogger.LogCategory.Network, "✅ Session successfully cleaned up after all players joined");
+                GameLogger.LogInfo(GameLogger.LogCategory.Network, "✅ Session successfully destroyed after all players joined");
             }
             else
             {
-                GameLogger.LogWarning(GameLogger.LogCategory.Network, "⚠️ Session cleanup completed with warnings");
+                GameLogger.LogWarning(GameLogger.LogCategory.Network, "⚠️ Session destruction completed with warnings");
             }
         }
         catch (Exception ex)
