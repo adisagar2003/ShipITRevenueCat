@@ -96,14 +96,14 @@ public class GameManager : NetworkBehaviour
     }
 
     [ContextMenu("Disconnect Client")]
-    public void DisconnectClient()
+    public async void DisconnectClient()
     {
         if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsClient)
         {
             // First leave any active session to clean up properly
             if (LobbyManager.Instance != null)
             {
-                LobbyManager.Instance.LeaveSession();
+                await LobbyManager.Instance.LeaveSessionAsync();
             }
             
             NetworkManager.Singleton.Shutdown();

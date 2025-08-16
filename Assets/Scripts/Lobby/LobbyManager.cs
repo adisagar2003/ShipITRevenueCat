@@ -827,6 +827,14 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 
     public async void LeaveSession()
     {
+        await LeaveSessionAsync();
+    }
+
+    /// <summary>
+    /// Async version of LeaveSession for proper awaiting.
+    /// </summary>
+    public async Task LeaveSessionAsync()
+    {
         await sessionService.LeaveSessionAsync();
 
         // Also ensure NetworkManager is clean when leaving session
