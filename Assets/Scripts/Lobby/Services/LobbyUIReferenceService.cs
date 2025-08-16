@@ -20,6 +20,7 @@ public class LobbyUIReferenceService : ThreadSafeSimpleSingleton<LobbyUIReferenc
     public event Action<Button> OnCreateButtonFound;
     public event Action<GameObject> OnCreatingTextFound;
     public event Action<GameObject> OnStartingTextFound;
+    public event Action<Button> OnBackButtonFound;
     public event Action OnAllReferencesFound;
     #endregion
 
@@ -27,6 +28,7 @@ public class LobbyUIReferenceService : ThreadSafeSimpleSingleton<LobbyUIReferenc
     public Button CreateLobbyButton { get; private set; }
     public GameObject CreatingLobbyText { get; private set; }
     public GameObject StartingGameText { get; private set; }
+    public Button BackButton { get; private set; }
     
     public bool HasAllReferences => CreateLobbyButton != null && 
                                    CreatingLobbyText != null && 
@@ -128,6 +130,16 @@ public class LobbyUIReferenceService : ThreadSafeSimpleSingleton<LobbyUIReferenc
             if (foundText != null)
             {
                 SetStartingTextReference(foundText);
+                foundAny = true;
+            }
+        }
+        
+        if (BackButton == null)
+        {
+            Button foundButton = FindButtonInScene("BackButton");
+            if (foundButton != null)
+            {
+                SetBackButtonReference(foundButton);
                 foundAny = true;
             }
         }
@@ -249,6 +261,13 @@ public class LobbyUIReferenceService : ThreadSafeSimpleSingleton<LobbyUIReferenc
         OnStartingTextFound?.Invoke(textObject);
     }
 
+    private void SetBackButtonReference(Button button)
+    {
+        BackButton = button;
+        GameLogger.LogInfo(GameLogger.LogCategory.UI, $"BackButton reference set: {button.gameObject.name}");
+        OnBackButtonFound?.Invoke(button);
+    }
+
     private void CheckAllReferencesFound()
     {
         if (HasAllReferences)
@@ -318,6 +337,16 @@ public class LobbyUIReferenceService : ThreadSafeSimpleSingleton<LobbyUIReferenc
                 SetStartingTextReference(foundText);
             }
         }
+        
+        if (BackButton == null)
+        {
+            foundAnyNullReferences = true;
+            Button foundButton = FindButtonInScene("BackButton");
+            if (foundButton != null)
+            {
+                SetBackButtonReference(foundButton);
+            }
+        }
 
         if (!foundAnyNullReferences && HasAllReferences)
         {
@@ -342,6 +371,11 @@ public class LobbyUIReferenceService : ThreadSafeSimpleSingleton<LobbyUIReferenc
             {
                 LobbyManager.Instance.AssignCreateButtonListener();
             }
+            // Assign listener for BackButton specifically
+            else if (buttonName.Equals("BackButton", StringComparison.OrdinalIgnoreCase))
+            {
+                AssignBackButtonListener(directButton);
+            }
             
             return directButton;
         }
@@ -360,12 +394,38 @@ public class LobbyUIReferenceService : ThreadSafeSimpleSingleton<LobbyUIReferenc
                 {
                     LobbyManager.Instance.AssignCreateButtonListener();
                 }
+                // Assign listener for BackButton specifically
+                else if (buttonName.Equals("BackButton", StringComparison.OrdinalIgnoreCase))
+                {
+                    AssignBackButtonListener(button);
+                }
                 
                 return button;
             }
         }
         
         return null;
+    }
+
+    /// <summary>
+    /// Assigns the BackToPreviousScene listener to the BackButton.
+    /// </summary>
+    private void AssignBackButtonListener(Button backButton)
+    {
+        if (backButton != null)
+        {
+            // Clear any existing listeners to avoid duplicates
+            backButton.onClick.RemoveAllListeners();
+            
+            // Add listener to call BackToPreviousScene
+            backButton.onClick.AddListener(() => LobbyManager.Instance.BackToPreviousScene());
+            
+            GameLogger.LogInfo(GameLogger.LogCategory.UI, "Assigned BackToPreviousScene listener to BackButton");
+        }
+        else
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "Cannot assign back button listener - BackButton is null");
+        }
     }
 
     private GameObject FindGameObjectInScene(string objectName)
