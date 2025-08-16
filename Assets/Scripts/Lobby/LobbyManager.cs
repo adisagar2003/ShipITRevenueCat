@@ -58,6 +58,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     public LobbySessionService sessionService;
     private LobbyNetworkService networkService;
     private LobbyPollingService pollingService;
+    private LobbyUIReferenceService uiReferenceService;
     #endregion
 
     #region Unity Lifecycle
@@ -96,6 +97,10 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         sessionService = LobbySessionService.Instance;
         networkService = LobbyNetworkService.Instance;
         pollingService = LobbyPollingService.Instance;
+        uiReferenceService = LobbyUIReferenceService.Instance;
+        
+        // Initialize UI reference service
+        uiReferenceService.Initialize(this);
         
         // Subscribe to session service events for UI updates
         sessionService.OnSessionCreated += OnSessionCreatedByService;
@@ -113,6 +118,10 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         pollingService.OnSessionsUpdated += OnSessionsUpdatedByService;
         pollingService.OnGameStartDetected += OnGameStartDetectedByService;
         pollingService.OnPollingError += OnPollingErrorByService;
+        
+        // Subscribe to UI reference service events
+        uiReferenceService.OnCreateButtonFound += OnCreateButtonFoundByService;
+        uiReferenceService.OnAllReferencesFound += OnAllReferencesFoundByService;
         
         GameLogger.LogInfo(GameLogger.LogCategory.Network, "Lobby services initialized");
     }
@@ -222,9 +231,48 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     {
         GameLogger.LogWarning(GameLogger.LogCategory.Network, $"Polling service error: {errorMessage}");
     }
+    
+    /// <summary>
+    /// Handles create button found event from UI reference service.
+    /// </summary>
+    private void OnCreateButtonFoundByService(Button button)
+    {
+        // Update our local reference
+        createLobbyButton = button;
+        
+        // Assign the CreateSession listener with "randomLobby" parameter
+        AssignCreateButtonListener();
+        
+        GameLogger.LogInfo(GameLogger.LogCategory.UI, "Create button found and listener assigned by service");
+    }
+    
+    /// <summary>
+    /// Handles all references found event from UI reference service.
+    /// </summary>
+    private void OnAllReferencesFoundByService()
+    {
+        // Update our local references from the service
+        createLobbyButton = uiReferenceService.CreateLobbyButton;
+        creatingLobbyText = uiReferenceService.CreatingLobbyText;
+        startingGameText = uiReferenceService.StartingGameText;
+        
+        // Update UI manager with new references
+        if (uiManager != null)
+        {
+            uiManager.SetupUIReferences(createLobbyButton, creatingLobbyText, startingGameText);
+        }
+        
+        GameLogger.LogInfo(GameLogger.LogCategory.UI, "All UI references found and updated by service");
+    }
 
     protected override void OnSingletonDestroyed()
     {
+        // Stop UI polling service
+        if (uiReferenceService != null)
+        {
+            uiReferenceService.Cleanup();
+        }
+        
         // Stop lobby operations - handled by service cleanup
 
         // Unsubscribe from service events to prevent memory leaks
@@ -260,6 +308,12 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             pollingService.Cleanup();
         }
 
+        if (uiReferenceService != null)
+        {
+            uiReferenceService.OnCreateButtonFound -= OnCreateButtonFoundByService;
+            uiReferenceService.OnAllReferencesFound -= OnAllReferencesFoundByService;
+        }
+
         GameLogger.LogInfo(GameLogger.LogCategory.Network, "LobbyManager disposed");
         base.OnSingletonDestroyed();
     }
@@ -289,6 +343,9 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 #endif
         StartCoroutine(WaitForNetworkManagerReady());
         _ = pollingService.StartSessionPollingAsync(sessionService);
+        
+        // Start UI reference polling
+        uiReferenceService.StartPolling();
     }
 
     private void OnEnable()
@@ -296,19 +353,20 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         // Detect scene changes and refresh UI accordingly
         DetectSceneChange();
         
-        // Refresh UI references when returning to lobby scene
-        // This fixes the DontDestroyOnLoad stale reference issue
+        // Refresh UI references when returning to lobby scene using service
         RefreshUIReferences();
         
-        // Validate UI references after refresh
-        ValidateAndLogUIState();
-        
         // Reset UI state when returning to lobby scene
-        // This fixes the "Creating Lobby..." persistence issue
         if (uiManager != null)
         {
             uiManager.ResetUIToLobbyState();
             GameLogger.LogDebug(GameLogger.LogCategory.UI, "UI state reset on scene enable");
+        }
+        
+        // Restart UI polling if it's not running
+        if (uiReferenceService != null && !uiReferenceService.IsPollingActive)
+        {
+            uiReferenceService.StartPolling();
         }
     }
     
@@ -347,13 +405,13 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
     }
     
     /// <summary>
-    /// Validates UI state and logs current status for debugging.
+    /// Validates UI state using the reference service.
     /// </summary>
     private void ValidateAndLogUIState()
     {
-        if (uiManager != null)
+        if (uiReferenceService != null)
         {
-            bool isValid = uiManager.ValidateUIReferences();
+            bool isValid = uiReferenceService.ValidateReferences();
             if (!isValid)
             {
                 GameLogger.LogWarning(GameLogger.LogCategory.UI, 
@@ -362,7 +420,7 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
         }
         else
         {
-            GameLogger.LogWarning(GameLogger.LogCategory.UI, "UIManager is null");
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "UIReferenceService is null");
         }
     }
 
@@ -370,116 +428,127 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
 
     #region UI Reference Management
     /// <summary>
-    /// Refreshes UI references when returning to the lobby scene.
-    /// This fixes the DontDestroyOnLoad stale reference issue.
+    /// Refreshes UI references using the dedicated UI reference service.
     /// </summary>
     private void RefreshUIReferences()
     {
-        // Find UI elements by name in the current scene
-        Button foundCreateButton = FindUIElementByName<Button>("CreateLobbyButton");
-        Transform foundCreatingTextTransform = FindUIElementByName<Transform>("CreatingLobbyText");
-        Transform foundStartingTextTransform = FindUIElementByName<Transform>("StartingGameText");
-        
-        // Convert transforms to GameObjects
-        GameObject foundCreatingText = foundCreatingTextTransform?.gameObject;
-        GameObject foundStartingText = foundStartingTextTransform?.gameObject;
-        
-        // Update references if found
-        bool referencesUpdated = false;
-        
-        if (foundCreateButton != null && createLobbyButton != foundCreateButton)
+        if (uiReferenceService != null)
         {
-            createLobbyButton = foundCreateButton;
-            referencesUpdated = true;
-            GameLogger.LogInfo(GameLogger.LogCategory.UI, "Updated createLobbyButton reference");
+            // Update service with current serialized references
+            uiReferenceService.UpdateReferences(createLobbyButton, creatingLobbyText, startingGameText);
+            
+            // Trigger manual refresh through service
+            uiReferenceService.RefreshReferences();
+            
+            GameLogger.LogDebug(GameLogger.LogCategory.UI, "UI reference refresh delegated to service");
         }
-        
-        if (foundCreatingText != null && creatingLobbyText != foundCreatingText)
+        else
         {
-            creatingLobbyText = foundCreatingText;
-            referencesUpdated = true;
-            GameLogger.LogInfo(GameLogger.LogCategory.UI, "Updated creatingLobbyText reference");
-        }
-        
-        if (foundStartingText != null && startingGameText != foundStartingText)
-        {
-            startingGameText = foundStartingText;
-            referencesUpdated = true;
-            GameLogger.LogInfo(GameLogger.LogCategory.UI, "Updated startingGameText reference");
-        }
-        
-        // Update UI manager references if any were updated
-        if (referencesUpdated && uiManager != null)
-        {
-            uiManager.SetupUIReferences(createLobbyButton, creatingLobbyText, startingGameText);
-            GameLogger.LogInfo(GameLogger.LogCategory.UI, "UI references refreshed successfully");
-        }
-        else if (!referencesUpdated)
-        {
-            GameLogger.LogDebug(GameLogger.LogCategory.UI, "No UI reference updates needed");
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "UIReferenceService is null - cannot refresh references");
         }
     }
     
     /// <summary>
-    /// Finds a UI element by name in the current scene.
-    /// Uses multiple search strategies for robust discovery.
+    /// Finds a GameObject by exact name in the current scene.
     /// </summary>
-    private T FindUIElementByName<T>(string elementName) where T : Component
+    private GameObject FindGameObjectByName(string gameObjectName)
     {
-        // Strategy 1: Find by exact GameObject name
-        GameObject foundObject = GameObject.Find(elementName);
+        GameObject foundObject = GameObject.Find(gameObjectName);
         if (foundObject != null)
         {
-            if (foundObject.TryGetComponent<T>(out T component))
-            {
-                GameLogger.LogDebug(GameLogger.LogCategory.UI, $"Found {elementName} by exact name search");
-                return component;
-            }
+            GameLogger.LogDebug(GameLogger.LogCategory.UI, $"Found GameObject: {gameObjectName}");
+            return foundObject;
         }
         
-        // Strategy 2: Find in all objects of type T and match by name
-        T[] allComponents = FindObjectsByType<T>(FindObjectsSortMode.None);
-        foreach (T component in allComponents)
-        {
-            if (component.gameObject.name.Contains(elementName) || 
-                component.gameObject.name.Equals(elementName, System.StringComparison.OrdinalIgnoreCase))
-            {
-                GameLogger.LogDebug(GameLogger.LogCategory.UI, $"Found {elementName} by component search");
-                return component;
-            }
-        }
-        
-        // Strategy 3: Find by tag (if element has appropriate tag)
-        string tagName = GetTagForUIElement(elementName);
-        if (!string.IsNullOrEmpty(tagName))
-        {
-            GameObject taggedObject = GameObject.FindGameObjectWithTag(tagName);
-            if (taggedObject != null)
-            {
-                if (taggedObject.TryGetComponent<T>(out T component))
-                {
-                    GameLogger.LogDebug(GameLogger.LogCategory.UI, $"Found {elementName} by tag search: {tagName}");
-                    return component;
-                }
-            }
-        }
-        
-        GameLogger.LogWarning(GameLogger.LogCategory.UI, $"Could not find UI element: {elementName}");
+        GameLogger.LogWarning(GameLogger.LogCategory.UI, $"Could not find GameObject: {gameObjectName}");
         return null;
     }
     
     /// <summary>
-    /// Maps UI element names to their expected tags for fallback search.
+    /// Finds a Button component by searching for GameObject name and getting Button component.
     /// </summary>
-    private string GetTagForUIElement(string elementName)
+    private Button FindButtonByGameObjectName(string gameObjectName)
     {
-        return elementName switch
+        GameObject foundObject = GameObject.Find(gameObjectName);
+        if (foundObject != null)
         {
-            "CreateLobbyButton" => "CreateLobbyButton",
-            "CreatingLobbyText" => "CreatingLobbyText",
-            "StartingGameText" => "StartingGameText",
-            _ => null
-        };
+            if (foundObject.TryGetComponent<Button>(out Button button))
+            {
+                GameLogger.LogDebug(GameLogger.LogCategory.UI, $"Found Button on GameObject: {gameObjectName}");
+                return button;
+            }
+            else
+            {
+                GameLogger.LogWarning(GameLogger.LogCategory.UI, $"GameObject {gameObjectName} found but has no Button component");
+            }
+        }
+        else
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, $"Could not find GameObject: {gameObjectName}");
+        }
+        
+        return null;
+    }
+    
+    /// <summary>
+    /// Logs available GameObjects in the scene for debugging UI discovery issues.
+    /// </summary>
+    private void LogAvailableGameObjects()
+    {
+        GameLogger.LogWarning(GameLogger.LogCategory.UI, "UI elements not found. Listing available GameObjects for debugging:");
+        
+        // Find all GameObjects in the scene
+        GameObject[] allObjects = FindObjectsByType<GameObject>(FindObjectsSortMode.None);
+        int loggedCount = 0;
+        
+        foreach (GameObject obj in allObjects)
+        {
+            // Only log objects that might be UI related
+            if (obj.name.Contains("Button", System.StringComparison.OrdinalIgnoreCase) ||
+                obj.name.Contains("Text", System.StringComparison.OrdinalIgnoreCase) ||
+                obj.name.Contains("Lobby", System.StringComparison.OrdinalIgnoreCase) ||
+                obj.name.Contains("Create", System.StringComparison.OrdinalIgnoreCase) ||
+                obj.name.Contains("Start", System.StringComparison.OrdinalIgnoreCase))
+            {
+                string components = "";
+                if (obj.GetComponent<Button>() != null) components += "[Button]";
+                if (obj.GetComponent<UnityEngine.UI.Text>() != null) components += "[Text]";
+                if (obj.GetComponent<TMPro.TextMeshProUGUI>() != null) components += "[TMPro]";
+                
+                GameLogger.LogDebug(GameLogger.LogCategory.UI, $"GameObject: '{obj.name}' {components}");
+                loggedCount++;
+                
+                // Limit logging to prevent spam
+                if (loggedCount > 20) break;
+            }
+        }
+        
+        if (loggedCount == 0)
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "No UI-related GameObjects found in scene");
+        }
+    }
+    
+    
+    /// <summary>
+    /// Assigns the CreateSession listener to the createLobbyButton with "randomLobby" parameter.
+    /// </summary>
+    private void AssignCreateButtonListener()
+    {
+        if (createLobbyButton != null)
+        {
+            // Clear any existing listeners to avoid duplicates
+            createLobbyButton.onClick.RemoveAllListeners();
+            
+            // Add listener to call CreateSession with "randomLobby" parameter
+            createLobbyButton.onClick.AddListener(() => CreateSession("randomLobby"));
+            
+            GameLogger.LogInfo(GameLogger.LogCategory.UI, "Assigned CreateSession listener to createLobbyButton with 'randomLobby' parameter");
+        }
+        else
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "Cannot assign button listener - createLobbyButton is null");
+        }
     }
     
     #endregion
@@ -491,6 +560,67 @@ public class LobbyManager : ThreadSafeSingleton<LobbyManager>
             await Task.Delay(100);
     }
 
+    #endregion
+
+    #region Manual UI Debug Methods
+    [ContextMenu("Debug: List All UI GameObjects")]
+    public void DebugListAllUIGameObjects()
+    {
+        LogAvailableGameObjects();
+    }
+    
+    [ContextMenu("Debug: Force UI Refresh")]
+    public void DebugForceUIRefresh()
+    {
+        RefreshUIReferences();
+    }
+    
+    [ContextMenu("Debug: Assign Button Listener")]
+    public void DebugAssignButtonListener()
+    {
+        AssignCreateButtonListener();
+    }
+    
+    [ContextMenu("Debug: Validate Current UI References")]
+    public void DebugValidateUIReferences()
+    {
+        if (uiReferenceService != null)
+        {
+            uiReferenceService.ValidateReferences();
+        }
+        else
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "UIReferenceService is null");
+        }
+    }
+    
+    [ContextMenu("Debug: Start UI Polling")]
+    public void DebugStartUIPolling()
+    {
+        if (uiReferenceService != null)
+        {
+            uiReferenceService.SetPollingEnabled(true);
+            GameLogger.LogInfo(GameLogger.LogCategory.UI, "UI Polling manually started via service");
+        }
+        else
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "UIReferenceService is null");
+        }
+    }
+    
+    [ContextMenu("Debug: Stop UI Polling")]
+    public void DebugStopUIPolling()
+    {
+        if (uiReferenceService != null)
+        {
+            uiReferenceService.SetPollingEnabled(false);
+            GameLogger.LogInfo(GameLogger.LogCategory.UI, "UI Polling manually stopped via service");
+        }
+        else
+        {
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, "UIReferenceService is null");
+        }
+    }
     #endregion
 
     #region Manual Refresh
