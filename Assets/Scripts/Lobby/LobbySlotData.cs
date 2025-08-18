@@ -195,7 +195,7 @@ public class LobbySlotData : MonoBehaviour
         // Prevent double-clicks and multiple join attempts
         if (LobbyManager.Instance == null || hasJoined || isJoining) return;
 
-        if (LobbyManager.Instance.currentSession != null)
+        if (lobbySessionService.HasActiveSession)
         {
 #if debug
             Debug.LogWarning("Already in a session, cannot join another");
@@ -209,31 +209,27 @@ public class LobbySlotData : MonoBehaviour
 
         try
         {
-            var session = await MultiplayerService.Instance.JoinSessionByIdAsync(lobbyId);
-            LobbyManager.Instance.currentSession = session;
-            hasJoined = true;
-            SetJoinButtonState(false, "Joined"); // Keep disabled with "Joined" text
-#if debug
-            Debug.Log($"Successfully joined lobby: {session.Name}");
-#endif
-
-            // Start polling for game start if we're not the host
-            if (!isHost)
+            // Use proper service architecture instead of direct API call
+            bool joinSuccess = await lobbySessionService.JoinSessionAsync(lobbyId);
+            
+            if (joinSuccess)
             {
-                _ = LobbyPollingService.Instance.StartPollingForGameStartAsync(lobbySessionService);
+                hasJoined = true;
+                SetJoinButtonState(false, "Joined"); // Keep disabled with "Joined" text
 #if debug
-                Debug.Log("Started polling for game start as client");
+                Debug.Log($"Successfully joined lobby: {lobbyId}");
 #endif
+                // Note: Polling for game start is now handled by LobbyManager.OnSessionJoinedByService event
             }
-        }
-        catch (SessionException e)
-        {
+            else
+            {
+                // Join failed through service
 #if debug
-            Debug.LogError($"Failed to join lobby: {e.Message}");
+                Debug.LogError("Failed to join lobby through session service");
 #endif
-            hasJoined = false;
-            isJoining = false;
-            SetJoinButtonState(true, "Join Lobby"); // Re-enable on failure
+                hasJoined = false;
+                SetJoinButtonState(true, "Join Lobby"); // Re-enable on failure
+            }
         }
         catch (System.Exception e)
         {
@@ -241,7 +237,6 @@ public class LobbySlotData : MonoBehaviour
             Debug.LogError($"Unexpected error joining lobby: {e.Message}");
 #endif
             hasJoined = false;
-            isJoining = false;
             SetJoinButtonState(true, "Join Lobby"); // Re-enable on failure
         }
         finally
