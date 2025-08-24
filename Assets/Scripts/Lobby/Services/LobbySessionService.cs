@@ -347,6 +347,7 @@ public class LobbySessionService : ThreadSafeSimpleSingleton<LobbySessionService
     /// <summary>
     /// Handles the event when all players are connected in the race level.
     /// Only processes if this instance is the host to avoid duplicate cleanup.
+    /// Delays cleanup to allow clients to finish their join process.
     /// </summary>
     private async void OnAllPlayersConnectedHandler()
     {
@@ -365,7 +366,13 @@ public class LobbySessionService : ThreadSafeSimpleSingleton<LobbySessionService
 
         try
         {
-            GameLogger.LogInfo(GameLogger.LogCategory.Network, "All players connected - destroying lobby session as host");
+            GameLogger.LogInfo(GameLogger.LogCategory.Network, "All players connected - delaying lobby session cleanup to allow clients to finish joining...");
+            
+            // Wait a bit to ensure all clients have finished their join process
+            // This prevents race condition where session is deleted while clients are still polling
+            await Task.Delay(3000); // 3 second delay
+            
+            GameLogger.LogInfo(GameLogger.LogCategory.Network, "Cleanup delay complete - now destroying lobby session as host");
             bool success = await DeleteSessionAsync();
             
             if (success)
