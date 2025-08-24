@@ -23,10 +23,22 @@ public class LobbySlotData : MonoBehaviour
 
     private void Awake()
     {
+        // Add null checks to prevent crashes
         lobbyManager = FindObjectOfType<LobbyManager>();
+        if (lobbyManager == null)
+        {
+            Debug.LogError("LobbyManager not found! Make sure LobbyManager exists in scene.");
+            return;
+        }
+        
+        // Safely get session service (might be null during initialization)
         lobbySessionService = lobbyManager.sessionService;
-        joinLobbyButton.onClick.AddListener(JoinLobby);
-        startGameButton.onClick.AddListener(StartGame);
+        
+        // Add button listeners with null checks
+        if (joinLobbyButton != null)
+            joinLobbyButton.onClick.AddListener(JoinLobby);
+        if (startGameButton != null)
+            startGameButton.onClick.AddListener(StartGame);
     }
 
     public void Initialize(ISessionInfo lobby)
@@ -194,6 +206,17 @@ public class LobbySlotData : MonoBehaviour
     {
         // Prevent double-clicks and multiple join attempts
         if (LobbyManager.Instance == null || hasJoined || isJoining) return;
+
+        // Ensure we have session service (in case it wasn't ready during Awake)
+        if (lobbySessionService == null)
+        {
+            lobbySessionService = LobbyManager.Instance.sessionService;
+            if (lobbySessionService == null)
+            {
+                Debug.LogError("LobbySessionService not available yet!");
+                return;
+            }
+        }
 
         if (lobbySessionService.HasActiveSession)
         {
